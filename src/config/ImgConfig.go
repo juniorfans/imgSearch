@@ -5,20 +5,11 @@ type ImgConfig struct {
 	width int
 	height int
 
-	label1StartX int
-	label1StartY int
-	label1EndX int
-	label1EndY int
 
-	label2StartX int
-	label2StartY int
-	label2EndX int
-	label2EndY int
 
 	TheClipConfig *ClipConfig
 
-	ClipIndexOffset int
-	ClipIndexLength int
+	OverrideClipLength int	// 每个 clip 提取 index 时使用的 ClipLength 是多少, 会覆盖 normalClipConfig.ClipLength
 
 	Id uint8
 }
@@ -26,20 +17,9 @@ type ImgConfig struct {
 var normalImgConfig = ImgConfig{
 	width:293,
 	height:190,
-
-	label1StartX:120,
-	label1StartY:0,
-	label1EndX:176,
-	label1EndY:29,
-
-	label2StartX:180,
-	label2StartY:0,
-	label2EndX:236,
-	label2EndY:29,
 	TheClipConfig:&normalClipConfig,
 
-	ClipIndexLength:4,
-	ClipIndexOffset:normalClipConfig.SmallPicWidth * normalClipConfig.SmallPicHeight/2 - 8,
+	OverrideClipLength: 1,//normalClipConfig.ClipLengh,
 
 	Id:0,
 }

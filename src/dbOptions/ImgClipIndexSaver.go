@@ -6,70 +6,115 @@ import (
 	"config"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strconv"
-	"image/jpeg"
-	"io"
-	"bytes"
 	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"strings"
 	"imgIndex"
+	"imgOptions"
+	"bufio"
+	"os"
+	"runtime"
 )
 
 
 
 var caclFinished chan int
 
-func threadFunc(threadId int, iter iterator.Iterator, count int, offsetOfClip, indexLength int)  {
-	groupName := config.ThreadIdToName[threadId]
-	iter.Seek([]byte(groupName))
+func threadFunc(dbIndex, threadId int, iter iterator.Iterator, count int, offsetOfClip []int, indexLength int)  {
+	threadByte := byte(config.ThreadIdToByte[threadId])
+
+	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgClipsDB(), dbIndex, threadId)
+
+	if nil == lastDealedKey || 0 == curCount{
+		iter.Seek([]byte{threadByte})
+	}else{
+		iter.Seek(lastDealedKey)
+		if iter.Valid(){
+			iter.Next()
+		}
+	}
+
+
 	if !iter.Valid(){
 		fmt.Println("thread ", threadId, " iterator is invalid")
 		return
 	}
+
+	baseCount := 0
+	failedCount := 0
 	for iter.Valid(){
-		if 0 != strings.Index(string(iter.Key()), groupName){
+		curKey := iter.Key()
+		if curKey[0] != threadByte {
+			iter.Prev()
+			lastDealedKey = iter.Key()
 			break
 		}
-		fmt.Println("thread ", threadId, " dealing: ", string(iter.Key()))
 
-		SaveAllClipsToDBOf(iter.Value(), iter.Key(), offsetOfClip, indexLength)
+		if baseCount!=0 && 0 == baseCount % 1000{
+			fmt.Println("thread ", threadId, " dealing: ", baseCount)
+		}
+
+		if !SaveAllClipsToDBOf(iter.Value(), iter.Key(), offsetOfClip, indexLength){
+			failedCount ++
+			continue
+		}
 
 		iter.Next()
+
+		baseCount ++
 		count --
 		if count <= 0{
 			break
 		}
 	}
+	iter.Release()
 
+	curCount += baseCount
+
+	fmt.Println("lastValue: threadId: ", threadId, " -- ",string(lastDealedKey))
+
+	SetThreadLastDealedKey(InitImgClipsDB(),dbIndex, threadId, lastDealedKey, curCount)
+	fmt.Println("thread ", threadId," dealed: ", baseCount ,", failedCount: ", failedCount)
 	caclFinished <- threadId
 }
 
-func Calc(count int, offsetOfClip, indexLength int) {
+
+func BeginImgClipSave(dbIndex, count int, offsetOfClip []int, indexLength int) {
 	cores := 8
+	runtime.GOMAXPROCS(cores)
+
 	caclFinished = make(chan int, cores)
 
-	imgDB := InitImgDB()
+	imgDB := GetImgDBWhichPicked()
 	InitImgClipsDB()
 
-	for i:=0;i != cores;i++{
-		go threadFunc(i, imgDB.DBPtr.NewIterator(nil,&imgDB.ReadOptions),count, offsetOfClip, indexLength)
+	for i:=0;i < cores;i++{
+		go threadFunc(dbIndex,i, imgDB.DBPtr.NewIterator(nil,&imgDB.ReadOptions),count, offsetOfClip, indexLength)
 	}
 
 	for i:=0;i < cores;i ++{
 		threadId := <- caclFinished
 		fmt.Println("thread ", threadId ," finished")
 	}
+
+	RepairTotalSize(InitImgClipsDB())
+
 	fmt.Println("All finished ~")
 }
 
-func SaveAllClipsToDBOf(srcData []byte, mainImgkey []byte, offsetOfClip, indexLength int){
+
+func SaveAllClipsToDBOf(srcData []byte, mainImgkey []byte, offsetOfClip []int, indexLength int) bool{
 
 	//获得 mainImgKey 的各个切图的索引数据
 	indexes := GetDBIndexOfClipsBySrcData(srcData,mainImgkey,offsetOfClip, indexLength)
+	if nil == indexes{
+		fmt.Println("save clips to db for ", string(mainImgkey), " failed")
+		return false
+	}
 
 	imgClipDB := InitImgClipsDB()
 	if nil == imgClipDB{
 		fmt.Println("open img_clip db error, ")
-		return
+		return false
 	}
 
 	//保存各个索引数据
@@ -78,75 +123,95 @@ func SaveAllClipsToDBOf(srcData []byte, mainImgkey []byte, offsetOfClip, indexLe
 	}
 
 	//ReadValues(imgClipDB.DBPtr, 100)
+
+	return true
 }
 
-func SaveAllClipsAsJpgOf(mainImgkey []byte, offsetOfClip, indexLength int){
-	dbConfig := InitImgDB()
+func SaveAllClipsAsJpgOf(dir string, mainImgkey []byte, offsetOfClip[] int, indexLength int){
+	dbConfig := GetImgDBWhichPicked()
 	if nil == dbConfig{
 		fmt.Println("open imgdb error, ")
 	}
 
 	indexes := GetDBIndexOfClips(dbConfig,mainImgkey,offsetOfClip, indexLength)
 	for _, index := range indexes{
-		SaveClipsAsImg(index)
+		SaveClipsAsImg(dir, index)
 	}
+
+	SaveMainImg(string(mainImgkey), dir)
 }
 
-func SaveClipsAsImg(indexData ImgIndex.ImgClipIndex) {
+func SaveClipsAsImg(dir string, indexData ImgIndex.SubImgIndex) {
 	mainImgName := string(indexData.KeyOfMainImg)
 	clipName := mainImgName+strconv.Itoa(int(indexData.Which))+".jpg"
-	clipConfig := config.GetClipConfigById(indexData.ClipConfigId)
+	clipConfig := config.GetClipConfigById(indexData.ConfigId)
 
 	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像
-	data := imgo.New3DSlice(clipConfig.SmallPicWidth, clipConfig.SmallPicHeight, 4)
+	data := imgo.New3DSlice(clipConfig.SmallPicHeight, clipConfig.SmallPicWidth, 4)
 	indexes := indexData.IndexUnits
 	for _, index := range indexes{
-		recoverClip(data, clipConfig.SmallPicHeight, clipConfig.SmallPicWidth, index)
+		//ImgIndex.IndexDataApplyIntoSubImg(data, clipConfig.SmallPicHeight, clipConfig.SmallPicWidth, index)
+		ImgIndex.IndexDataApplyIntoSubImg(data, index)
 	}
 
-	fmt.Println("gen name: " , "E:/gen/" + clipName)
-	imgo.SaveAsJPEG("E:/gen/" + clipName,data,100)
+	fmt.Println("gen name: " , dir + "/" + clipName)
+	imgo.SaveAsJPEG(dir + "/" + clipName,data,100)
 }
 
-func SaveClipsToDB(clipDBConfig *ImgDBConfig, indexData ImgIndex.ImgClipIndex) {
-	index := indexData.GetFlatInfo()
+func getValueForClipsKey(oldValue []byte, indexData ImgIndex.SubImgIndex) string {
 
-	exsitsMainImgKey,err := clipDBConfig.DBPtr.Get(index, &clipDBConfig.ReadOptions)
-	if err != leveldb.ErrNotFound{
-		newMainKeys := string(exsitsMainImgKey) + "-"+string(indexData.KeyOfMainImg)
-		clipDBConfig.DBPtr.Put(index,[]byte(newMainKeys), &clipDBConfig.WriteOptions)
-		return
-	}
+	mainImgKey := string(indexData.KeyOfMainImg)
 
-	clipDBConfig.DBPtr.Put(index,indexData.KeyOfMainImg,&clipDBConfig.WriteOptions)
-}
+	dbId := strconv.Itoa(GetImgDBWhichPicked().Id)
 
-/**
-	将 indexUnit 指示的一个索引单元复原到 data 中
- */
-func recoverClip(data [][][]uint8, height, width int, indexUnit ImgIndex.IndexUnit)  {
-	count := 0
+	var newMainKeys string
+	if 0 != len(oldValue){
+		exsitsMainImgKey := string(oldValue)
 
-	var pcs  []ImgIndex.PointColor = indexUnit.Index
-	realCount := 0
-	realCountLimit := len(pcs)
-	for j:=0;j < height;j++  {
-		for i:=0;i < width;i++  {
-			if count >= indexUnit.Offset{
-				if realCount>= realCountLimit{
-					return
-				}
-				var colors [4]uint8 = [4]uint8(pcs[realCount])
-				data[j][i][0] = colors[0]
-				data[j][i][1] = colors[1]
-				data[j][i][2] = colors[2]
-				data[j][i][3] = colors[3]
-				realCount ++
+		dotPos := strings.LastIndex(exsitsMainImgKey, "-")
+		if -1==dotPos{
+			//格式不对，可能已经损坏，重新计数
+			newMainKeys = mainImgKey + "-" + dbId + "-2" //当前 clip-key 所属的 main image 总共有 2 个，其中一个是 exsitsMainImgKey，所在的 imgdb 是 dbId
+		}else{
+			count , cerr := strconv.Atoi(exsitsMainImgKey[dotPos+1:])
+			if nil == cerr{
+				count ++
+				newMainKeys = exsitsMainImgKey[0:dotPos+1] + strconv.Itoa(count)
+			}else{
+				newMainKeys = mainImgKey + "-" +dbId + "-2"
 			}
-			count ++
 		}
+	}else{
+		newMainKeys = mainImgKey + "-" +dbId + "-1"	//当前 clip-key 所属的 main image 总共有 1 个
 	}
-	return
+	return newMainKeys
+}
+
+func getValueForClipsKeyForTest(oldValue []byte, indexData ImgIndex.SubImgIndex) string {
+	mainImgKey := string(indexData.KeyOfMainImg)
+	dbId := strconv.Itoa(GetImgDBWhichPicked().Id)
+
+	if 0 == len(oldValue){
+		newMainKeys := string(mainImgKey) + "-" + dbId
+		return newMainKeys
+	}
+
+	newMainKeys := string(oldValue) + "-" + string(mainImgKey) + "-" + dbId
+	if strings.Count(newMainKeys, "-") > 10{
+		fmt.Println(newMainKeys)
+	}
+	return newMainKeys
+}
+
+func SaveClipsToDB(clipDBConfig *DBConfig, indexData ImgIndex.SubImgIndex) {
+	index := indexData.GetFlatInfo()
+	oldValue, err := clipDBConfig.DBPtr.Get(index, &clipDBConfig.ReadOptions)
+	if err == leveldb.ErrNotFound{
+		oldValue = nil
+	}
+	newMainKeys := getValueForClipsKey(oldValue, indexData)
+	//fmt.Println("newMainImaKey: ", newMainKeys)
+	clipDBConfig.DBPtr.Put(index,[]byte(newMainKeys), &clipDBConfig.WriteOptions)
 }
 
 /**
@@ -157,7 +222,7 @@ func recoverClip(data [][][]uint8, height, width int, indexUnit ImgIndex.IndexUn
 	offsetOfClip 为负数则置为0，大于边界则返回 nil
 	indexLength 过大或者为负数则返回从 offsetOfClip 开始的所有数据
  */
-func GetDBIndexOfClips(dbConfig *ImgDBConfig,mainImgkey []byte, offsetOfClip, indexLength int) []ImgIndex.ImgClipIndex {
+func GetDBIndexOfClips(dbConfig *DBConfig,mainImgkey []byte, offsetOfClip []int, indexLength int) []ImgIndex.SubImgIndex {
 	srcData,err := dbConfig.DBPtr.Get(mainImgkey, &dbConfig.ReadOptions)
 	if err == leveldb.ErrNotFound{
 		fmt.Println("not found image key: ", string(mainImgkey), err)
@@ -175,20 +240,40 @@ func GetDBIndexOfClips(dbConfig *ImgDBConfig,mainImgkey []byte, offsetOfClip, in
 	offsetOfClip 为负数则置为0，大于边界则返回 nil
 	indexLength 过大或者为负数则返回从 offsetOfClip 开始的所有数据
  */
-func GetDBIndexOfClipsBySrcData(srcData []byte,mainImgkey []byte, offsetOfClip, indexLength int) []ImgIndex.ImgClipIndex {
-	var reader io.Reader = bytes.NewReader([]byte(srcData))
+func GetDBIndexOfClipsBySrcData(srcData []byte,mainImgkey []byte, offsetOfClip []int, indexLength int) []ImgIndex.SubImgIndex {
 
-	image, err := jpeg.Decode(reader)
-	if nil != err{
-		fmt.Println("not jpeg data: ", string(mainImgkey), err)
-		return nil
-	}
-	data, err := imgo.Read(image)
-	if nil != err{
-		fmt.Println("read jpeg data error: ", string(mainImgkey), err)
+	data := ImgOptions.FromImageFlatBytesToStructBytes(srcData)
+
+	if nil == data{
+		fmt.Println("read jpeg data error: ", string(mainImgkey))
 		return nil
 	}
 
-	return ImgIndex.GetClipsIndexOfImg(data, mainImgkey, offsetOfClip, indexLength)
+	return ImgIndex.GetClipsIndexOfImgEx(data, mainImgkey, offsetOfClip, indexLength)
+}
 
+func TestClipsSaveToJpg()  {
+	stdin := bufio.NewReader(os.Stdin)
+	var dbIndex int
+	var input string
+
+	for {
+		fmt.Println("select a image db to deal: ")
+		fmt.Fscan(stdin, &dbIndex)
+		imgDB := PickImgDB(dbIndex)
+		if nil == imgDB{
+			fmt.Println("open db: ", dbIndex, " error")
+			continue
+		}
+
+		fmt.Println("input img id or ids split by -")
+		fmt.Fscan(stdin, &input)
+
+		clipConfig := config.GetClipConfigById(0)
+		imgKeyArray := strings.Split(input, "-")
+		for _, imgKey := range imgKeyArray {
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , []byte(imgKey), clipConfig.ClipOffsets ,10)
+		}
+		imgDB.CloseDB()
+	}
 }

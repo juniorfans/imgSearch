@@ -24,9 +24,9 @@ func main(){
 			continue
 		}
 
-		newBase, lastCores, lastEachTimes, lastCostSecs, lastRemark := dbOptions.GetStatInfo()
+	//	newBase, lastCores, lastEachTimes, lastCostSecs, lastRemark := dbOptions.GetStatInfo()
 		if(1 == testCase){
-			fmt.Println("newBase: ", newBase, ", lastCores: ", lastCores, ", lastEachTimes: ", lastEachTimes, ", lastCostSecs: ", lastCostSecs, ", remark: ", lastRemark)
+			dbOptions.HowManyImageClips()
 		}else if(2 == testCase){
 			dbOptions.HowManyImages()
 		}else if(3 == testCase){
@@ -35,10 +35,33 @@ func main(){
 			dbOptions.RandomVerify()
 		}else if(5 == testCase){
 			dbOptions.SaveTheInputImg()
+		}else if(6 == testCase){
+			clipDB:=dbOptions.InitImgClipsDB()
+			dbOptions.ReadClipValues()
+			clipDB.CloseDB()
+		}else if(7 == testCase){
+			dbOptions.StatImgClipsInfo()
+		}else if(8 == testCase) {
+			dbOptions.StatImgIndexesInfo()
+		}else if(9 == testCase){
+			dbOptions.DeleteStatImgClipsInfo()
+		}else if(10 == testCase){
+			db:= dbOptions.InitImgIndexDB()
+			dbOptions.SetIndexSortInfo()
+			db.CloseDB()
+		}else if(11 == testCase){
+			db:= dbOptions.InitImgIndexDB()
+			dbOptions.SaveDuplicatedMostImg()
+			db.CloseDB()
+		}else if(12 == testCase){
+			db := dbOptions.InitImgLetterDB()
+			dbOptions.SaveLetterOfImg()
+			db.CloseDB()
+		}else if(13 == testCase){
+			dbOptions.TestClipsSaveToJpg()
 		}else{
 			fmt.Println("invalid options")
 		}
-
 		imgDB.CloseDB()
 	}
 

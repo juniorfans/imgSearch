@@ -11,15 +11,10 @@ import (
 	"imgIndex"
 )
 
-func TestSaveClips()  {
-	dbOptions.SaveAllClipsAsJpgOf([]byte("B996"),-1,-1)
-}
 
 func TestClipSmall()  {
 
 	datas := ImgIndex.GetIndexOfClips("E:/clip/A332.jpg", 2000,10)
-
-
 
 	fmt.Println("small pic count: ", len(datas), ", each index size: ", len(datas[0]))
 	for _, line := range datas{

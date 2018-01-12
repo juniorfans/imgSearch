@@ -12,6 +12,10 @@ type ClipConfig struct {
 	SmallPicCountInX int
 	SmallPicCountInY int
 	Id uint8
+	ImgConfigId uint8
+
+	ClipOffsets []int
+	ClipLengh int
 }
 
 /**
@@ -29,6 +33,10 @@ var normalClipConfig = ClipConfig{
 	bigPicHeight:190,
 	SmallPicCountInX: 4,
 	SmallPicCountInY: 2,
+
+	ClipOffsets: []int{10*67+10, 11*67-10, 57*67+10, 58*67-10, 30*67+20, 30*67-20, 37*67+20, 38*67-20},
+	ClipLengh: 2,
+
 	Id : 0,
 }
 
