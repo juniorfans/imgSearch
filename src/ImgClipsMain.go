@@ -10,7 +10,7 @@ import (
 
 func main()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var dbIndex int
+	var dbIndex uint8
 	var input int
 
 	clipConfig := config.GetClipConfigById(0)

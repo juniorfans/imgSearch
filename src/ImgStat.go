@@ -10,7 +10,8 @@ import (
 
 func main(){
 	stdin := bufio.NewReader(os.Stdin)
-	var testCase , dbIndex int
+	var testCase int
+	var dbIndex uint8
 
 	for{
 		fmt.Println("select a imgdb to stat: ")

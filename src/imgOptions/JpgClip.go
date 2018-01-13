@@ -9,9 +9,11 @@ import (
 	"os"
 	"strings"
 	"path/filepath"
+
 )
 
 func ImgClipInDir(path string){
+
 	err := filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return err

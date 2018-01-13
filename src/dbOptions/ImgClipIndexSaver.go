@@ -19,7 +19,7 @@ import (
 
 var caclFinished chan int
 
-func threadFunc(dbIndex, threadId int, iter iterator.Iterator, count int, offsetOfClip []int, indexLength int)  {
+func threadFunc(dbIndex uint8, threadId int, iter iterator.Iterator, count int, offsetOfClip []int, indexLength int)  {
 	threadByte := byte(config.ThreadIdToByte[threadId])
 
 	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgClipsDB(), dbIndex, threadId)
@@ -53,7 +53,7 @@ func threadFunc(dbIndex, threadId int, iter iterator.Iterator, count int, offset
 			fmt.Println("thread ", threadId, " dealing: ", baseCount)
 		}
 
-		if !SaveAllClipsToDBOf(iter.Value(), iter.Key(), offsetOfClip, indexLength){
+		if !SaveAllClipsToDBOf(iter.Value(),dbIndex, iter.Key(), offsetOfClip, indexLength){
 			failedCount ++
 			continue
 		}
@@ -63,10 +63,10 @@ func threadFunc(dbIndex, threadId int, iter iterator.Iterator, count int, offset
 		baseCount ++
 		count --
 		if count <= 0{
+			lastDealedKey = iter.Key()
 			break
 		}
 	}
-	iter.Release()
 
 	curCount += baseCount
 
@@ -75,10 +75,12 @@ func threadFunc(dbIndex, threadId int, iter iterator.Iterator, count int, offset
 	SetThreadLastDealedKey(InitImgClipsDB(),dbIndex, threadId, lastDealedKey, curCount)
 	fmt.Println("thread ", threadId," dealed: ", baseCount ,", failedCount: ", failedCount)
 	caclFinished <- threadId
+
+	iter.Release()
 }
 
 
-func BeginImgClipSave(dbIndex, count int, offsetOfClip []int, indexLength int) {
+func BeginImgClipSave(dbIndex uint8, count int, offsetOfClip []int, indexLength int) {
 	cores := 8
 	runtime.GOMAXPROCS(cores)
 
@@ -102,10 +104,10 @@ func BeginImgClipSave(dbIndex, count int, offsetOfClip []int, indexLength int) {
 }
 
 
-func SaveAllClipsToDBOf(srcData []byte, mainImgkey []byte, offsetOfClip []int, indexLength int) bool{
+func SaveAllClipsToDBOf(srcData []byte,dbId uint8,  mainImgkey []byte, offsetOfClip []int, indexLength int) bool{
 
 	//获得 mainImgKey 的各个切图的索引数据
-	indexes := GetDBIndexOfClipsBySrcData(srcData,mainImgkey,offsetOfClip, indexLength)
+	indexes := GetDBIndexOfClipsBySrcData(srcData,dbId,mainImgkey,offsetOfClip, indexLength)
 	if nil == indexes{
 		fmt.Println("save clips to db for ", string(mainImgkey), " failed")
 		return false
@@ -158,11 +160,13 @@ func SaveClipsAsImg(dir string, indexData ImgIndex.SubImgIndex) {
 	imgo.SaveAsJPEG(dir + "/" + clipName,data,100)
 }
 
+
+
 func getValueForClipsKey(oldValue []byte, indexData ImgIndex.SubImgIndex) string {
 
 	mainImgKey := string(indexData.KeyOfMainImg)
 
-	dbId := strconv.Itoa(GetImgDBWhichPicked().Id)
+	dbId := strconv.Itoa(int(GetImgDBWhichPicked().Id))
 
 	var newMainKeys string
 	if 0 != len(oldValue){
@@ -187,9 +191,33 @@ func getValueForClipsKey(oldValue []byte, indexData ImgIndex.SubImgIndex) string
 	return newMainKeys
 }
 
+
+func getValueForClipsKeyEx(oldValue []byte, indexData ImgIndex.SubImgIndex) []byte {
+	newValue := ClipIndexValue{Which:indexData.Which,DbId:indexData.DBIdOfMainImg,ImgId:indexData.KeyOfMainImg}
+	if 0 == len(oldValue){
+		valueList := InitClipIndexValueList()
+		valueList.AppendClipVlue(&newValue)
+		valueList.Finish()
+		ret:= valueList.ToBytes()
+		fmt.Println(ret)
+		return ret
+	}else{
+		//直接将当前的 indexValue 追加到后面即可，注意，别忘记分隔符了
+		splitBytes := InitClipIndexValueList().Splits
+		newValueBytes := newValue.ToBytes()
+		ret := make([]byte, len(oldValue) + len(splitBytes) + len(newValueBytes))
+		ci := 0
+		ci += copy(ret[ci:], oldValue)
+		ci += copy(ret[ci:], splitBytes)
+		ci += copy(ret[ci:], newValueBytes)
+		fmt.Println(ret)
+		return ret
+	}
+}
+
 func getValueForClipsKeyForTest(oldValue []byte, indexData ImgIndex.SubImgIndex) string {
 	mainImgKey := string(indexData.KeyOfMainImg)
-	dbId := strconv.Itoa(GetImgDBWhichPicked().Id)
+	dbId := strconv.Itoa(int(GetImgDBWhichPicked().Id))
 
 	if 0 == len(oldValue){
 		newMainKeys := string(mainImgKey) + "-" + dbId
@@ -209,7 +237,7 @@ func SaveClipsToDB(clipDBConfig *DBConfig, indexData ImgIndex.SubImgIndex) {
 	if err == leveldb.ErrNotFound{
 		oldValue = nil
 	}
-	newMainKeys := getValueForClipsKey(oldValue, indexData)
+	newMainKeys := getValueForClipsKeyEx(oldValue, indexData)//getValueForClipsKey(oldValue, indexData)
 	//fmt.Println("newMainImaKey: ", newMainKeys)
 	clipDBConfig.DBPtr.Put(index,[]byte(newMainKeys), &clipDBConfig.WriteOptions)
 }
@@ -228,7 +256,7 @@ func GetDBIndexOfClips(dbConfig *DBConfig,mainImgkey []byte, offsetOfClip []int,
 		fmt.Println("not found image key: ", string(mainImgkey), err)
 		return nil
 	}
-	return GetDBIndexOfClipsBySrcData(srcData, mainImgkey, offsetOfClip, indexLength)
+	return GetDBIndexOfClipsBySrcData(srcData, dbConfig.Id, mainImgkey, offsetOfClip, indexLength)
 }
 
 
@@ -240,7 +268,7 @@ func GetDBIndexOfClips(dbConfig *DBConfig,mainImgkey []byte, offsetOfClip []int,
 	offsetOfClip 为负数则置为0，大于边界则返回 nil
 	indexLength 过大或者为负数则返回从 offsetOfClip 开始的所有数据
  */
-func GetDBIndexOfClipsBySrcData(srcData []byte,mainImgkey []byte, offsetOfClip []int, indexLength int) []ImgIndex.SubImgIndex {
+func GetDBIndexOfClipsBySrcData(srcData []byte, dbId uint8,mainImgkey []byte, offsetOfClip []int, indexLength int) []ImgIndex.SubImgIndex {
 
 	data := ImgOptions.FromImageFlatBytesToStructBytes(srcData)
 
@@ -249,12 +277,12 @@ func GetDBIndexOfClipsBySrcData(srcData []byte,mainImgkey []byte, offsetOfClip [
 		return nil
 	}
 
-	return ImgIndex.GetClipsIndexOfImgEx(data, mainImgkey, offsetOfClip, indexLength)
+	return ImgIndex.GetClipsIndexOfImgEx(data, dbId, mainImgkey, offsetOfClip, indexLength)
 }
 
 func TestClipsSaveToJpg()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var dbIndex int
+	var dbIndex uint8
 	var input string
 
 	for {

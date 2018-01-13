@@ -129,8 +129,8 @@ func GetIndexOfClips(fileName string, offsetOfClip, indexLength int) []IndexData
 }
 
 
-func GetClipsTotalDataAsIndexOfImgEx(data [][][]uint8, mainImgkey []byte) []SubImgIndex {
-	return GetClipsIndexOfImgEx(data, mainImgkey, []int{-1}, -1)
+func GetClipsTotalDataAsIndexOfImgEx(data [][][]uint8, dbId uint8, mainImgkey []byte) []SubImgIndex {
+	return GetClipsIndexOfImgEx(data, dbId, mainImgkey, []int{-1}, -1)
 }
 
 
@@ -139,7 +139,7 @@ func GetClipsTotalDataAsIndexOfImgEx(data [][][]uint8, mainImgkey []byte) []SubI
 
 	offsetOfClip 中的每个元素都应该是大于等于0 的，且最大的偏移量应该小于子图大小
  */
-func GetClipsIndexOfImgEx(data [][][]uint8, mainImgkey []byte, offsetOfClips [] int, indexLength int) []SubImgIndex {
+func GetClipsIndexOfImgEx(data [][][]uint8, dbId uint8, mainImgkey []byte, offsetOfClips [] int, indexLength int) []SubImgIndex {
 	height := len(data)
 	width := len(data[0])
 
@@ -166,7 +166,8 @@ func GetClipsIndexOfImgEx(data [][][]uint8, mainImgkey []byte, offsetOfClips [] 
 	xLimit := width-clipConfig.IntervalXBetweenSmallPic-clipConfig.SmallPicWidth
 	yLimit := height-clipConfig.IntervalYBetweenSmallPic-clipConfig.SmallPicHeight
 	index := 0
-	clipIndex := 0
+	//[TODO 支持小于 128 个子图]
+	clipIndex := uint8(0)
 	for i:=clipConfig.StartOffsetX;i<= xLimit; i+=xStep{
 
 		for j:=clipConfig.StartOffsetY;j<=yLimit;j+=yStep{
@@ -178,7 +179,7 @@ func GetClipsIndexOfImgEx(data [][][]uint8, mainImgkey []byte, offsetOfClips [] 
 
 			curIndex := retIndexes[clipIndex]
 
-			curIndex.Init(mainImgkey,clipIndex,indexLength,clipConfig.Id)
+			curIndex.Init(dbId, mainImgkey,clipIndex,indexLength,clipConfig.Id)
 
 			for _,curOffset := range offsetOfClips{
 				curIndexData := getFlatDataFrom(data,i,j,rightBotomX,rightBotomY, curOffset, indexLength)
@@ -203,7 +204,7 @@ func GetClipsIndexOfImgEx(data [][][]uint8, mainImgkey []byte, offsetOfClips [] 
 	获得图片 data 的各个切图的索引数据。这些索引数据各自在切图中的偏移是 offsetOfClip，长度是 indexLength
 
  */
-func GetClipsIndexOfImg(data [][][]uint8, mainImgkey []byte, offsetOfClip, indexLength int) []SubImgIndex {
+func GetClipsIndexOfImg(data [][][]uint8,dbId uint8,  mainImgkey []byte, offsetOfClip, indexLength int) []SubImgIndex {
 	height := len(data)
 	width := len(data[0])
 
@@ -235,7 +236,8 @@ func GetClipsIndexOfImg(data [][][]uint8, mainImgkey []byte, offsetOfClip, index
 	xLimit := width-clipConfig.IntervalXBetweenSmallPic-clipConfig.SmallPicWidth
 	yLimit := height-clipConfig.IntervalYBetweenSmallPic-clipConfig.SmallPicHeight
 	index := 0
-	clipIndex := 0
+	//[TODO 仅支持小于128 个子图]
+	clipIndex := uint8(0)
 	for i:=clipConfig.StartOffsetX;i<= xLimit; i+=xStep{
 
 		for j:=clipConfig.StartOffsetY;j<=yLimit;j+=yStep{
@@ -247,7 +249,7 @@ func GetClipsIndexOfImg(data [][][]uint8, mainImgkey []byte, offsetOfClip, index
 
 			curIndex := retIndexes[clipIndex]
 
-			curIndex.Init(mainImgkey,clipIndex,indexLength,clipConfig.Id)
+			curIndex.Init(dbId,mainImgkey,clipIndex,indexLength,clipConfig.Id)
 
 			curIndexData := getFlatDataFrom(data,i,j,rightBotomX,rightBotomY, offsetOfClip, indexLength)
 

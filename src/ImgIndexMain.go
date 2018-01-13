@@ -9,7 +9,8 @@ import (
 
 func SaveMainImgIndexes()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var input ,dbIndex int
+	var input int
+	var dbIndex uint8
 
 	for{
 

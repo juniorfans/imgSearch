@@ -22,7 +22,7 @@ var normalLetterConfig = LetterConfig{
 	Height : 30,
 	Regions:[]Region{Region{120,0,176,29}}, //, Region{180,0,236,29}},
 	IndexLength: 60,	//-1 表示所有
-	IndexOffset: (57/2)*29,
+	IndexOffset: (57/2)*30 + 15,
 }
 
 func GetLetterConfigById(id uint8) *LetterConfig {

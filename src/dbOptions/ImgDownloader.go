@@ -515,7 +515,7 @@ func Dump(dir string, count int)  {
 func DownloaderRun()  {
     cores := 8
     eachTimes := 10000
-    db := 8
+    db := uint8(8)
 
     stdin := bufio.NewReader(os.Stdin)
     for{

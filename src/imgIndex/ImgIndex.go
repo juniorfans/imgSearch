@@ -20,7 +20,8 @@ func GetIndexFor(data [][][]uint8) [] byte {
 		return nil
 	}
 
-	clipsIndexes := GetClipsIndexOfImgEx(data,nil,imgConfig.TheClipConfig.ClipOffsets, imgConfig.OverrideClipLength)
+	//自身就是大图，它不属于任何大图，所以 mainImgKey 为 nil
+	clipsIndexes := GetClipsIndexOfImgEx(data,imgConfig.Id, nil,imgConfig.TheClipConfig.ClipOffsets, imgConfig.OverrideClipLength)
 
 	return GetFlatIndexBytesFrom(clipsIndexes)
 }

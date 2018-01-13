@@ -25,7 +25,7 @@ func SaveLetterIndexForImg(imgDB *DBConfig,imgKey []byte)  {
 		return
 	}
 	data := ImgOptions.FromImageFlatBytesToStructBytes(srcData)
-	subIndex := ImgIndex.GetLetterIndexFor(letterConfig, data, imgKey)
+	subIndex := ImgIndex.GetLetterIndexFor(letterConfig, data, imgDB.Id, imgKey)
 	if nil == subIndex{
 		return
 	}
@@ -47,7 +47,7 @@ func SaveLetterIndexForImg(imgDB *DBConfig,imgKey []byte)  {
 	if err == leveldb.ErrNotFound{
 		newValue = string(oldValue)
 	}else{
-		newValue = string(oldValue) + "-" + strconv.Itoa(imgDB.Id) + "-" + string(imgKey)
+		newValue = string(oldValue) + "-" + strconv.Itoa(int(imgDB.Id)) + "-" + string(imgKey)
 	}
 	imgLetterDB.DBPtr.Put(indexBytes,[]byte(newValue), &imgLetterDB.WriteOptions)
 }
@@ -62,7 +62,7 @@ func SaveLetterIndexAsJpgForImg(imgDB *DBConfig,imgKey []byte, dir string)  {
 		return
 	}
 	imgData := ImgOptions.FromImageFlatBytesToStructBytes(srcData)
-	subIndex := ImgIndex.GetLetterIndexFor(letterConfig, imgData, imgKey)
+	subIndex := ImgIndex.GetLetterIndexFor(letterConfig, imgData, imgDB.Id, imgKey)
 	if nil == subIndex{
 		return
 	}
@@ -72,6 +72,8 @@ func SaveLetterIndexAsJpgForImg(imgDB *DBConfig,imgKey []byte, dir string)  {
 	for _, indexUnit := range subIndex[0].IndexUnits{
 		ImgIndex.IndexDataApplyIntoSubImg(data,indexUnit)
 	}
+
+	//data = imgo.RGB2Gray(data)
 
 	fileName := dir + "/" + string(imgKey) + "_letter_.jpg"
 	fmt.Println("gen name: " , dir + "/" + fileName)

@@ -6,12 +6,12 @@ import (
 	"strconv"
 )
 
-var imgDBs map[int]*DBConfig = make(map[int]*DBConfig)
+var imgDBs map[uint8]*DBConfig = make(map[uint8]*DBConfig)
 
-func PickImgDB(dbId int) *DBConfig {
+func PickImgDB(dbId uint8) *DBConfig {
 	ret := imgDBs[dbId]
 	if nil == ret{
-		dbDir := "D:/img_db_" +  strconv.Itoa(dbId)+ "/image.db"
+		dbDir := "D:/img_db_" +  strconv.Itoa(int(dbId))+ "/image.db"
 
 		fmt.Println("has pick this img db: ", dbDir)
 

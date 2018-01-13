@@ -29,7 +29,7 @@ func PrintMagicNumber(data []byte)  {
 
 }
 
-func imgIndexGoUnit(dbIndex, threadId int, iter iterator.Iterator, count int)  {
+func imgIndexGoUnit(dbIndex uint8, threadId int, iter iterator.Iterator, count int)  {
 
 	failedCount := 0
 	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgIndexDB(), dbIndex, threadId)
@@ -75,7 +75,7 @@ func imgIndexGoUnit(dbIndex, threadId int, iter iterator.Iterator, count int)  {
 		}
 		count --
 		if count <= 0{
-
+			lastDealedKey = iter.Key()
 			break
 		}
 	}
@@ -83,9 +83,11 @@ func imgIndexGoUnit(dbIndex, threadId int, iter iterator.Iterator, count int)  {
 	SetThreadLastDealedKey(InitImgIndexDB(),dbIndex, threadId, lastDealedKey, curCount)
 	fmt.Println("thread ", threadId, ", failedCount: ", failedCount)
 	indexSaveFinished <- threadId
+
+	iter.Release()
 }
 
-func DoImgIndexSave(dbIndex, count int) {
+func DoImgIndexSave(dbIndex uint8, count int) {
 	cores := 8
 	runtime.GOMAXPROCS(cores)
 
@@ -107,14 +109,14 @@ func DoImgIndexSave(dbIndex, count int) {
 	fmt.Println("All finished ~")
 }
 
-func Stat(dbIndex int)  {
+func Stat(dbIndex uint8)  {
 	for i:=0;i < 8;i ++ {
 		_, count := GetThreadLastDealedKey(InitImgIndexDB(),dbIndex, i)
 		fmt.Println(strconv.Itoa(count))
 	}
 }
 
-func ImgIndexSaveRun(dbIndex, eachThreadCount int)  {
+func ImgIndexSaveRun(dbIndex uint8, eachThreadCount int)  {
 	imgIndexDB:=InitImgIndexDB()
 	if nil == imgIndexDB{
 		fmt.Println("open img index db error")

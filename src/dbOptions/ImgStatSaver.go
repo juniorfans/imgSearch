@@ -18,8 +18,8 @@ var STAT_KEY_SORT_BY_VALUE_SIZE_PREX []byte = []byte("ZLAST_SORTED_BY_VALUE_SIZE
 	count 在 db 中的键名：ZLAST_C_i_tid， i 是图片库 id， tid 为线程 id
 
  */
-func GetThreadLastDealedKey(db *DBConfig, dbIndex, threadId int) (lastDealedKey []byte , offset int){
-	key := string(STAT_KEY_PREX) + "_" + strconv.Itoa(dbIndex) + "_" + string(config.ThreadIdToName[threadId])
+func GetThreadLastDealedKey(db *DBConfig, dbIndex uint8, threadId int) (lastDealedKey []byte , offset int){
+	key := string(STAT_KEY_PREX) + "_" + strconv.Itoa(int(dbIndex)) + "_" + string(config.ThreadIdToName[threadId])
 
 	lastDealedKey, err := db.DBPtr.Get([]byte(key), &db.ReadOptions)
 	if err == leveldb.ErrNotFound{
@@ -28,7 +28,7 @@ func GetThreadLastDealedKey(db *DBConfig, dbIndex, threadId int) (lastDealedKey 
 		return
 	}
 
-	key = string(STAT_KEY_PREX) + string("_C_") + strconv.Itoa(dbIndex) + "_" + string(config.ThreadIdToName[threadId])
+	key = string(STAT_KEY_PREX) + string("_C_") + strconv.Itoa(int(dbIndex)) + "_" + string(config.ThreadIdToName[threadId])
 	offsetStr, err := db.DBPtr.Get([]byte(key), &db.ReadOptions)
 	if err == leveldb.ErrNotFound{
 		offset = 0
@@ -50,11 +50,11 @@ func GetThreadLastDealedKey(db *DBConfig, dbIndex, threadId int) (lastDealedKey 
 	count 在 db 中的键名：ZLAST_C_i_tid， i 是图片库 id， tid 为线程 id
 
  */
-func SetThreadLastDealedKey(db *DBConfig, dbIndex, threadId int, lastDealedKey []byte, count int)()  {
-	key := string(STAT_KEY_PREX) + "_" + strconv.Itoa(dbIndex) + "_" +  string(config.ThreadIdToName[threadId])
+func SetThreadLastDealedKey(db *DBConfig, dbIndex uint8, threadId int, lastDealedKey []byte, count int)()  {
+	key := string(STAT_KEY_PREX) + "_" + strconv.Itoa(int(dbIndex)) + "_" +  string(config.ThreadIdToName[threadId])
 	db.DBPtr.Put([]byte(key), lastDealedKey, &db.WriteOptions)
 
-	key = string(STAT_KEY_PREX) + "_C_" + strconv.Itoa(dbIndex) + "_" + string(config.ThreadIdToName[threadId])
+	key = string(STAT_KEY_PREX) + "_C_" + strconv.Itoa(int(dbIndex)) + "_" + string(config.ThreadIdToName[threadId])
 	db.DBPtr.Put([]byte(key), []byte(strconv.Itoa(count)), &db.WriteOptions)
 }
 

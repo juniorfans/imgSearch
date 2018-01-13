@@ -72,7 +72,7 @@ func SaveDuplicatedMostImg()  {
 
 func DeleteStatImgClipsInfo()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var dbId int
+	var dbId uint8
 
 	fmt.Println("input db id: ")
 
@@ -91,7 +91,7 @@ func DeleteStatImgClipsInfo()  {
 
 func StatImgClipsInfo()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var dbId int
+	var dbId uint8
 
 	fmt.Println("input db id: ")
 
@@ -109,7 +109,7 @@ func StatImgClipsInfo()  {
 
 func StatImgIndexesInfo()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var dbId int
+	var dbId uint8
 
 	fmt.Println("input db id: ")
 

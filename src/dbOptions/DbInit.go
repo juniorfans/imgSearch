@@ -15,7 +15,7 @@ type DBConfig struct {
 	WriteOptions opt.WriteOptions
 	inited       bool
 
-	Id           int
+	Id           uint8
 }
 
 
@@ -127,7 +127,8 @@ func ReadClipValuesInCount(count int)  {
 
 	for iter.Valid(){
 		//writeToFile(iter.Value(), string(iter.Key()))
-		fmt.Println(string(iter.Value()))
+		valueList := ParseClipIndeValues(iter.Value())
+		valueList.Print()
 		iter.Next()
 		count --
 		if count <= 0{

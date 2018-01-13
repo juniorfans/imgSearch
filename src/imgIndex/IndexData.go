@@ -27,13 +27,15 @@ type SubImgIndex struct {
 	UnitLength   int         //每个索引单元的字节数
 
 	KeyOfMainImg []byte      //主图像在 db 中的键值
-	Which        int         //当前小图是主图像的第几幅小图
+	DBIdOfMainImg uint8      //主图像所在的 db
+	Which        uint8         //当前小图是主图像的第几幅小图
 
 	ConfigId     uint8       //使用的切图配置/Letter 配置 id
 }
 
-func (this *SubImgIndex) Init(mainImgKey[]byte, which int, unitLength int, clipConfigId uint8)  {
+func (this *SubImgIndex) Init(dbId uint8, mainImgKey[]byte, which uint8, unitLength int, clipConfigId uint8)  {
 	this.KeyOfMainImg = mainImgKey
+	this.DBIdOfMainImg = dbId
 	this.Which = which
 	this.ConfigId = clipConfigId
 	this.UnitLength = unitLength
@@ -146,7 +148,7 @@ func getFlatDataFrom(data [][][]uint8, x0,y0,x1,y1 int, offset, count int) Index
 	if count == 0{
 		return IndexData{}
 	}else if count < 0{
-		count = (y1-y0+1)*(x1-x0+1)*4
+		count = (y1-y0+1)*(x1-x0+1)
 	}else{
 		//do nothing
 	}
