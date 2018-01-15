@@ -5,6 +5,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"fmt"
 	"errors"
+	"github.com/syndtr/goleveldb/leveldb/util"
+	"config"
 )
 
 type DBConfig struct {
@@ -15,27 +17,34 @@ type DBConfig struct {
 	WriteOptions opt.WriteOptions
 	inited       bool
 
+	Name	string
 	Id           uint8
 }
 
 
 var imgClipsIndexDBConfig = DBConfig{
-	Dir : "D:/img_clip_db/clips.db",
+	Dir : "D:/img_clips_index_reverse/clips.db",
 	DBPtr : nil,
-	OpenOptions : opt.Options{ErrorIfMissing:false},
+	OpenOptions : opt.Options{ErrorIfMissing:false, BlockSize:40 * opt.KiB, CompactionTableSize:20*opt.MiB},
 	ReadOptions : opt.ReadOptions{},
 	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
+
+	Id:0,
+	Name:"img clip db",
 }
 
 
-var imgIndexDBConfig = DBConfig{
+var imgIndexToImgDBConfig = DBConfig{
 	Dir : "D:/img_index/img_index.db",
 	DBPtr : nil,
 	OpenOptions : opt.Options{ErrorIfMissing:false},
 	ReadOptions : opt.ReadOptions{},
 	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
+
+	Id:0,
+	Name:"index to img db",
 }
 
 var imgLetterDBConfig = DBConfig{
@@ -45,8 +54,34 @@ var imgLetterDBConfig = DBConfig{
 	ReadOptions : opt.ReadOptions{},
 	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
+
+	Id:0,
+	Name:"img letter db",
 }
 
+var imgToIndexDBConfig = DBConfig{
+	Dir : "D:/img_to_index/img_to_index.db",
+	DBPtr : nil,
+	OpenOptions : opt.Options{ErrorIfMissing:false},
+	ReadOptions : opt.ReadOptions{},
+	WriteOptions : opt.WriteOptions{Sync:false},
+	inited : false,
+
+	Id:0,
+	Name:"img to index db",
+}
+
+var imgToClipsIndexDBConfig = DBConfig{
+	Dir : "D:/img_clips_index/clips.db",
+	DBPtr : nil,
+	OpenOptions : opt.Options{ErrorIfMissing:false},
+	ReadOptions : opt.ReadOptions{},
+	WriteOptions : opt.WriteOptions{Sync:false},
+	inited : false,
+
+	Id:0,
+	Name:"img to clips index db",
+}
 
 func InitImgClipsDB() *DBConfig {
 	_, err :=  initDB(&imgClipsIndexDBConfig)
@@ -57,13 +92,13 @@ func InitImgClipsDB() *DBConfig {
 	return &imgClipsIndexDBConfig
 }
 
-func InitImgIndexDB() *DBConfig {
-	_, err :=  initDB(&imgIndexDBConfig)
+func InitIndexToImgDB() *DBConfig {
+	_, err :=  initDB(&imgIndexToImgDBConfig)
 	if err != nil{
 		fmt.Println("open img index db error, ", err)
 		return nil
 	}
-	return &imgIndexDBConfig
+	return &imgIndexToImgDBConfig
 }
 
 func InitImgLetterDB() *DBConfig {
@@ -73,6 +108,24 @@ func InitImgLetterDB() *DBConfig {
 		return nil
 	}
 	return &imgLetterDBConfig
+}
+
+func InitImgToIndexDB() *DBConfig {
+	_, err :=  initDB(&imgToIndexDBConfig)
+	if err != nil{
+		fmt.Println("open img to index db error, ", err)
+		return nil
+	}
+	return &imgToIndexDBConfig
+}
+
+func InitImgToClipsIndexDB() *DBConfig {
+	_, err :=  initDB(&imgToClipsIndexDBConfig)
+	if err != nil{
+		fmt.Println("open img to clips index db error, ", err)
+		return nil
+	}
+	return &imgToClipsIndexDBConfig
 }
 
 func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
@@ -98,6 +151,34 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 	return
 }
 
+func (this *DBConfig)WriteTo(key , value[]byte) error {
+	return this.DBPtr.Put(key, value, &this.WriteOptions)
+}
+
+func (this *DBConfig)ReadFor(key []byte) []byte {
+	ret, err := this.DBPtr.Get(key,&this.ReadOptions)
+	if err == leveldb.ErrNotFound{
+		return nil
+	}
+	return ret
+}
+
+func (this *DBConfig) PrintStat()  {
+	limit := make([]byte, len(config.STAT_KEY_PREX)+10)
+	ci := 0
+	ci += copy(limit[ci:], config.STAT_KEY_PREX)
+	ci += copy(limit[ci:], []byte{255,255,255,255,255,255,255,255,255,255})
+	region := util.Range{Start:config.STAT_KEY_PREX, Limit:limit}
+	iter := this.DBPtr.NewIterator(&region, &this.ReadOptions)
+	iter.First()
+
+	fmt.Println("---------------------------------------------------")
+	fmt.Println("dbname: ", this.Name, ", id: ", this.Id)
+	for iter.Valid(){
+		fmt.Println(string(iter.Key()),  " : ", string(iter.Value()))
+		iter.Next()
+	}
+}
 
 func ReadKeys(dbPtr *leveldb.DB, count int)  {
 	iter := dbPtr.NewIterator(nil, &opt.ReadOptions{})
@@ -160,4 +241,5 @@ func ReadValues(dbPtr *leveldb.DB, count int)  {
 func (this *DBConfig) CloseDB()  {
 	this.inited = false
 	this.DBPtr.Close()
+	removeClosed()
 }

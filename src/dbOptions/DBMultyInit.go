@@ -8,6 +8,17 @@ import (
 
 var imgDBs map[uint8]*DBConfig = make(map[uint8]*DBConfig)
 
+func GetImgDBs() []*DBConfig {
+	fmt.Println("picked img db : ", len(imgDBs))
+	ret := make([]*DBConfig, len(imgDBs))
+	i := 0
+	for _,db := range imgDBs{
+		ret[i] = db
+		i ++
+	}
+	return ret
+}
+
 func PickImgDB(dbId uint8) *DBConfig {
 	ret := imgDBs[dbId]
 	if nil == ret{
@@ -23,6 +34,7 @@ func PickImgDB(dbId uint8) *DBConfig {
 			WriteOptions : opt.WriteOptions{Sync:false},
 			inited : false,
 			Id : dbId,
+			Name:"img db",
 		}
 
 		_, err :=  initDB(&imgDBConfig)
@@ -33,7 +45,7 @@ func PickImgDB(dbId uint8) *DBConfig {
 		imgDBs[dbId] = &imgDBConfig
 		ret = &imgDBConfig
 	}else{
-		initDB(ret)	//防止 DBConfig 被关闭但没有移除掉
+		initDB(ret)	//防止 DBConfig 被关闭但没有移除掉, 现在需要复用，所以要重新初始化
 	}
 
 	return ret
@@ -52,5 +64,19 @@ func GetImgDBWhichPicked() *DBConfig {
 	}else{
 		fmt.Println("too many picked img db")
 		return nil
+	}
+}
+
+func removeClosed()  {
+	var aliveDBs []*DBConfig
+	for _,db := range imgDBs{
+		if false != db.inited{
+			aliveDBs = append(aliveDBs,db)
+		}
+	}
+
+	imgDBs = make(map[uint8]*DBConfig, len(aliveDBs))
+	for _,db := range aliveDBs{
+		imgDBs[db.Id]=db
 	}
 }

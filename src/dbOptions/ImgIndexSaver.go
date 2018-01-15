@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"imgIndex"
-	"github.com/syndtr/goleveldb/leveldb/iterator"
 	"strconv"
 	"imgOptions"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"config"
 	"util"
 	"sort"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 
@@ -29,36 +29,39 @@ func PrintMagicNumber(data []byte)  {
 
 }
 
-func imgIndexGoUnit(dbIndex uint8, threadId int, iter iterator.Iterator, count int)  {
+func imgIndexGoUnit(dbIndex uint8, threadId int, count int)  {
+
+	srcDB := GetImgDBWhichPicked()
+	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
+	iter := srcDB.DBPtr.NewIterator(&region,&srcDB.ReadOptions)
 
 	failedCount := 0
-	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgIndexDB(), dbIndex, threadId)
+	lastDealedKey,curCount := GetThreadLastDealedKey(InitIndexToImgDB(), dbIndex, threadId)
 	baseCount := 0
 
-	threadByte := config.ThreadIdToByte[threadId]
+	iter.First()
 
-	if nil == lastDealedKey{
-		iter.Seek([]byte{threadByte})
-	}else{
+	if nil != lastDealedKey{
 		iter.Seek(lastDealedKey)
-		iter.Next()
+		if iter.Valid(){
+			iter.Next()
+		}
 	}
 
+
 	if !iter.Valid(){
-		fmt.Println("thread ", threadId, " iterator is invalid")
+		fmt.Println("thread ", threadId, " iterator is invalid or not img to deal")
 		return
 	}
 
-	for iter.Valid(){
-		if iter.Key()[0] != threadByte {
-			//由于 level.Iterator.Key() 内部维护着存储 key 的存储空间，返回时直接返回切片
-			//一旦 Iterator 向后遍历则这个存储空间中的 key 变化了，则切片的值也会变化
+	for{
+		if !iter.Valid(){
 			iter.Prev()
 			lastDealedKey = iter.Key()
 			break
 		}
-
 		if(!SaveImgIndexToDBBySrcData(iter.Value(), iter.Key())){
+			fmt.Println("save img index error: ", string(iter.Key()))
 			PrintMagicNumber(iter.Value())
 			failedCount ++
 			continue
@@ -80,7 +83,7 @@ func imgIndexGoUnit(dbIndex uint8, threadId int, iter iterator.Iterator, count i
 		}
 	}
 	curCount += baseCount
-	SetThreadLastDealedKey(InitImgIndexDB(),dbIndex, threadId, lastDealedKey, curCount)
+	SetThreadLastDealedKey(InitIndexToImgDB(),dbIndex, threadId, lastDealedKey, curCount)
 	fmt.Println("thread ", threadId, ", failedCount: ", failedCount)
 	indexSaveFinished <- threadId
 
@@ -93,11 +96,10 @@ func DoImgIndexSave(dbIndex uint8, count int) {
 
 	indexSaveFinished = make(chan int, cores)
 
-	imgDB := GetImgDBWhichPicked()
-	InitImgIndexDB()
+	InitIndexToImgDB()
 
 	for i:=0;i != cores;i++{
-		go imgIndexGoUnit(dbIndex, i, imgDB.DBPtr.NewIterator(nil,&imgDB.ReadOptions),count)
+		go imgIndexGoUnit(dbIndex, i,count)
 	}
 
 	for i:=0;i < cores;i ++{
@@ -105,19 +107,19 @@ func DoImgIndexSave(dbIndex uint8, count int) {
 		fmt.Println("thread ", threadId ," finished")
 	}
 
-	RepairTotalSize(InitImgIndexDB())
+	RepairTotalSize(InitIndexToImgDB())
 	fmt.Println("All finished ~")
 }
 
 func Stat(dbIndex uint8)  {
 	for i:=0;i < 8;i ++ {
-		_, count := GetThreadLastDealedKey(InitImgIndexDB(),dbIndex, i)
+		_, count := GetThreadLastDealedKey(InitIndexToImgDB(),dbIndex, i)
 		fmt.Println(strconv.Itoa(count))
 	}
 }
 
 func ImgIndexSaveRun(dbIndex uint8, eachThreadCount int)  {
-	imgIndexDB:=InitImgIndexDB()
+	imgIndexDB:= InitIndexToImgDB()
 	if nil == imgIndexDB{
 		fmt.Println("open img index db error")
 		return
@@ -129,7 +131,7 @@ func ImgIndexSaveRun(dbIndex uint8, eachThreadCount int)  {
 }
 
 func imgIndexRepair()  {
-	indexDB := InitImgIndexDB()
+	indexDB := InitIndexToImgDB()
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return
@@ -181,30 +183,33 @@ func imgIndexRepair()  {
 }
 
 func SaveImgIndexToDBBySrcData(srcData, imgKey []byte) bool {
-	imgIndexDB := InitImgIndexDB()
-	if nil == imgIndexDB{
+	indexToImgDB := InitIndexToImgDB()
+	if nil == indexToImgDB {
 		fmt.Println("open img index db error")
 		return false
 	}
 
-	imgBytes := GetImgIndexBySrcData(srcData)
-	if nil == imgBytes{
+	imgIndexBytes := GetImgIndexBySrcData(srcData)
+	if nil == imgIndexBytes {
 		fmt.Println("get index for ", string(imgKey)," failed")
 		return false
 	}
 
-	exsitsImgKey , err := imgIndexDB.DBPtr.Get(imgBytes, &imgIndexDB.ReadOptions)
+	exsitsImgKey , err := indexToImgDB.DBPtr.Get(imgIndexBytes, &indexToImgDB.ReadOptions)
 	if err != leveldb.ErrNotFound{
 		newName := string(exsitsImgKey) + "-" + string(imgKey)
 	//	fmt.Println(newName)
 		imgKey = []byte(newName)
 	}
 
-	err = imgIndexDB.DBPtr.Put(imgBytes, imgKey, &imgIndexDB.WriteOptions)
+	err = indexToImgDB.DBPtr.Put(imgIndexBytes, imgKey, &indexToImgDB.WriteOptions)
 	if nil != err{
 		fmt.Println("save index error for ", string(imgKey))
 		return false
 	}
+
+	ImgToIndexSaver(imgKey, imgIndexBytes)
+
 	return true
 }
 
@@ -297,7 +302,7 @@ func (this IndexInfoList) Less(i, j int) bool {
 	现在将拥有最多图像的 key 按逆序放入到 STAT_KEY_SORT_BY_VALUE_SIZE_PREX 字段中
  */
 func SetIndexSortInfo()  {
-	imgIndexDB := InitImgIndexDB()
+	imgIndexDB := InitIndexToImgDB()
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return
@@ -318,7 +323,7 @@ func SetIndexSortInfo()  {
 	i := 0
 	iter.First()
 	for iter.Valid(){
-		if !fileUtil.BytesStartWith(iter.Key(), STAT_KEY_PREX){
+		if !fileUtil.BytesStartWith(iter.Key(), config.STAT_KEY_PREX){
 			keyTotalSize += len(iter.Key())
 			indexInfoList[i].Assign(iter.Key(), iter.Value())
 			i ++
@@ -341,7 +346,7 @@ func SetIndexSortInfo()  {
 	ci := 0
 	for i, indexInfo := range indexInfoList{
 		if i < 2{
-			PrintBytes(indexInfo.key)
+			fileUtil.PrintBytes(indexInfo.key)
 		}
 		ci += copy(res[ci:], indexInfo.key)
 		ci += copy(res[ci:], splitBytes)
@@ -352,18 +357,13 @@ func SetIndexSortInfo()  {
 		return
 	}
 
-	SetSortedStatInfo(InitImgIndexDB(), res[0: keyTotalSize-len(splitBytes)])//去掉最后一个分隔序列
+	SetSortedStatInfo(InitIndexToImgDB(), res[0: keyTotalSize-len(splitBytes)])//去掉最后一个分隔序列
 }
 
-func PrintBytes(data []byte)  {
-	for _,d := range data{
-		fmt.Printf("%d ", d)
-	}
-	fmt.Println()
-}
+
 
 func ReadIndexSortInfo(count int){
-	res := GetSortedStatInfo(InitImgIndexDB())
+	res := GetSortedStatInfo(InitIndexToImgDB())
 	if nil == res{
 		fmt.Println("no sorted stat info")
 		return
@@ -376,13 +376,13 @@ func ReadIndexSortInfo(count int){
 		if i == count{
 			break
 		}
-		PrintBytes([]byte(id))
+		fileUtil.PrintBytes([]byte(id))
 		DumpImagesWithImgIndex(strconv.Itoa(i) ,[]byte(id))
 	}
 }
 
 func DumpImagesWithImgIndex(dirName string, index []byte)  {
-	indexDB := InitImgIndexDB()
+	indexDB := InitIndexToImgDB()
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return
@@ -397,7 +397,7 @@ func DumpImagesWithImgIndex(dirName string, index []byte)  {
 }
 
 func DumpImageLettersWithImgIndex(dirName string, index []byte)  {
-	indexDB := InitImgIndexDB()
+	indexDB := InitIndexToImgDB()
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return

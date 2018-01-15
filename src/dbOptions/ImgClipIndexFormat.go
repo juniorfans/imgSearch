@@ -48,6 +48,10 @@ func (this *ClipIndexValue)ParseFrom (clipValue []byte){
 	copy(this.ImgId, clipValue[2:])
 }
 
+func (this *ClipIndexValue) IsEqualTo(other *ClipIndexValue) bool {
+	return this.DbId==other.DbId && bytes.Equal(this.ImgId, other.ImgId)
+}
+
 func (this *ClipIndexValueList) AppendClipVlue(value *ClipIndexValue)  {
 	this.ClipValues=append(this.ClipValues, *value)
 	this.TotalBytes += value.GetLength()
@@ -105,6 +109,17 @@ func ParseClipIndeValues(clipValueBytes []byte) ClipIndexValueList{
 	return indexValueList
 }
 
+func (this *ClipIndexValueList) WhereCanFindClip() (dbId uint8, mainImgId []byte, which uint8) {
+	values := this.ClipValues
+	for _, value := range values{
+		mainImgId =(value.ImgId)
+		dbId = value.DbId
+		which = value.Which
+		return
+	}
+	return
+}
+
 func (this *ClipIndexValueList) Print() {
 	fmt.Println("--------------------------------------------------")
 	fmt.Println(string(this.Splits))
@@ -128,4 +143,33 @@ func Int32ToBytes(n int) []byte {
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian,tmp)
 	return bytesBuffer.Bytes()
+}
+
+
+
+func TransToIdents(vlists *ClipIndexValueList) []string {
+	ret :=make([]string, len(vlists.ClipValues))
+	for i,vlist :=range vlists.ClipValues {
+		ret[i] = GetImgIdent(vlist.DbId, vlist.ImgId)
+	}
+	return ret
+}
+
+func GetImgIdent(dbId uint8, imgId []byte) string {
+	return string([]byte{byte(dbId)}) + string(imgId)
+}
+
+func GetImgClipIdent(dbId uint8, imgId []byte, which uint8) string {
+	return string([]byte{byte(dbId)}) + string(imgId) + strconv.Itoa(int(which))
+}
+
+func ParseImgIden(ident string) (dbId uint8, imgId []byte) {
+	ibytes := []byte(ident)
+
+	dbId = uint8(ibytes[0])
+
+	imgId = make([]byte, len(ibytes)-1)
+	copy(imgId, ibytes[1:])
+
+	return
 }

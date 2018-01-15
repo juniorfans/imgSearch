@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"math/rand"
 	"config"
+	"github.com/syndtr/goleveldb/leveldb/opt"
+	"util"
 )
 
 func writeToFile(content []byte, fileName string)  {
@@ -29,7 +31,7 @@ func SaveMainImgsIn(mainImgKeys []string, dir string)  {
 	os.MkdirAll(dir, 0777)
 
 	for _, mainImgKey := range mainImgKeys{
-		SaveMainImg(mainImgKey, dir)
+		SaveMainImg(string(FormatImgKey([]byte(mainImgKey))), dir)
 	}
 }
 
@@ -115,7 +117,7 @@ func StatImgIndexesInfo()  {
 
 	fmt.Fscan(stdin,&dbId)
 
-	indexDB:= InitImgIndexDB()
+	indexDB:= InitIndexToImgDB()
 
 	for i:=0;i < 8 ;i++  {
 		lastKey,count := GetThreadLastDealedKey(indexDB,dbId,i)
@@ -123,6 +125,27 @@ func StatImgIndexesInfo()  {
 	}
 	indexDB.CloseDB()
 
+}
+
+
+func PrintAllStatInfo()  {
+	PickImgDB(1)
+	PickImgDB(2)
+	PickImgDB(4)
+	imgDBs := GetImgDBs()
+	for _,imgDB := range imgDBs{
+		imgDB.PrintStat()
+	}
+
+	clipDB := InitImgClipsDB()
+	clipDB.PrintStat()
+
+	indexDB := InitIndexToImgDB()
+	indexDB.PrintStat()
+
+	for _,imgDB := range imgDBs{
+		imgDB.CloseDB()
+	}
 }
 
 func SaveMainImg(mainImgKey ,dir string)  {
@@ -181,6 +204,39 @@ func ReadClipValues()  {
 	fmt.Println("input how many count values for clip db- ")
 	fmt.Fscan(stdin,&input)
 	ReadClipValuesInCount(input)
+}
+
+
+func TestSaveAClipFromValues()  {
+	InitImgClipsDB()
+	stdin := bufio.NewReader(os.Stdin)
+	var input int
+
+	fmt.Println("input how many count values for clip db to save clips ")
+	fmt.Fscan(stdin,&input)
+	saveAClipFromValues(input)
+	InitImgClipsDB().CloseDB()
+}
+
+func saveAClipFromValues(count int)  {
+	iter := InitImgClipsDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
+
+	if(!iter.First()){
+		fmt.Println("seek to first error")
+	}
+
+	for iter.Valid(){
+		//writeToFile(iter.Value(), string(iter.Key()))
+		fmt.Println("-----------------------------------------------------")
+		fileUtil.PrintBytes(iter.Key())
+		SaveClipAsJpgFromIndexValue(iter.Value(), "E:/gen/cclip/")
+		iter.Next()
+		count --
+		if count <= 0{
+			break
+		}
+	}
+	iter.First()
 }
 
 func SaveLetterOfImg()  {

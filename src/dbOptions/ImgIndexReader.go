@@ -6,7 +6,7 @@ import (
 )
 
 func ReadImgIndex(count int)  {
-	imgIndexDB := InitImgIndexDB()
+	imgIndexDB := InitIndexToImgDB()
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return
@@ -35,7 +35,7 @@ func ReadImgIndex(count int)  {
 }
 
 func ReadImgStat()  {
-	imgIndexDB := InitImgIndexDB()
+	imgIndexDB := InitIndexToImgDB()
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return

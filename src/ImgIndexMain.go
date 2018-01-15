@@ -18,7 +18,7 @@ func SaveMainImgIndexes()  {
 		fmt.Fscan(stdin,&dbIndex)
 		imgDB := dbOptions.PickImgDB(dbIndex)
 
-		imgIndexDB := dbOptions.InitImgIndexDB()
+		imgIndexDB := dbOptions.InitIndexToImgDB()
 		if nil == imgIndexDB{
 			fmt.Println("open img index db failed")
 			return
