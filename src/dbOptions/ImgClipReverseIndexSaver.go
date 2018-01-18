@@ -13,6 +13,7 @@ import (
 	"os"
 	"runtime"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"util"
 )
 
 
@@ -24,7 +25,7 @@ func threadFunc(dbIndex uint8, threadId int, count int, offsetOfClip []int, inde
 	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
 	iter := srcDB.DBPtr.NewIterator(&region,&srcDB.ReadOptions)
 
-	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgClipsDB(), dbIndex, threadId)
+	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgClipsReverseIndexDB(), dbIndex, threadId)
 
 	iter.First()
 
@@ -72,7 +73,7 @@ func threadFunc(dbIndex uint8, threadId int, count int, offsetOfClip []int, inde
 
 	fmt.Println("lastValue: threadId: ", threadId, " -- ",string(lastDealedKey))
 
-	SetThreadLastDealedKey(InitImgClipsDB(),dbIndex, threadId, lastDealedKey, curCount)
+	SetThreadLastDealedKey(InitImgClipsReverseIndexDB(),dbIndex, threadId, lastDealedKey, curCount)
 	fmt.Println("thread ", threadId," dealed: ", baseCount ,", failedCount: ", failedCount)
 	caclFinished <- threadId
 
@@ -86,7 +87,7 @@ func BeginImgClipSave(dbIndex uint8, count int, offsetOfClip []int, indexLength 
 
 	caclFinished = make(chan int, cores)
 
-	InitImgClipsDB()
+	InitImgClipsReverseIndexDB()
 
 	for i:=0;i < cores;i++{
 		go threadFunc(dbIndex,i,count, offsetOfClip, indexLength)
@@ -97,7 +98,7 @@ func BeginImgClipSave(dbIndex uint8, count int, offsetOfClip []int, indexLength 
 		fmt.Println("thread ", threadId ," finished")
 	}
 
-	RepairTotalSize(InitImgClipsDB())
+	RepairTotalSize(InitImgClipsReverseIndexDB())
 
 	fmt.Println("All finished ~")
 }
@@ -112,7 +113,7 @@ func SaveAllClipsToDBOf(srcData []byte,dbId uint8,  mainImgkey []byte, offsetOfC
 		return false
 	}
 
-	imgClipDB := InitImgClipsDB()
+	imgClipDB := InitImgClipsReverseIndexDB()
 	if nil == imgClipDB{
 		fmt.Println("open img_clip db error, ")
 		return false
@@ -143,8 +144,7 @@ func SaveAllClipsAsJpgOf(dir string, mainImgkey []byte, offsetOfClip[] int, inde
 }
 
 func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byte, which uint8){
-	mainImgName := string(mainImgkey)
-	clipName := mainImgName+"_"+strconv.Itoa(int(which))+".jpg"
+	clipName := strconv.Itoa(int(dbId)) + "_" + string(ParseImgKeyToPlainTxt(mainImgkey)) + "_" + strconv.Itoa(int(which))+".jpg"
 	clipConfig := config.GetClipConfigById(clipConfigId)
 
 	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像
@@ -274,9 +274,9 @@ func SaveClipsToDB(clipDBConfig *DBConfig, indexData ImgIndex.SubImgIndex) {
 
 func SaveClipAsJpgFromIndexValue(value []byte, dir string)  {
 	os.MkdirAll(dir, 0777)
-	indexValList := ParseClipIndeValues(value)
+	indexValList := ParseClipIndexValues(value)
 	dbId, mainImgId, which := indexValList.WhereCanFindClip()
-	SaveAClipAsJpg(0,dir, dbId,mainImgId,which )
+	SaveAClipAsJpg(0,dir, dbId, mainImgId, which )
 	PickImgDB(dbId).CloseDB()
 }
 
@@ -291,7 +291,7 @@ func SaveClipAsJpgFromIndexValue(value []byte, dir string)  {
 func GetDBIndexOfClips(dbConfig *DBConfig,mainImgkey []byte, offsetOfClip []int, indexLength int) []ImgIndex.SubImgIndex {
 	srcData,err := dbConfig.DBPtr.Get(mainImgkey, &dbConfig.ReadOptions)
 	if err == leveldb.ErrNotFound{
-		fmt.Println("not found image key: ", string(mainImgkey), err)
+		fmt.Println("not found image key: ", ParseImgKeyToPlainTxt(mainImgkey), err)
 		return nil
 	}
 	return GetDBIndexOfClipsBySrcData(srcData, dbConfig.Id, mainImgkey, offsetOfClip, indexLength)
@@ -338,7 +338,7 @@ func TestClipsIndexSaveToJpgFromImgDB()  {
 		clipConfig := config.GetClipConfigById(0)
 		imgKeyArray := strings.Split(input, "-")
 		for _, imgKey := range imgKeyArray {
-			SaveAllClipsAsJpgOf("E:/gen/clips/" , FormatImgKey([]byte(imgKey)), clipConfig.ClipOffsets ,10)
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , ParseImgKeyToPlainTxt([]byte(imgKey)), clipConfig.ClipOffsets ,10)
 		}
 		imgDB.CloseDB()
 	}
@@ -363,8 +363,21 @@ func TestClipsSaveToJpgFromImgDB()  {
 
 		imgKeyArray := strings.Split(input, "-")
 		for _, imgKey := range imgKeyArray {
-			SaveAllClipsAsJpgOf("E:/gen/clips/" , FormatImgKey([]byte(imgKey)), []int{-1} ,-1)
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , ParseImgKeyToPlainTxt([]byte(imgKey)), []int{-1} ,-1)
 		}
 		imgDB.CloseDB()
+	}
+}
+
+func PrintClipIndexBytes()  {
+	stdin := bufio.NewReader(os.Stdin)
+	var dbId, which uint8
+	var mainImgId string
+	InitImgClipsIndexDB()
+	for {
+		fmt.Print("input dbId, mainImgId, which: ")
+		fmt.Fscan(stdin, &dbId, &mainImgId, &which)
+		indexBytes := ImgClipsToIndexReader(dbId, ParseImgKeyToPlainTxt([]byte(mainImgId)), which)
+		fileUtil.PrintBytes(indexBytes)
 	}
 }

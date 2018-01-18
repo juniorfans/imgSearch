@@ -31,7 +31,7 @@ func SaveMainImgsIn(mainImgKeys []string, dir string)  {
 	os.MkdirAll(dir, 0777)
 
 	for _, mainImgKey := range mainImgKeys{
-		SaveMainImg(string(FormatImgKey([]byte(mainImgKey))), dir)
+		SaveMainImg(string(ParseImgKeyToPlainTxt([]byte(mainImgKey))), dir)
 	}
 }
 
@@ -80,7 +80,7 @@ func DeleteStatImgClipsInfo()  {
 
 	fmt.Fscan(stdin,&dbId)
 
-	clipDB:= InitImgClipsDB()
+	clipDB:= InitImgClipsReverseIndexDB()
 
 	for i:=0;i < 8 ;i++  {
 		//lastKey,count := GetThreadLastDealedKey(clipDB,dbId,i)
@@ -99,7 +99,7 @@ func StatImgClipsInfo()  {
 
 	fmt.Fscan(stdin,&dbId)
 
-	clipDB:= InitImgClipsDB()
+	clipDB:= InitImgClipsReverseIndexDB()
 
 	for i:=0;i < 8 ;i++  {
 		lastKey,count := GetThreadLastDealedKey(clipDB,dbId,i)
@@ -137,7 +137,7 @@ func PrintAllStatInfo()  {
 		imgDB.PrintStat()
 	}
 
-	clipDB := InitImgClipsDB()
+	clipDB := InitImgClipsReverseIndexDB()
 	clipDB.PrintStat()
 
 	indexDB := InitIndexToImgDB()
@@ -208,18 +208,18 @@ func ReadClipValues()  {
 
 
 func TestSaveAClipFromValues()  {
-	InitImgClipsDB()
+	InitImgClipsReverseIndexDB()
 	stdin := bufio.NewReader(os.Stdin)
 	var input int
 
 	fmt.Println("input how many count values for clip db to save clips ")
 	fmt.Fscan(stdin,&input)
 	saveAClipFromValues(input)
-	InitImgClipsDB().CloseDB()
+	InitImgClipsReverseIndexDB().CloseDB()
 }
 
 func saveAClipFromValues(count int)  {
-	iter := InitImgClipsDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
+	iter := InitImgClipsReverseIndexDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){
 		fmt.Println("seek to first error")

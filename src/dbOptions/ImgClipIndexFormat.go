@@ -3,7 +3,6 @@ package dbOptions
 import (
 	"fmt"
 	"bytes"
-	"encoding/binary"
 	"strings"
 	"strconv"
 )
@@ -61,6 +60,16 @@ func (this *ClipIndexValueList) Finish()  {
 	//暂时什么也不做
 }
 
+/**
+	clip index 对应的 value 的格式是
+	- 头	（8 个字节）
+		1 字节表示分隔串的长度
+		7 个字节填充
+	- 分隔串
+	- 6 字节 clip ident 信息
+	- 分隔串
+
+ */
 func (this *ClipIndexValueList) ToBytes() []byte {
 	values := this.ClipValues
 
@@ -78,7 +87,7 @@ func (this *ClipIndexValueList) ToBytes() []byte {
 /**
 	clipValueBytes 前 8 个字节是头
  */
-func ParseClipIndeValues(clipValueBytes []byte) ClipIndexValueList{
+func ParseClipIndexValues(clipValueBytes []byte) ClipIndexValueList{
 
 	if nil == clipValueBytes || 8 > len(clipValueBytes) {
 		return ClipIndexValueList{}
@@ -102,6 +111,9 @@ func ParseClipIndeValues(clipValueBytes []byte) ClipIndexValueList{
 
 	for i,valueStr := range valueStrs{
 		curVaueBytes := []byte(valueStr)
+		if 0 == len(curVaueBytes){
+			continue;
+		}
 		retClipValues[i].ParseFrom(curVaueBytes)
 		indexValueList.TotalBytes += len(curVaueBytes)
 	}
@@ -109,6 +121,9 @@ func ParseClipIndeValues(clipValueBytes []byte) ClipIndexValueList{
 	return indexValueList
 }
 
+/**
+	返回 clip 所在的大图的信息
+ */
 func (this *ClipIndexValueList) WhereCanFindClip() (dbId uint8, mainImgId []byte, which uint8) {
 	values := this.ClipValues
 	for _, value := range values{
@@ -130,46 +145,13 @@ func (this *ClipIndexValueList) Print() {
 	}
 }
 
-//字节转换成整形
-func BytesToInt32(b []byte) int {
-	bytesBuffer := bytes.NewBuffer(b)
-	var tmp int32
-	binary.Read(bytesBuffer, binary.BigEndian, &tmp)
-	return int(tmp)
-}
-
-func Int32ToBytes(n int) []byte {
-	tmp := int32(n)
-	bytesBuffer := bytes.NewBuffer([]byte{})
-	binary.Write(bytesBuffer, binary.BigEndian,tmp)
-	return bytesBuffer.Bytes()
-}
 
 
-
-func TransToIdents(vlists *ClipIndexValueList) []string {
+//返回 clip 所属的大图 ident
+func GetMainImgIdentOfClips(vlists *ClipIndexValueList) []string {
 	ret :=make([]string, len(vlists.ClipValues))
 	for i,vlist :=range vlists.ClipValues {
-		ret[i] = GetImgIdent(vlist.DbId, vlist.ImgId)
+		ret[i] = string(GetImgIdent(vlist.DbId, vlist.ImgId))
 	}
 	return ret
-}
-
-func GetImgIdent(dbId uint8, imgId []byte) string {
-	return string([]byte{byte(dbId)}) + string(imgId)
-}
-
-func GetImgClipIdent(dbId uint8, imgId []byte, which uint8) string {
-	return string([]byte{byte(dbId)}) + string(imgId) + strconv.Itoa(int(which))
-}
-
-func ParseImgIden(ident string) (dbId uint8, imgId []byte) {
-	ibytes := []byte(ident)
-
-	dbId = uint8(ibytes[0])
-
-	imgId = make([]byte, len(ibytes)-1)
-	copy(imgId, ibytes[1:])
-
-	return
 }

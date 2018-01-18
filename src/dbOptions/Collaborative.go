@@ -98,16 +98,16 @@ func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  
  */
 func FindTwoClipsSameMainImgs(left, right []byte)  {
 
-	clipDB := InitImgClipsDB()
+	clipDB := InitImgClipsReverseIndexDB()
 
 	lv := clipDB.ReadFor(left)	//left 在哪些大图中出现过
 	rv := clipDB.ReadFor(right)
 
-	tmpl := ParseClipIndeValues(lv)
-	tmpr := ParseClipIndeValues(rv)
+	tmpl := ParseClipIndexValues(lv)
+	tmpr := ParseClipIndexValues(rv)
 
-	lvlist := TransToIdents(&tmpl)
-	rvlist := TransToIdents(&tmpr)
+	lvlist := GetMainImgIdentOfClips(&tmpl)
+	rvlist := GetMainImgIdentOfClips(&tmpr)
 
 	//lvlist 和 vlist 中需要过滤出相同的照片
 	lvlist = DeleteSameMainImg(lvlist)

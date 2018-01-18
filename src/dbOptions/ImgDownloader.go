@@ -29,9 +29,12 @@ func initImgDB() *DBConfig {
     return GetImgDBWhichPicked()
 }
 
-func writeToDB(key string, value []byte)  {
+func writeImgToDB(goId int, seqNo int , value []byte)  {
     batch := leveldb.Batch{}
-    batch.Put(FormatImgKey([]byte(key)), value)
+
+    imgId := GetImgKey(uint8(goId), seqNo)
+//    fmt.Println("imgId: ", string(ParseImgKeyToPlainTxt(imgId)))
+    batch.Put(imgId, value)
 
     imgDB := initImgDB()
     if nil == imgDB{
@@ -153,17 +156,16 @@ func saveImages(img_url string, goId int, maxImgId int, imgId int) int {
             continue
         }
 
-        img_name := config.ThreadIdToName[goId] + strconv.Itoa(imgId)
         if !firstTime {
             if isValidImage(data){
-                writeToDB(img_name,data)
+                writeImgToDB(goId, imgId,data)
                 imgId ++
             }else{
                 //如果触发了 invalidImage 则当前连接需要终止使用
                 return imgId
             }
         }else{
-            writeToDB(img_name,data)
+            writeImgToDB(goId, imgId,data)
             imgId ++
         }
         successDealed ++
@@ -207,8 +209,8 @@ func singleSaveImages(img_url string, goId int, maxImgId int, imgId int) int {
         return imgId
     }
 
-    img_name := config.ThreadIdToName[goId] + strconv.Itoa(imgId)
-    writeToDB(img_name,data)
+    //img_name := config.ThreadIdToName[goId] + strconv.Itoa(imgId)
+    writeImgToDB(goId, imgId,data)
 
   //  writeToFile(data, img_dir+"/"+img_name+".jpg")
     imgId ++
@@ -274,16 +276,17 @@ func howManyImagesForThread(imgDB *DBConfig, threadId int) {
     howManyCalFinished <- howManyCalInfo{threadId:threadId, count:ncount}
 }
 
-func HowManyImages() int  {
+func CalcAndSaveImageCounts() int {
     maxCore := config.MAX_THREAD_COUNT
     realMaxCore := 0
-    howManyCalFinished = make(chan howManyCalInfo, config.MAX_THREAD_COUNT)
+
 
     imgDB := initImgDB()
     if nil == imgDB{
         return 0
     }
 
+    howManyCalFinished = make(chan howManyCalInfo, maxCore)
     for i:=0;i < maxCore ;i++  {
         go howManyImagesForThread(imgDB, i)
     }
@@ -298,36 +301,24 @@ func HowManyImages() int  {
     }
     fmt.Println("img count: ", count, ", real max cores: ", realMaxCore)
     imgDB.WriteTo(config.STAT_KEY_DOWNLOAD_MAX_CORES, []byte(strconv.Itoa(realMaxCore)))
+    imgDB.WriteTo(config.STAT_KEY_DOWNLOAD_BASE, []byte(strconv.Itoa(count)))
     return count
 }
 
-func HowManyImageClips() int  {
-
-    imgDB := InitImgClipsDB()
+func HowManyImages() int  {
+    imgDB := initImgDB()
     if nil == imgDB{
         return 0
     }
+    countStr := string(imgDB.ReadFor(config.STAT_KEY_DOWNLOAD_BASE))
+    ret, _ := strconv.Atoi(countStr)
+    fmt.Println("total size: ", ret)
+    return ret
+}
 
-    iter := imgDB.DBPtr.NewIterator(nil, &imgDB.ReadOptions)
-
-    if(!iter.First()){
-        fmt.Println("seek to first error")
-    }
-    count := 0
-    for iter.Valid(){
-        writeToFile(iter.Value(), string(iter.Key()))
-        curKey := iter.Key()
-        if 0!=len(curKey){
-            b := curKey[0]
-            if b>= 'A' && b <= 'Z'{
-                count ++
-            }
-        }
-        iter.Next()
-    }
-    fmt.Println(count," clips in total")
-    imgDB.CloseDB()
-    return count
+func HowManyImageClips() int  {
+    fmt.Println("have not implement")
+    return 0
 }
 
 
@@ -476,17 +467,11 @@ func GetStatInfo() (lastBase int, lastCoers int, lastEachTimes int, lastCostScs 
 }
 
 func ImgDBStatRepair()  {
-
     imgDB := initImgDB()
     if nil == imgDB{
         return
     }
-
-    db := imgDB.DBPtr
-    writeOptions := &imgDB.WriteOptions
-
-    keySize := HowManyImages()
-    db.Put(config.STAT_KEY_DOWNLOAD_BASE,[]byte(strconv.Itoa(keySize)), writeOptions)
+    CalcAndSaveImageCounts()
 }
 
 func RandomVerify(){
@@ -506,51 +491,20 @@ func RandomVerify(){
 
         letter:=r.Intn(8)
 
-        key := FormatImgKey([]byte(config.ThreadIdToName[letter] + strconv.Itoa(index)))
+        plainImgId := MakeSurePlainImgIdIsOk([]byte(config.ThreadIdToName[letter] + strconv.Itoa(index)))
 
+        key := FormatImgKey(plainImgId)
+
+        fmt.Println("random imgid: ", string(plainImgId))
         value,err := db.Get(key, readOptions)
         if err == leveldb.ErrNotFound{
-            fmt.Println("can't get :", key)
+            fmt.Println("can't get :",  string(ParseImgKeyToPlainTxt(key)))
         }else {
-            writeToFile(value, "E:/gen/verify/" + string(key) +".jpg")
+            writeToFile(value, "E:/gen/verify/" + string(ParseImgKeyToPlainTxt(key)) +".jpg")
         }
     }
 }
 
-
-func FormatImgKey(oldKey []byte) []byte {
-    if 0 == len(oldKey){
-        fmt.Println("error, key is empty")
-        return nil
-    }
-    if 8 < len(oldKey){
-        fmt.Println("error, key length is more than 8")
-        return nil
-    }
-    if 8 == len(oldKey){
-        return oldKey
-    }
-
-    ret := make([]byte, 8)	//7 位数字可保存百万级别图片, 再加一位字母线程标识，总共 8 位
-    ci := 0
-
-    ret[0]=oldKey[0]
-    ci ++
-
-    for i:=len(oldKey);i < 8;i ++{	//填充 8-len(oldKey) 个 '0'
-        ret[ci]=byte('0')
-        ci ++
-    }
-
-    ci += copy(ret[ci:], oldKey[1:])
-
-    if ci != 8 {
-        fmt.Println("new key cal error, ci: ", ci, ", not 8")
-        return nil
-    }
-    return ret
-
-}
 
 func Dump(dir string, count int)  {
     imgDB := initImgDB()

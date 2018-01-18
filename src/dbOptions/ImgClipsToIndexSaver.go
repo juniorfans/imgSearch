@@ -7,7 +7,7 @@ import "fmt"
  */
 func ImgClipsToIndexSaver(index []byte, dbId uint8, mainImgId []byte, which uint8)  {
 	imgIdent := GetImgClipIdent(dbId, mainImgId, which)
-	err := InitImgToClipsIndexDB().WriteTo([]byte(imgIdent),index)
+	err := InitImgClipsIndexDB().WriteTo([]byte(imgIdent),index)
 	if nil != err{
 		fmt.Println(err)
 	}
@@ -18,5 +18,5 @@ func ImgClipsToIndexSaver(index []byte, dbId uint8, mainImgId []byte, which uint
  */
 func ImgClipsToIndexReader(dbId uint8, mainImgId []byte, which uint8) []byte {
 	imgIdent := GetImgClipIdent(dbId, mainImgId, which)
-	return InitImgToClipsIndexDB().ReadFor([]byte(imgIdent))
+	return InitImgClipsIndexDB().ReadFor([]byte(imgIdent))
 }

@@ -22,12 +22,9 @@ type DBConfig struct {
 }
 
 
-var imgClipsIndexDBConfig = DBConfig{
+var imgClipsReverseIndexDBConfig = DBConfig{
 	Dir : "D:/img_clips_index_reverse/clips.db",
 	DBPtr : nil,
-	OpenOptions : opt.Options{ErrorIfMissing:false, BlockSize:40 * opt.KiB, CompactionTableSize:20*opt.MiB},
-	ReadOptions : opt.ReadOptions{},
-	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
 
 	Id:0,
@@ -38,9 +35,6 @@ var imgClipsIndexDBConfig = DBConfig{
 var imgIndexToImgDBConfig = DBConfig{
 	Dir : "D:/img_index/img_index.db",
 	DBPtr : nil,
-	OpenOptions : opt.Options{ErrorIfMissing:false},
-	ReadOptions : opt.ReadOptions{},
-	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
 
 	Id:0,
@@ -50,9 +44,6 @@ var imgIndexToImgDBConfig = DBConfig{
 var imgLetterDBConfig = DBConfig{
 	Dir : "D:/img_letter/img_letter.db",
 	DBPtr : nil,
-	OpenOptions : opt.Options{ErrorIfMissing:false},
-	ReadOptions : opt.ReadOptions{},
-	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
 
 	Id:0,
@@ -62,34 +53,33 @@ var imgLetterDBConfig = DBConfig{
 var imgToIndexDBConfig = DBConfig{
 	Dir : "D:/img_to_index/img_to_index.db",
 	DBPtr : nil,
-	OpenOptions : opt.Options{ErrorIfMissing:false},
-	ReadOptions : opt.ReadOptions{},
-	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
 
 	Id:0,
 	Name:"img to index db",
 }
 
-var imgToClipsIndexDBConfig = DBConfig{
+
+var imgClipsIndexDBConfig = DBConfig{
 	Dir : "D:/img_clips_index/clips.db",
 	DBPtr : nil,
-	OpenOptions : opt.Options{ErrorIfMissing:false},
-	ReadOptions : opt.ReadOptions{},
-	WriteOptions : opt.WriteOptions{Sync:false},
 	inited : false,
 
 	Id:0,
 	Name:"img to clips index db",
 }
 
-func InitImgClipsDB() *DBConfig {
-	_, err :=  initDB(&imgClipsIndexDBConfig)
+/**
+	 key 	: clip 索引值
+	 value	: clip 集合{某个库的某个 mainImgId 的第 which 张子图}
+ */
+func InitImgClipsReverseIndexDB() *DBConfig {
+	_, err :=  initDB(&imgClipsReverseIndexDBConfig)
 	if err != nil{
-		fmt.Println("open img clip db error, ", err)
+		fmt.Println("open img clip reverse index db error, ", err)
 		return nil
 	}
-	return &imgClipsIndexDBConfig
+	return &imgClipsReverseIndexDBConfig
 }
 
 func InitIndexToImgDB() *DBConfig {
@@ -119,13 +109,17 @@ func InitImgToIndexDB() *DBConfig {
 	return &imgToIndexDBConfig
 }
 
-func InitImgToClipsIndexDB() *DBConfig {
-	_, err :=  initDB(&imgToClipsIndexDBConfig)
+/**
+	key	: clip 信息(某个库的某个 mainImgId 的第 which 张子图)
+	value	: 该 clip 的索引
+ */
+func InitImgClipsIndexDB() *DBConfig {
+	_, err :=  initDB(&imgClipsIndexDBConfig)
 	if err != nil{
 		fmt.Println("open img to clips index db error, ", err)
 		return nil
 	}
-	return &imgToClipsIndexDBConfig
+	return &imgClipsIndexDBConfig
 }
 
 func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
@@ -138,6 +132,21 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 		dbPtr = config.DBPtr
 		err = nil
 		return
+	}
+	{
+		config.OpenOptions = opt.Options{
+			ErrorIfMissing:false,
+			BlockSize:40 * opt.KiB,
+			CompactionTableSize:20*opt.MiB,
+			BlockCacheCapacity:64 * opt.MiB,
+		}
+	}
+
+	{
+		config.ReadOptions = opt.ReadOptions{}
+	}
+	{
+		config.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
 	config.DBPtr,err = leveldb.OpenFile(config.Dir, &config.OpenOptions)
@@ -153,6 +162,10 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 
 func (this *DBConfig)WriteTo(key , value[]byte) error {
 	return this.DBPtr.Put(key, value, &this.WriteOptions)
+}
+
+func (this *DBConfig)WriteBatchTo (batch *leveldb.Batch) {
+	this.DBPtr.Write(batch, &this.WriteOptions)
 }
 
 func (this *DBConfig)ReadFor(key []byte) []byte {
@@ -200,7 +213,7 @@ func ReadKeys(dbPtr *leveldb.DB, count int)  {
 }
 
 func ReadClipValuesInCount(count int)  {
-	iter := imgClipsIndexDBConfig.DBPtr.NewIterator(nil, &opt.ReadOptions{})
+	iter := imgClipsReverseIndexDBConfig.DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){
 		fmt.Println("seek to first error")
@@ -208,7 +221,7 @@ func ReadClipValuesInCount(count int)  {
 
 	for iter.Valid(){
 		//writeToFile(iter.Value(), string(iter.Key()))
-		valueList := ParseClipIndeValues(iter.Value())
+		valueList := ParseClipIndexValues(iter.Value())
 		valueList.Print()
 		iter.Next()
 		count --

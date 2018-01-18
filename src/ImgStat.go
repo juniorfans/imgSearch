@@ -54,7 +54,7 @@ func main(){
 		}else if(5 == testCase){
 			dbOptions.SaveTheInputImg()
 		}else if(6 == testCase){
-			clipDB:=dbOptions.InitImgClipsDB()
+			clipDB:=dbOptions.InitImgClipsReverseIndexDB()
 			dbOptions.ReadClipValues()
 			clipDB.CloseDB()
 		}else if(7 == testCase){
@@ -81,6 +81,8 @@ func main(){
 			dbOptions.TestSaveAClipFromValues()
 		}else if(15 == testCase){
 			dbOptions.TestClipsSaveToJpgFromImgDB()
+		}else if(16 == testCase){
+			dbOptions.PrintClipIndexBytes()
 		}else{
 			fmt.Println("invalid options")
 		}

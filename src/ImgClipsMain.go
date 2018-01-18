@@ -18,8 +18,8 @@ func main()  {
 	for {
 		fmt.Print("select a image db to deal: ")
 		fmt.Fscan(stdin, &dbIndex)
-		dbOptions.InitImgClipsDB()
-		dbOptions.InitImgToClipsIndexDB()
+		dbOptions.InitImgClipsReverseIndexDB()
+		dbOptions.InitImgClipsIndexDB()
 		imgDB := dbOptions.PickImgDB(dbIndex)
 		if nil == imgDB{
 			fmt.Println("open img db failed: ", dbIndex)
@@ -29,7 +29,7 @@ func main()  {
 		fmt.Fscan(stdin, &input)
 		dbOptions.BeginImgClipSave(dbIndex,input, clipConfig.ClipOffsets , clipConfig.ClipLengh)
 
-		dbOptions.InitImgClipsDB().CloseDB()
+		dbOptions.InitImgClipsReverseIndexDB().CloseDB()
 		imgDB.CloseDB()
 	}
 }

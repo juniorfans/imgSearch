@@ -29,7 +29,12 @@ func PickImgDB(dbId uint8) *DBConfig {
 		imgDBConfig := DBConfig{
 			Dir : dbDir,
 			DBPtr : nil,
-			OpenOptions : opt.Options{ErrorIfMissing:false},
+			OpenOptions : opt.Options{
+				ErrorIfMissing:false,
+				BlockSize:40 * opt.KiB,
+				CompactionTableSize:20*opt.MiB,
+				BlockCacheCapacity:64 * opt.MiB,
+			},
 			ReadOptions : opt.ReadOptions{},
 			WriteOptions : opt.WriteOptions{Sync:false},
 			inited : false,
