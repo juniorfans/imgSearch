@@ -9,13 +9,7 @@ import (
 )
 
 func main(){
-	//SaveMainImgIndexes()
-	//dbOptions.ReadImgStat()
-	//dbOptions.ReadImgIndex(100)
-
 	dbOptions.DownloaderRun()
-
-	//SaveMainImgs()
 }
 
 

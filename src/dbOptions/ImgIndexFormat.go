@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"bytes"
 	"encoding/binary"
-	"config"
 )
 
 func MakeSurePlainImgIdIsOk(plainImgId []byte) []byte {
@@ -41,15 +40,6 @@ func MakeSurePlainImgIdIsOk(plainImgId []byte) []byte {
 	return ret
 }
 
-func GetImgKey(threadId uint8, seqNo int) []byte {
-	ret := make([]byte, 4)	//3字节表达的 uint 范围是0 ~ 16777215
-
-	ret[0]=byte(config.ThreadIdToByte[int(threadId)])
-
-	seqBytes := Int32ToBytes(seqNo)
-	copy(ret[1:], seqBytes[1:])
-	return ret
-}
 
 /**
 	输入：一个字节线程标识，后面字节为 seqNo
@@ -58,7 +48,7 @@ func GetImgKey(threadId uint8, seqNo int) []byte {
 	imgSeqNo	3字节
  */
 func FormatImgKey(oldKey []byte) []byte {
-	if 4 == len(oldKey){
+	if IMG_KEY_LENGTH == len(oldKey){
 		return oldKey
 	}
 
@@ -71,7 +61,7 @@ func FormatImgKey(oldKey []byte) []byte {
 		return nil
 	}
 
-	ret := make([]byte, 4)	//3字节表达的 uint 范围是0 ~ 16777215
+	ret := make([]byte, IMG_KEY_LENGTH)	//3字节表达的 uint 范围是0 ~ 16777215
 
 	ret[0]=oldKey[0]	//threadid
 

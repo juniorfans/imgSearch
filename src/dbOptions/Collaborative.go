@@ -3,6 +3,9 @@ package dbOptions
 import (
 	"fmt"
 	"config"
+	"bufio"
+	"os"
+	"strconv"
 )
 
 /**
@@ -103,11 +106,16 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 	lv := clipDB.ReadFor(left)	//left 在哪些大图中出现过
 	rv := clipDB.ReadFor(right)
 
-	tmpl := ParseClipIndexValues(lv)
-	tmpr := ParseClipIndexValues(rv)
+	lvlist := ParseImgClipIdentListBytesToStrings(lv)
+	rvlist := ParseImgClipIdentListBytesToStrings(rv)
 
-	lvlist := GetMainImgIdentOfClips(&tmpl)
-	rvlist := GetMainImgIdentOfClips(&tmpr)
+	if nil == lvlist || nil == rvlist{
+		fmt.Println("lvlist or rvlist is null")
+		return
+	}
+
+	fmt.Println("left is in images: ", lvlist)
+	fmt.Println("right is in images: ", rvlist)
 
 	//lvlist 和 vlist 中需要过滤出相同的照片
 	lvlist = DeleteSameMainImg(lvlist)
@@ -134,22 +142,37 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 
 
 
-func DeleteSameMainImg(imgIdents []string) []string {
+func DeleteSameMainImg(imgClipIdents []string) []string {
 	filter := make(map[string][]byte)
-	ret := make([]string, len(imgIdents))
+	ret := make([]string, len(imgClipIdents))
 	realCount := 0
 
-	for _,imgIdent := range imgIdents {
-		dbId, imgId := ParseImgIden(imgIdent)
+	var clipInfo ClipIdentInfo
+	for _, clipIdent := range imgClipIdents {
+		if 0 == len(clipIdent){
+			fmt.Println("empty ident")
+			continue
+		}
+		if !clipInfo.ParseFromIdenString(clipIdent){
 
-		imgDB := PickImgDB(dbId)
-		imgBytes := imgDB.ReadFor(imgId)
+			continue
+		}
+
+		imgDB := PickImgDB(clipInfo.dbId)
+		imgBytes := imgDB.ReadFor(clipInfo.imgKey)
+
+		if 0 == len(imgBytes){
+			fmt.Println("img bytes of ",strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is empty")
+			continue
+		}else{
+			fmt.Println("img bytes of ", strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is : ", len(imgBytes))
+		}
 
 		imgIndex := GetImgIndexBySrcData(imgBytes)
 		imgIndexStr := string(imgIndex)
 		if nil == filter[imgIndexStr]{
-			filter[imgIndexStr] = imgId
-			ret[realCount]=imgIdent
+			filter[imgIndexStr] = clipInfo.imgKey
+			ret[realCount]= clipIdent
 			realCount ++
 		}else{
 			//abort
@@ -157,4 +180,31 @@ func DeleteSameMainImg(imgIdents []string) []string {
 		}
 	}
 	return ret[0:realCount]
+}
+
+func FindClipMainImg(dbId uint8, imgId []byte, which uint8)  {
+	clipIdent := GetImgClipIdent(dbId, imgId, which)
+	clipIndex := InitImgClipsIndexDB().ReadFor(clipIdent)
+	if nil == clipIndex{
+		fmt.Println("can't find clip index in clip_to_index db by clip ident")
+		return
+	}
+	imgsInfo := InitImgClipsReverseIndexDB().ReadFor(clipIndex)
+	if nil == imgsInfo{
+		fmt.Println("can't find clip's img info in clip_reverse_index db by clip index")
+		return
+	}
+	valueList := ParseImgClipIdentListBytesToStrings(imgsInfo)
+	fmt.Println(valueList)
+}
+
+func TestFindClipMainImg()  {
+	stdin := bufio.NewReader(os.Stdin)
+	var dbId , which uint8
+	var imgKey string
+	for{
+		fmt.Print("input dbId, imgKey, which: ")
+		fmt.Fscan(stdin, &dbId, &imgKey, & which)
+		FindClipMainImg(dbId, FormatImgKey([]byte(imgKey)), which)
+	}
 }

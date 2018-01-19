@@ -25,7 +25,7 @@ func main()  {
 			fmt.Println("open img db failed: ", dbIndex)
 			continue
 		}
-		fmt.Print("input image num for each thread(8 in total) to deal: ")
+		fmt.Print("input image num for each thread(16 in total) to deal: ")
 		fmt.Fscan(stdin, &input)
 		dbOptions.BeginImgClipSave(dbIndex,input, clipConfig.ClipOffsets , clipConfig.ClipLengh)
 

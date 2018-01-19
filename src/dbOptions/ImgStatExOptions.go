@@ -1,13 +1,12 @@
 package dbOptions
 
 import (
+	"fmt"
+	"config"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strconv"
-	"config"
-	"fmt"
 	"util"
 )
-
 
 
 /**

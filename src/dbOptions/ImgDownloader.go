@@ -16,7 +16,6 @@ import (
     "bufio"
     "strings"
     "errors"
-    "github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var img_dir string = "E:/gen/3/"
@@ -255,71 +254,6 @@ func save(goId int, base int, times int)  {
     downloadFinished <- nextImgId
 }
 
-type howManyCalInfo struct {
-    threadId int
-    count int
-}
-
-var howManyCalFinished chan howManyCalInfo
-
-func howManyImagesForThread(imgDB *DBConfig, threadId int) {
-    region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
-    iter := imgDB.DBPtr.NewIterator(&region,&imgDB.ReadOptions)
-    iter.First()
-    fmt.Println("thread: ", threadId, ", begin: ", string(iter.Key()))
-    ncount := 0
-    for iter.Valid(){
-        ncount ++
-        iter.Next()
-    }
-
-    howManyCalFinished <- howManyCalInfo{threadId:threadId, count:ncount}
-}
-
-func CalcAndSaveImageCounts() int {
-    maxCore := config.MAX_THREAD_COUNT
-    realMaxCore := 0
-
-
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return 0
-    }
-
-    howManyCalFinished = make(chan howManyCalInfo, maxCore)
-    for i:=0;i < maxCore ;i++  {
-        go howManyImagesForThread(imgDB, i)
-    }
-
-    count := 0
-    for i:=0;i < maxCore ;i++  {
-        calInfo := <- howManyCalFinished
-        if 0 != calInfo.count{
-            realMaxCore++
-        }
-        count += calInfo.count
-    }
-    fmt.Println("img count: ", count, ", real max cores: ", realMaxCore)
-    imgDB.WriteTo(config.STAT_KEY_DOWNLOAD_MAX_CORES, []byte(strconv.Itoa(realMaxCore)))
-    imgDB.WriteTo(config.STAT_KEY_DOWNLOAD_BASE, []byte(strconv.Itoa(count)))
-    return count
-}
-
-func HowManyImages() int  {
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return 0
-    }
-    countStr := string(imgDB.ReadFor(config.STAT_KEY_DOWNLOAD_BASE))
-    ret, _ := strconv.Atoi(countStr)
-    fmt.Println("total size: ", ret)
-    return ret
-}
-
-func HowManyImageClips() int  {
-    fmt.Println("have not implement")
-    return 0
-}
 
 
 func Begin(lastBase int, cores int, eachTimes int) int {
@@ -344,136 +278,6 @@ func Begin(lastBase int, cores int, eachTimes int) int {
 }
 
 
-func setStatInfo(lastBase int, cores int, eachTimes int, costSecs int64)  {
-
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return
-    }
-
-    db := imgDB.DBPtr
-
-    maxCores := cores
-    maxCoreStr := imgDB.ReadFor(config.STAT_KEY_DOWNLOAD_MAX_CORES)
-    if nil!= maxCoreStr{
-        mc, err := strconv.Atoi(string(maxCoreStr))
-        if err==nil{
-            if mc > maxCores{
-                maxCores = mc
-            }
-        }
-    }
-
-    writeOptions := &imgDB.WriteOptions
-
-    db.Put(config.STAT_KEY_DOWNLOAD_BASE, []byte(strconv.Itoa(lastBase)), writeOptions)
-
-    db.Put(config.STAT_KEY_DOWNLOAD_CORES, []byte(strconv.Itoa(cores)), writeOptions)
-
-    db.Put(config.STAT_KEY_DOWNLOAD_MAX_CORES, []byte(strconv.Itoa(maxCores)), writeOptions)
-
-    db.Put(config.STAT_KEY_DOWNLOAD_EACH_TIMES, []byte(strconv.Itoa(eachTimes)), writeOptions)
-
-    db.Put(config.STAT_KEY_DOWNLOAD_COST_SECS, []byte(strconv.FormatInt(costSecs, 10)), writeOptions)
-
-    key := string(config.STAT_KEY_DOWNLOAD_STAT) + time.Now().Format("2006-01-02 15:04:05");
-    value := "base: " + strconv.Itoa(lastBase) + ", cores:" + strconv.Itoa(cores) + ", eachTimes:" + strconv.Itoa(eachTimes) + ", cost:"+strconv.FormatInt(costSecs, 10)+"s"
-    db.Put([]byte(key),[]byte(value), writeOptions)
-    db.Put(config.STAT_KEY_DOWNLOAD_CUR_STAT_KEY, []byte(key),  writeOptions)
-}
-
-func GetStatInfo() (lastBase int, lastCoers int, lastEachTimes int, lastCostScs int64, remark string){
-
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return
-    }
-
-    db := imgDB.DBPtr
-    readOptions := &imgDB.ReadOptions
-
-    {
-        cs,err := db.Get(config.STAT_KEY_DOWNLOAD_CUR_STAT_KEY, readOptions)
-        if err==leveldb.ErrNotFound{
-            remark = "no stat data"
-        }else{
-            ret, err:= db.Get([]byte(cs), readOptions)
-            if err == leveldb.ErrNotFound{
-                remark = "no stat data"
-            }else{
-                remark = string(ret)
-            }
-        }
-    }
-
-
-    {
-        lb, err := db.Get(config.STAT_KEY_DOWNLOAD_BASE, readOptions)
-        if err == leveldb.ErrNotFound{
-            lastBase = 0
-        }else{
-            ilb,err:=strconv.Atoi(string(lb))
-            if err==nil{
-                lastBase = ilb
-            }else{
-                lastBase =0
-            }
-        }
-    }
-
-
-    {
-        lc, err := db.Get(config.STAT_KEY_DOWNLOAD_CORES, readOptions)
-        if err == leveldb.ErrNotFound{
-            lastCoers = 0
-        }else{
-            ilc,err:=strconv.Atoi(string(lc))
-            if err==nil{
-                lastCoers = ilc
-            }else{
-                lastCoers =0
-            }
-        }
-    }
-
-    {
-        let, err := db.Get(config.STAT_KEY_DOWNLOAD_EACH_TIMES, readOptions)
-        if err == leveldb.ErrNotFound{
-            lastEachTimes = 0
-        }else{
-            ilet,err:=strconv.Atoi(string(let))
-            if err==nil{
-                lastEachTimes = ilet
-            }else{
-                lastEachTimes =0
-            }
-        }
-    }
-
-    {
-        lcost, err := db.Get(config.STAT_KEY_DOWNLOAD_COST_SECS, readOptions)
-        if err == leveldb.ErrNotFound{
-            lastCostScs = 0
-        }else{
-            icost,err:=strconv.ParseInt(string(lcost),10,64)
-            if err==nil{
-                lastCostScs = icost
-            }else{
-                lastCostScs =0
-            }
-        }
-    }
-    return
-}
-
-func ImgDBStatRepair()  {
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return
-    }
-    CalcAndSaveImageCounts()
-}
-
 func RandomVerify(){
 
     imgDB := initImgDB()
@@ -489,7 +293,7 @@ func RandomVerify(){
     for i:=0; i< 40; i++ {
         index := r.Intn(1000)
 
-        letter:=r.Intn(8)
+        letter:=r.Intn(16)
 
         plainImgId := MakeSurePlainImgIdIsOk([]byte(config.ThreadIdToName[letter] + strconv.Itoa(index)))
 
@@ -505,34 +309,8 @@ func RandomVerify(){
     }
 }
 
-
-func Dump(dir string, count int)  {
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return
-    }
-
-    db := imgDB.DBPtr
-    readOptions := &imgDB.ReadOptions
-
-    iter := db.NewIterator(nil, readOptions)
-
-    if(!iter.First()){
-        fmt.Println("seek to first error")
-    }
-
-    for iter.Valid(){
-        if count <= 0{
-            break
-        }
-        writeToAbsFile(iter.Value(), dir + "/" + string(iter.Key()) + ".jpg")
-        iter.Next()
-        count --
-    }
-}
-
 func DownloaderRun()  {
-    cores := 8
+    cores := 16
     eachTimes := 10000
     db := uint8(8)
 
@@ -540,16 +318,15 @@ func DownloaderRun()  {
     for{
         fmt.Print("select a img db to store image: ")
         fmt.Fscan(stdin, &db)
-        fmt.Print("input thread num and each iter num: ")
+        fmt.Print("input each thread iter num: ")
         fmt.Fscan(stdin, &eachTimes)
-   //     fmt.Fscan(stdin, &cores, &eachTimes)
-        fmt.Println("img db: ", db," each thread(total: 8) to download: ", eachTimes)
+        fmt.Println("img db: ", db," each thread(total: 16) to download: ", eachTimes)
 
         imgDB := PickImgDB(db)
 
         fmt.Println("cores: ", cores, ", eachTimes: ", eachTimes)
 
-        newBase, _ ,_, _, _:= GetStatInfo()
+        newBase, _,_ ,_, _, _:= GetStatInfo(imgDB)
 
         st := time.Now().Unix()
 
@@ -557,12 +334,9 @@ func DownloaderRun()  {
         et := time.Now().Unix()
         fmt.Println("cost ", (et-st), " seconds")
 
-        setStatInfo(newBase + total,cores,eachTimes,(et-st))
+        setStatInfo(imgDB, newBase + total,cores,eachTimes,(et-st))
 
         imgDB.CloseDB()
     }
-
-
-
 
 }

@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"os"
 	"fmt"
-	"strings"
 	"strconv"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"config"
@@ -14,31 +13,16 @@ import (
 
 func main()  {
 	stdin := bufio.NewReader(os.Stdin)
-	var input string
+	var dbId uint8
 	var tempDBId uint8
 	for  {
 		fmt.Print("input db imgs to compact(split by ,): ")
-		fmt.Fscan(stdin, &input)
-		dbIds := strings.Split(input, ",")
-		dbs := make([] *dbOptions.DBConfig, len(dbIds))
+		fmt.Fscan(stdin, &dbId)
 
-		hasError := false
-
-		for i,_ := range dbs{
-
-			idbId , err := (strconv.Atoi(dbIds[i]))
-			if nil != err{
-				fmt.Println("dbid must be int")
-				hasError = true
-				break
-			}
-
-			dbs[i]=dbOptions.PickImgDB(uint8(idbId))
-		//	fmt.Println("start to compact db", idbId)
-		//	dbs[i].DBPtr.CompactRange(util.Range{nil,nil})
-		//	fmt.Println("finished compact db", idbId)
-		}
-		if hasError{
+		imgDB := dbOptions.PickImgDB(dbId)
+		if !needFormat(imgDB){
+			fmt.Println("current img db has been in the target format, no need to translate")
+			imgDB.CloseDB()
 			continue
 		}
 
@@ -51,36 +35,47 @@ func main()  {
 			continue
 		}
 
-		count := 0
-		for _, db := range dbs{
-			count += Dumpto(compactDB, db)
-			db.CloseDB()
-		}
+		count := Dumpto(compactDB, imgDB)
 		fmt.Println("total compact : ", count)
 		compactDB.CloseDB()
+		imgDB.CloseDB()
 	}
 
+}
+
+func needFormat(db *dbOptions.DBConfig) bool {
+	firstImgKey := dbOptions.FormatImgKey([]byte("A0000001"))
+
+	//能够查找到目标格式的 key 则已经执行过转换
+	if nil != db.ReadFor(firstImgKey){
+		return false
+	}
+
+	return true
 }
 
 var keyFormatDumpFinished chan int
 
 func Dumpto(compactDB, srcDB *dbOptions.DBConfig) int {
-	maxCore := config.MAX_THREAD_COUNT
-	maxCoreStr := srcDB.ReadFor(config.STAT_KEY_DOWNLOAD_MAX_CORES)
-	if nil != maxCoreStr{
-		maxCore, _ = strconv.Atoi(string(maxCoreStr))
-	}
 
-	keyFormatDumpFinished = make(chan int, maxCore)
+	fmt.Println("now we repair the stat info of img db")
+	total, realMaxCore := dbOptions.ImgDBStatRepair(srcDB)
 
-	for i:=0; i<maxCore;i ++{
+	keyFormatDumpFinished = make(chan int, realMaxCore)
+
+	for i:=0; i< int(realMaxCore);i ++{
 		go dumpCallBack(compactDB, srcDB,i, true)
 	}
 
 	count := 0
-	for i:=0;i < maxCore ;i++  {
+	for i:=0;i < int(realMaxCore) ;i++  {
 		count += (<- keyFormatDumpFinished)
 	}
+
+	if total != count {
+		fmt.Println("dealed count is not equal to total, total: ", total, ", dealed: ", count)
+	}
+
 	return count
 }
 
@@ -103,9 +98,10 @@ func dumpCallBack(compactDB, srcDB *dbOptions.DBConfig, threadId int, multyThrea
 	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
 	iter := srcDB.DBPtr.NewIterator(&region,&srcDB.ReadOptions)
 	iter.First()
-	fmt.Println("thread: ", threadId, ", begin: ", string(iter.Key()))
+	fmt.Println("thread: ", threadId, ", begin: ", dbOptions.MakeSurePlainImgIdIsOk(iter.Key()))
 	count := 0
 	batch := leveldb.Batch{}
+
 	for iter.Valid(){
 		if 0!=count && 0 == count % 1000{
 			fmt.Println("thread ", threadId, " dealing ", count)
@@ -113,13 +109,20 @@ func dumpCallBack(compactDB, srcDB *dbOptions.DBConfig, threadId int, multyThrea
 			batch.Reset()
 		}
 		newKey := dbOptions.FormatImgKey(iter.Key())
-		compactDB.WriteTo(newKey, iter.Value())
+		if nil == newKey{
+			continue
+		}
+
 		batch.Put(newKey, iter.Value())
 		iter.Next()
 		count ++
 	}
-	fmt.Println("thread: ", threadId, ", last: ", string(iter.Key()))
-	fmt.Println("thread ", threadId, " finished")
+
+	if 0 != batch.Len(){
+		compactDB.WriteBatchTo(&batch)
+	}
+
+	fmt.Println("thread: ", threadId, " finished ~, last: ", dbOptions.MakeSurePlainImgIdIsOk(iter.Key()))
 	if multyThread{
 		keyFormatDumpFinished <- count
 	}

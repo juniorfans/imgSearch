@@ -6,6 +6,9 @@ import (
 	"strconv"
 )
 
+var DB_DIR_BASE = "D:/"
+//var DB_DIR_BASE = "J:/search/"
+
 var imgDBs map[uint8]*DBConfig = make(map[uint8]*DBConfig)
 
 func GetImgDBs() []*DBConfig {
@@ -22,10 +25,7 @@ func GetImgDBs() []*DBConfig {
 func PickImgDB(dbId uint8) *DBConfig {
 	ret := imgDBs[dbId]
 	if nil == ret{
-		dbDir := "D:/img_db_" +  strconv.Itoa(int(dbId))+ "/image.db"
-
-		fmt.Println("has pick this img db: ", dbDir)
-
+		dbDir := "img_db_" +  strconv.Itoa(int(dbId))+ "/image.db"
 		imgDBConfig := DBConfig{
 			Dir : dbDir,
 			DBPtr : nil,
@@ -40,6 +40,7 @@ func PickImgDB(dbId uint8) *DBConfig {
 			inited : false,
 			Id : dbId,
 			Name:"img db",
+			dbType:0,	//source db
 		}
 
 		_, err :=  initDB(&imgDBConfig)

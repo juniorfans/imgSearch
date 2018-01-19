@@ -13,6 +13,7 @@ import (
 	"config"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"util"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 func writeToFile(content []byte, fileName string)  {
@@ -31,7 +32,7 @@ func SaveMainImgsIn(mainImgKeys []string, dir string)  {
 	os.MkdirAll(dir, 0777)
 
 	for _, mainImgKey := range mainImgKeys{
-		SaveMainImg(string(ParseImgKeyToPlainTxt([]byte(mainImgKey))), dir)
+		SaveMainImg(string(MakeSurePlainImgIdIsOk([]byte(mainImgKey))), dir)
 	}
 }
 
@@ -53,14 +54,45 @@ func SaveMainImgs()  {
 func SaveTheInputImg()  {
 	stdin := bufio.NewReader(os.Stdin)
 	var input string
-
-	fmt.Println("input image keys to save, split by - ")
-	fmt.Fscan(stdin,&input)
-	keys := strings.Split(input,"-")
-	SaveMainImgsIn(keys, "E:/gen/2/")
+	for  {
+		fmt.Println("input image keys to save, split by - ")
+		fmt.Fscan(stdin,&input)
+		keys := strings.Split(input,"-")
+		SaveMainImgsIn(keys, "E:/gen/2/")
+	}
 
 }
 
+func TestReadImgDBKey(db *DBConfig)  {
+
+	stdin := bufio.NewReader(os.Stdin)
+	var threadId uint8
+	var offset, count int
+	for{
+		fmt.Print("input threadId, offset, count to read: ")
+		fmt.Fscan(stdin, &threadId, &offset, &count)
+
+
+		region := util.Range{Start:[]byte{config.ThreadIdToByte[int(threadId)]}}
+		iter := db.DBPtr.NewIterator(&region,&db.ReadOptions)
+		iter.First()
+		ci := 0
+		for iter.Valid()  {
+			if ci >= offset{
+				if count > 0{
+					fmt.Println(string(ParseImgKeyToPlainTxt(iter.Key())))
+				}else{
+					break
+				}
+				count --
+			}
+			iter.Next()
+			ci ++
+		}
+
+		iter.Release()
+	}
+}
 
 func SaveDuplicatedMostImg()  {
 	stdin := bufio.NewReader(os.Stdin)
@@ -129,16 +161,31 @@ func StatImgIndexesInfo()  {
 
 
 func PrintAllStatInfo()  {
-	PickImgDB(1)
-	PickImgDB(2)
-	PickImgDB(4)
+
+	stdin := bufio.NewReader(os.Stdin)
+	var dbsStr string
+
+	fmt.Print("input imgs db to look stat info(split by ,): ")
+	fmt.Fscan(stdin, &dbsStr)
+	dbss := strings.Split(dbsStr, ",")
+	for _, dbs := range dbss{
+		dbId, _ := strconv.Atoi(dbs)
+		PickImgDB(uint8(dbId))
+	}
+
+	//PickImgDB(1)
+	//PickImgDB(2)
+	//PickImgDB(4)
 	imgDBs := GetImgDBs()
 	for _,imgDB := range imgDBs{
 		imgDB.PrintStat()
 	}
 
-	clipDB := InitImgClipsReverseIndexDB()
-	clipDB.PrintStat()
+	clipToIndexDB := InitImgClipsIndexDB()
+	clipToIndexDB.PrintStat()
+
+	clipReverseIndexDB := InitImgClipsReverseIndexDB()
+	clipReverseIndexDB.PrintStat()
 
 	indexDB := InitIndexToImgDB()
 	indexDB.PrintStat()
@@ -155,13 +202,13 @@ func SaveMainImg(mainImgKey ,dir string)  {
 		return
 	}
 
-	imgData, err := imgDb.DBPtr.Get([]byte(mainImgKey), &imgDb.ReadOptions)
+	imgData, err := imgDb.DBPtr.Get([]byte(FormatImgKey([]byte(mainImgKey))), &imgDb.ReadOptions)
 	if leveldb.ErrNotFound == err{
 		fmt.Println("can't find img: ", mainImgKey)
 		return
 	}
 
-	fileName := dir + string(filepath.Separator) + mainImgKey + ".jpg"
+	fileName := dir + string(filepath.Separator) +(mainImgKey) + ".jpg"
 	writeToFile(imgData, fileName)
 	fmt.Println(fileName, " save success")
 }
@@ -207,18 +254,18 @@ func ReadClipValues()  {
 }
 
 
-func TestSaveAClipFromValues()  {
+func SaveClipsFromClipReverseIndex()  {
 	InitImgClipsReverseIndexDB()
 	stdin := bufio.NewReader(os.Stdin)
 	var input int
 
 	fmt.Println("input how many count values for clip db to save clips ")
 	fmt.Fscan(stdin,&input)
-	saveAClipFromValues(input)
+	saveClipsFromClipReverseIndexForCounts(input)
 	InitImgClipsReverseIndexDB().CloseDB()
 }
 
-func saveAClipFromValues(count int)  {
+func saveClipsFromClipReverseIndexForCounts(count int)  {
 	iter := InitImgClipsReverseIndexDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){

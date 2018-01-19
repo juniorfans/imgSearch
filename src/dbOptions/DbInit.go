@@ -7,7 +7,14 @@ import (
 	"errors"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"config"
+	"os"
+	"bufio"
+	"strings"
+	"io"
+	"util"
 )
+
+var SECOND_DB_DIR_BASE = "E:/search/"
 
 type DBConfig struct {
 	Dir          string
@@ -19,54 +26,104 @@ type DBConfig struct {
 
 	Name	string
 	Id           uint8
+	dbType	uint8	//0:source_db 1:second_db
+}
+
+var HAS_READ_DB_CONF = false
+func readDBDirConf() {
+	if HAS_READ_DB_CONF == true{
+		return
+	}
+	HAS_READ_DB_CONF = true
+	exedir,err := fileUtil.GetCurrentMoudlePath()
+	if nil != err{
+		fmt.Println("get current moudle error: ", err)
+		return
+	}
+	f, err := os.Open(exedir + "/" + "config.txt")
+	if err != nil {
+		fmt.Println("open config error: ", err)
+		return
+	}
+	buf := bufio.NewReader(f)
+	for {
+		line, err := buf.ReadString('\n')
+
+		if io.EOF == err{
+			return
+		}else if nil != err {
+			fmt.Println("read config error")
+			return
+		}
+		line = strings.TrimSpace(line)
+		if 0 == len(line){
+			continue
+		}
+		kv := strings.Split(line,"=")
+		if 2 == len(kv){
+			if 0==strings.Compare("second_db_dir_base",kv[0]){
+				SECOND_DB_DIR_BASE = strings.TrimSpace(kv[1])
+				fmt.Println("second_db_dir_base: ", SECOND_DB_DIR_BASE)
+			}else if 0==strings.Compare("soruce_db_dir_base",kv[0]){
+				DB_DIR_BASE = strings.TrimSpace(kv[1])
+				fmt.Println("source_db_dir_base: ", DB_DIR_BASE)
+			}
+		}
+	}
+	return
 }
 
 
 var imgClipsReverseIndexDBConfig = DBConfig{
-	Dir : "D:/img_clips_index_reverse/clips.db",
+	Dir : "img_clips_index_reverse/clips.db",
 	DBPtr : nil,
 	inited : false,
 
 	Id:0,
 	Name:"img clip db",
+	dbType:1,
 }
 
 
 var imgIndexToImgDBConfig = DBConfig{
-	Dir : "D:/img_index/img_index.db",
+	Dir : "img_index/img_index.db",
 	DBPtr : nil,
 	inited : false,
 
 	Id:0,
 	Name:"index to img db",
+	dbType:1,
 }
 
 var imgLetterDBConfig = DBConfig{
-	Dir : "D:/img_letter/img_letter.db",
+	Dir : "img_letter/img_letter.db",
 	DBPtr : nil,
 	inited : false,
 
 	Id:0,
 	Name:"img letter db",
+	dbType:1,
 }
 
 var imgToIndexDBConfig = DBConfig{
-	Dir : "D:/img_to_index/img_to_index.db",
+	Dir : "img_to_index/img_to_index.db",
 	DBPtr : nil,
 	inited : false,
 
 	Id:0,
 	Name:"img to index db",
+	dbType:1,
 }
 
 
 var imgClipsIndexDBConfig = DBConfig{
-	Dir : "D:/img_clips_index/clips.db",
+	Dir : "img_clips_index/clips.db",
 	DBPtr : nil,
 	inited : false,
 
 	Id:0,
 	Name:"img to clips index db",
+	dbType:1,
 }
 
 /**
@@ -149,6 +206,17 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 		config.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
+	{
+		readDBDirConf()
+		if uint8(0) == config.dbType{
+			config.Dir = DB_DIR_BASE + config.Dir
+		}else if uint8(1) == config.dbType{
+			config.Dir = SECOND_DB_DIR_BASE + config.Dir
+		}
+
+		fmt.Println("has pick this img db: ", config.Dir)
+	}
+
 	config.DBPtr,err = leveldb.OpenFile(config.Dir, &config.OpenOptions)
 	if err != nil{
 		fmt.Println("open db failed")
@@ -185,12 +253,14 @@ func (this *DBConfig) PrintStat()  {
 	iter := this.DBPtr.NewIterator(&region, &this.ReadOptions)
 	iter.First()
 
-	fmt.Println("---------------------------------------------------")
+	fmt.Println("----------------------- begin ----------------------------")
 	fmt.Println("dbname: ", this.Name, ", id: ", this.Id)
 	for iter.Valid(){
 		fmt.Println(string(iter.Key()),  " : ", string(iter.Value()))
 		iter.Next()
 	}
+
+	fmt.Println("----------------------- end ----------------------------")
 }
 
 func ReadKeys(dbPtr *leveldb.DB, count int)  {
@@ -221,8 +291,10 @@ func ReadClipValuesInCount(count int)  {
 
 	for iter.Valid(){
 		//writeToFile(iter.Value(), string(iter.Key()))
-		valueList := ParseClipIndexValues(iter.Value())
-		valueList.Print()
+		valueList := ParseImgClipIdentListBytesToStrings(iter.Value())
+		for _, valueStr := range valueList{
+			fmt.Println(valueStr)
+		}
 		iter.Next()
 		count --
 		if count <= 0{

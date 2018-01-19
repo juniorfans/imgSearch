@@ -44,11 +44,11 @@ func main(){
 		if(0 == testCase){
 			dbOptions.PrintAllStatInfo()
 		}else if(1 == testCase){
-			dbOptions.HowManyImageClips()
+			dbOptions.HowManyImageClipIndexes()
 		}else if(2 == testCase){
 			dbOptions.HowManyImages()
 		}else if(3 == testCase){
-			dbOptions.ImgDBStatRepair()
+			dbOptions.ImgDBStatRepair(imgDB)
 		}else if(4 == testCase){
 			dbOptions.RandomVerify()
 		}else if(5 == testCase){
@@ -78,11 +78,15 @@ func main(){
 		}else if(13 == testCase){
 			dbOptions.TestClipsIndexSaveToJpgFromImgDB()
 		}else if(14 == testCase){
-			dbOptions.TestSaveAClipFromValues()
+			dbOptions.SaveClipsFromClipReverseIndex()
 		}else if(15 == testCase){
 			dbOptions.TestClipsSaveToJpgFromImgDB()
 		}else if(16 == testCase){
 			dbOptions.PrintClipIndexBytes()
+		}else if(17 == testCase){
+			dbOptions.TestFindClipMainImg()
+		}else if(18 == testCase){
+			dbOptions.TestReadImgDBKey(imgDB)
 		}else{
 			fmt.Println("invalid options")
 		}
