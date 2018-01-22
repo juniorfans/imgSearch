@@ -76,7 +76,7 @@ func main(){
 			dbOptions.SaveLetterOfImg()
 			db.CloseDB()
 		}else if(13 == testCase){
-			dbOptions.TestClipsIndexSaveToJpgFromImgDB()
+			dbOptions.TestClipsIndexSaveToJpgFromImgDB(imgDB)
 		}else if(14 == testCase){
 			dbOptions.SaveClipsFromClipReverseIndex()
 		}else if(15 == testCase){

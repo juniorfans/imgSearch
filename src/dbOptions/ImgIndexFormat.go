@@ -78,7 +78,7 @@ func FormatImgKey(oldKey []byte) []byte {
 
 func ParseImgKeyToPlainTxt(imgKey []byte) []byte {
 	if 4 != len(imgKey){
-		fmt.Println("imgKey format error, must be 4 bytes,but is ", len(imgKey))
+		fmt.Println("imgKey format error, must be 4 bytes,but is ", len(imgKey), " : ", string(MakeSurePlainImgIdIsOk(imgKey)))
 		return nil
 	}
 	ret := make([]byte, 8)
@@ -118,6 +118,44 @@ func Int32ToBytes(n int) []byte {
 	binary.Write(bytesBuffer, binary.BigEndian,tmp)
 	return bytesBuffer.Bytes()
 
+}
+
+//imgId 是大端模式: 原值中低位在现在字节数组中的高位，注意顺序
+//第 0 位是 threadName, 第 1~3 位是 imgKey
+func ImgIdIncrement(imgId []byte) bool {
+	if uint8(imgId[3]) < 255{
+		imgId[3] = imgId[3]+1
+	}else if uint8(imgId[2]) < 255{
+		imgId[2] = imgId[2]+1
+		imgId[3] = 0
+	}else if uint8(imgId[1]) < 255{
+		imgId[1] = imgId[1]+1
+		imgId[2] = 0
+		imgId[3] = 0
+	}else{
+		fmt.Println("imgId is too big, can't increment")
+		return false
+	}
+	return true
+}
+
+//imgId 是大端模式: 原值中低位在现在字节数组中的高位，注意顺序
+//第 0 位是 threadName, 第 1~3 位是 imgKey
+func ImgIdDecrement(imgId []byte) bool {
+	if uint8(imgId[3]) > 0{
+		imgId[3] = imgId[3]-1
+	}else if uint8(imgId[2]) > 0{
+		imgId[2] = imgId[2]-1
+		imgId[3] = 255
+	}else if uint8(imgId[1]) > 0{
+		imgId[1] = imgId[1]-1
+		imgId[2] = 255
+		imgId[3] = 255
+	}else{
+		fmt.Println("imgId is too small, can't decrement")
+		return false
+	}
+	return true
 }
 
 //字节转换成整形, 小端模式

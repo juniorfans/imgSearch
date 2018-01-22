@@ -27,9 +27,11 @@ func main()  {
 		}
 		fmt.Print("input image num for each thread(16 in total) to deal: ")
 		fmt.Fscan(stdin, &input)
-		dbOptions.BeginImgClipSave(dbIndex,input, clipConfig.ClipOffsets , clipConfig.ClipLengh)
+		//dbOptions.BeginImgClipSave(dbIndex,input, clipConfig.ClipOffsets , clipConfig.ClipLengh)
+		dbOptions.BeginImgClipSaveEx(dbIndex,input, clipConfig.ClipOffsets , clipConfig.ClipLengh)
 
-		dbOptions.InitImgClipsReverseIndexDB().CloseDB()
+		dbOptions.InitImgClipsIndexDB().CloseDB()	//刷新数据
+		dbOptions.InitImgClipsReverseIndexDB().CloseDB()	//刷新数据
 		imgDB.CloseDB()
 	}
 }

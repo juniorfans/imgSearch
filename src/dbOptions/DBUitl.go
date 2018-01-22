@@ -32,7 +32,7 @@ func SaveMainImgsIn(mainImgKeys []string, dir string)  {
 	os.MkdirAll(dir, 0777)
 
 	for _, mainImgKey := range mainImgKeys{
-		SaveMainImg(string(MakeSurePlainImgIdIsOk([]byte(mainImgKey))), dir)
+		SaveMainImg(FormatImgKey([]byte(mainImgKey)), dir)
 	}
 }
 
@@ -41,7 +41,7 @@ func SaveImgLetterIn(mainImgKeys []string, dir string)  {
 	os.MkdirAll(dir, 0777)
 
 	for _, mainImgKey := range mainImgKeys{
-		SaveMainImg(mainImgKey, dir)
+		SaveMainImg(FormatImgKey([]byte(mainImgKey)), dir)
 	}
 }
 
@@ -195,20 +195,20 @@ func PrintAllStatInfo()  {
 	}
 }
 
-func SaveMainImg(mainImgKey ,dir string)  {
+func SaveMainImg(mainKey []byte ,dir string)  {
 	imgDb := GetImgDBWhichPicked()
 	if nil == imgDb{
 		fmt.Println("open img db failed")
 		return
 	}
 
-	imgData, err := imgDb.DBPtr.Get([]byte(FormatImgKey([]byte(mainImgKey))), &imgDb.ReadOptions)
+	imgData, err := imgDb.DBPtr.Get(mainKey, &imgDb.ReadOptions)
 	if leveldb.ErrNotFound == err{
-		fmt.Println("can't find img: ", mainImgKey)
+		fmt.Println("can't find img: ", string(ParseImgKeyToPlainTxt(mainKey)))
 		return
 	}
 
-	fileName := dir + string(filepath.Separator) +(mainImgKey) + ".jpg"
+	fileName := dir + string(filepath.Separator) + string(ParseImgKeyToPlainTxt(mainKey)) + ".jpg"
 	writeToFile(imgData, fileName)
 	fmt.Println(fileName, " save success")
 }

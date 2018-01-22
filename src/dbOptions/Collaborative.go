@@ -114,19 +114,19 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 		return
 	}
 
-	fmt.Println("left is in images: ", lvlist)
-	fmt.Println("right is in images: ", rvlist)
+	res := make(map[string]int)
+
 
 	//lvlist 和 vlist 中需要过滤出相同的照片
+	fmt.Println("left is in images: ", lvlist)
 	lvlist = DeleteSameMainImg(lvlist)
-
-	rvlist = DeleteSameMainImg(rvlist)
-	res := make(map[string]int)
 	for _,lvc := range lvlist{
 		res[lvc] ++
 		fmt.Println(lvc)
 	}
 	fmt.Println("----------------------------------")
+	fmt.Println("right is in images: ", rvlist)
+	rvlist = DeleteSameMainImg(rvlist)
 	for _,rvc := range rvlist{
 		res[rvc] ++
 		fmt.Println(rvc)
@@ -165,7 +165,7 @@ func DeleteSameMainImg(imgClipIdents []string) []string {
 			fmt.Println("img bytes of ",strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is empty")
 			continue
 		}else{
-			fmt.Println("img bytes of ", strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is : ", len(imgBytes))
+			//fmt.Println("img bytes of ", strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is : ", len(imgBytes))
 		}
 
 		imgIndex := GetImgIndexBySrcData(imgBytes)

@@ -11,103 +11,86 @@ import (
 	"imgOptions"
 	"bufio"
 	"os"
-	"runtime"
-	"github.com/syndtr/goleveldb/leveldb/util"
+	"unsafe"
 )
 
+type ClipIndexCache map[string][]byte
+var cacheList []*ClipIndexCache
+var CLIP_REVERSE_INDEX_CACHE_MAX_LENGTH = 2000
 
-
-var caclFinished chan int
-
-func threadFunc(dbIndex uint8, threadId int, count int, offsetOfClip []int, indexLength int)  {
-	srcDB := GetImgDBWhichPicked()
-	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
-	iter := srcDB.DBPtr.NewIterator(&region,&srcDB.ReadOptions)
-
-	lastDealedKey,curCount := GetThreadLastDealedKey(InitImgClipsReverseIndexDB(), dbIndex, threadId)
-
-	iter.First()
-
-	if nil != lastDealedKey {
-		iter.Seek(lastDealedKey)
-		if iter.Valid(){
-			iter.Next()
-		}
-	}
-
-	if !iter.Valid(){
-		fmt.Println("thread ", threadId, " iterator is invalid or none data to deal")
-		return
-	}
-
-	baseCount := 0
-	failedCount := 0
-
-	curKey := make([]byte, 8)
-
-	for {
-		if !iter.Valid(){
-			iter.Prev()
-			lastDealedKey = iter.Key()
-			break
-		}
-
-		if baseCount!=0 && 0 == baseCount % 1000{
-			fmt.Println("thread ", threadId, " dealing: ", baseCount)
-		}
-
-		copy(curKey, iter.Key())
-		if !SaveAllClipsToDBOf(iter.Value(),dbIndex, curKey[0:len(iter.Key())], offsetOfClip, indexLength){
-			failedCount ++
-			continue
-		}
-
-		iter.Next()
-
-		baseCount ++
-		count --
-		if count <= 0{
-			lastDealedKey = iter.Key()
-			break
-		}
-	}
-
-	curCount += baseCount
-
-	fmt.Println("lastValue: threadId: ", threadId, " -- ",ParseImgKeyToPlainTxt(lastDealedKey))
-
-	SetThreadLastDealedKey(InitImgClipsReverseIndexDB(),dbIndex, threadId, lastDealedKey, curCount)
-	fmt.Println("thread ", threadId," dealed: ", baseCount ,", failedCount: ", failedCount)
-	caclFinished <- threadId
-
-	iter.Release()
+type ClipSaverVisitParams struct {
+	dbId uint8
+	offsetOfClip []int
+	indexLength int
 }
 
+type ClipSaverVisitCallBack struct {
+	params ClipSaverVisitParams
+	maxVisitCount int
+}
 
-func BeginImgClipSave(dbIndex uint8, count int, offsetOfClip []int, indexLength int) {
-	cores := 16
-	runtime.GOMAXPROCS(cores)
+func (this *ClipSaverVisitCallBack) GetMaxVisitCount() int{
+	return this.maxVisitCount
+}
 
-	caclFinished = make(chan int, cores)
+func (this *ClipSaverVisitCallBack) SetMaxVisitCount(maxVisitCount int) {
+	this.maxVisitCount = maxVisitCount
+}
 
-	InitImgClipsReverseIndexDB()
+func (this *ClipSaverVisitCallBack) SetParams(params *ClipSaverVisitParams) {
+	this.params.dbId = params.dbId
+	this.params.offsetOfClip = params.offsetOfClip
+	this.params.indexLength = params.indexLength
+}
 
-	for i:=0;i < cores;i++{
-		go threadFunc(dbIndex,i,count, offsetOfClip, indexLength)
+func (this *ClipSaverVisitCallBack) getParams() *ClipSaverVisitParams {
+	return &this.params
+}
+
+func (this *ClipSaverVisitCallBack) Visit(visitInfo *VisitIngInfo) bool {
+
+	if 0 != visitInfo.curSuccessCount && 0 == visitInfo.curSuccessCount%1000{
+		fmt.Println("thread ", visitInfo.threadId, " dealed ", visitInfo.curSuccessCount)
 	}
-
-	for i:=0;i < cores;i ++{
-		threadId := <- caclFinished
-		fmt.Println("thread ", threadId ," finished")
+	ret := false
+	if !SaveAllClipsToDBOf(
+		visitInfo.threadId,
+		visitInfo.value,
+		this.params.dbId,
+		visitInfo.key,
+		this.params.offsetOfClip,
+		this.params.indexLength){
+			ret = false
 	}
+	ret = true
+	return ret
+}
+
+func (this *ClipSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
+
+	SetThreadLastDealedKey(InitImgClipsReverseIndexDB(),
+		finishInfo.dbId, finishInfo.threadId,
+		finishInfo.lastSuccessDealedKey,
+		finishInfo.totalCount)
+
+	fmt.Println("thread ", finishInfo.threadId," dealed: ", finishInfo.totalCount ,
+		", failedCount: ", (finishInfo.totalCount-finishInfo.successCount),
+		", lastDealedImgKey: ", string(ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
+}
+
+func BeginImgClipSaveEx(dbIndex uint8, count int, offsetOfClip []int, indexLength int) {
+	var callBack VisitCallBack = &ClipSaverVisitCallBack{maxVisitCount:count, params:ClipSaverVisitParams{dbId:dbIndex, offsetOfClip:offsetOfClip,indexLength:indexLength}}
+
+	cacheList = IntClipReverseIndexCache()
+
+	VisitBySeek(PickImgDB(dbIndex), callBack)
+
+	FlushAllClipReverseIndexCache()
 
 	RepairTotalSize(InitImgClipsReverseIndexDB())
-
-	fmt.Println("All finished ~")
 }
 
-
-func SaveAllClipsToDBOf(srcData []byte,dbId uint8,  mainImgkey []byte, offsetOfClip []int, indexLength int) bool{
+func SaveAllClipsToDBOf(threadId int, srcData []byte, dbId uint8, mainImgkey []byte, offsetOfClip []int, indexLength int) bool{
 
 	//获得 mainImgKey 的各个切图的索引数据
 	indexes := GetDBIndexOfClipsBySrcData(srcData,dbId,mainImgkey,offsetOfClip, indexLength)
@@ -124,7 +107,7 @@ func SaveAllClipsToDBOf(srcData []byte,dbId uint8,  mainImgkey []byte, offsetOfC
 
 	//保存各个索引数据
 	for _, index := range indexes{
-		SaveClipsToDB(imgClipDB, index)
+		SaveClipsToDB(threadId, imgClipDB, index)
 	}
 
 	//ReadValues(imgClipDB.DBPtr, 100)
@@ -143,7 +126,7 @@ func SaveAllClipsAsJpgOf(dir string, mainImgkey []byte, offsetOfClip[] int, inde
 		SaveClipsAsJpg(dir, index)
 	}
 
-	SaveMainImg(string(mainImgkey), dir)
+	SaveMainImg(mainImgkey, dir)
 }
 
 func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byte, which uint8){
@@ -175,8 +158,8 @@ func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byt
 }
 
 func SaveClipsAsJpg(dir string, indexData ImgIndex.SubImgIndex) {
-	mainImgName := string(indexData.KeyOfMainImg)
-	clipName := mainImgName+strconv.Itoa(int(indexData.Which))+".jpg"
+	mainImgName := ParseImgKeyToPlainTxt(indexData.KeyOfMainImg)
+	clipName := string(mainImgName) + "_" +strconv.Itoa(int(indexData.Which))+".jpg"
 	clipConfig := config.GetClipConfigById(indexData.ConfigId)
 
 	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像
@@ -264,7 +247,9 @@ func getValueForClipsKeyForTest(oldValue []byte, indexData ImgIndex.SubImgIndex)
 	return newMainKeys
 }
 
-func SaveClipsToDB(clipDBConfig *DBConfig, indexData ImgIndex.SubImgIndex) {
+
+
+func SaveClipsToDB(threadId int, clipDBConfig *DBConfig, indexData ImgIndex.SubImgIndex) {
 	index := indexData.GetFlatInfo()
 	index = EditClipIndex(index)
 
@@ -274,9 +259,54 @@ func SaveClipsToDB(clipDBConfig *DBConfig, indexData ImgIndex.SubImgIndex) {
 	}
 	clipValue := getValueForClipsKeyEx(oldValue, indexData)//getValueForClipsKey(oldValue, indexData)
 	//fmt.Println("newMainImaKey: ", newMainKeys)
-	clipDBConfig.DBPtr.Put(index,[]byte(clipValue), &clipDBConfig.WriteOptions)
+	//clipDBConfig.DBPtr.Put(index,[]byte(clipValue), &clipDBConfig.WriteOptions)
+
+	reverseClipIndexCache := cacheList[threadId]
+
+	AddtoClipReverseIndexCache(reverseClipIndexCache,&index, clipValue)
+
+	if len(*reverseClipIndexCache) >= CLIP_REVERSE_INDEX_CACHE_MAX_LENGTH{
+		//fmt.Println("reverse clip index reach 2000, to write")
+		FlushClipReverseIndexCache(threadId, clipDBConfig)
+	}
 
 	ImgClipsToIndexSaver(index, indexData.DBIdOfMainImg, indexData.KeyOfMainImg, indexData.Which)
+}
+
+func IntClipReverseIndexCache() []*ClipIndexCache {
+	cacheList := make([]*ClipIndexCache, config.MAX_THREAD_COUNT)
+	for i:=0;i < config.MAX_THREAD_COUNT;i++{
+		curCache := ClipIndexCache(make(map[string] []byte))
+		cacheList[i] = &curCache
+	}
+	return cacheList
+}
+func AddtoClipReverseIndexCache(cache *ClipIndexCache, keyPtr *[]byte, value []byte)  {
+	iss := (*string)(unsafe.Pointer(keyPtr))
+	(*cache)[*iss]=value
+}
+
+func FlushAllClipReverseIndexCache()  {
+	for i:=0;i< config.MAX_THREAD_COUNT;i ++{
+		FlushClipReverseIndexCache(i, InitImgClipsReverseIndexDB())
+	}
+}
+
+func FlushClipReverseIndexCache(threadId int,clipDBConfig * DBConfig)  {
+	cache := cacheList[threadId]
+	if 0 == len(*cache){
+		return
+	}
+//	fmt.Println(len(*cache), " to flush")
+	batch := leveldb.Batch{}
+	for k,v := range *cache{
+		ci := (* []byte)(unsafe.Pointer(&k))
+		batch.Put(*ci,v)
+	}
+	clipDBConfig.DBPtr.Write(&batch,&clipDBConfig.WriteOptions)
+
+	curCache := ClipIndexCache(make(map[string] []byte))
+	cacheList[threadId] = &curCache
 }
 
 func SaveClipAsJpgFromIndexValue(value []byte, dir string)  {
@@ -326,27 +356,18 @@ func GetDBIndexOfClipsBySrcData(srcData []byte, dbId uint8,mainImgkey []byte, of
 	return ImgIndex.GetClipsIndexOfImgEx(data, dbId, mainImgkey, offsetOfClip, indexLength)
 }
 
-func TestClipsIndexSaveToJpgFromImgDB()  {
+func TestClipsIndexSaveToJpgFromImgDB(imgDB *DBConfig)  {
 	stdin := bufio.NewReader(os.Stdin)
-	var dbIndex uint8
 	var input string
 
 	for {
-		fmt.Println("select a image db to deal: ")
-		fmt.Fscan(stdin, &dbIndex)
-		imgDB := PickImgDB(dbIndex)
-		if nil == imgDB{
-			fmt.Println("open db: ", dbIndex, " error")
-			continue
-		}
-
 		fmt.Println("input img id or ids split by -")
 		fmt.Fscan(stdin, &input)
 
 		clipConfig := config.GetClipConfigById(0)
 		imgKeyArray := strings.Split(input, "-")
 		for _, imgKey := range imgKeyArray {
-			SaveAllClipsAsJpgOf("E:/gen/clips/" , ParseImgKeyToPlainTxt([]byte(imgKey)), clipConfig.ClipOffsets ,10)
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , FormatImgKey([]byte(imgKey)), clipConfig.ClipOffsets ,10)
 		}
 		imgDB.CloseDB()
 	}
@@ -371,7 +392,7 @@ func TestClipsSaveToJpgFromImgDB()  {
 
 		imgKeyArray := strings.Split(input, "-")
 		for _, imgKey := range imgKeyArray {
-			SaveAllClipsAsJpgOf("E:/gen/clips/" , ParseImgKeyToPlainTxt([]byte(imgKey)), []int{-1} ,-1)
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , FormatImgKey([]byte(imgKey)), []int{-1} ,-1)
 		}
 		imgDB.CloseDB()
 	}

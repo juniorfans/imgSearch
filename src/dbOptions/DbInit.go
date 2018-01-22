@@ -195,7 +195,10 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 			ErrorIfMissing:false,
 			BlockSize:40 * opt.KiB,
 			CompactionTableSize:20*opt.MiB,
-			BlockCacheCapacity:64 * opt.MiB,
+			BlockCacheCapacity:128 * opt.MiB,
+			WriteBuffer:32*opt.MiB,
+			CompactionL0Trigger:4,
+			CompactionTotalSize:40*opt.MiB,
 		}
 	}
 
