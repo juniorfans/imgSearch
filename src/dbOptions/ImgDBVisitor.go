@@ -18,6 +18,8 @@ type VisitCallBack interface {
 
 	//遍历完成回调函数
 	VisitFinish(*VisitFinishedInfo)
+
+	GetLastVisitPos(dbId uint8, threadId int) []byte
 }
 
 //告诉调用者当前遍历的信息
@@ -42,6 +44,10 @@ type DefaultVisitCallBack struct {
 
 func (this *DefaultVisitCallBack) GetMaxVisitCount() int{
 	return this.maxVisitCount
+}
+
+func (this *DefaultVisitCallBack) GetLastVisitPos(dbId uint8, threadId int) []byte  {
+	return nil
 }
 
 func (this *DefaultVisitCallBack) Visit(*VisitIngInfo) bool {
@@ -77,6 +83,7 @@ func VisitBySeek(dbConfig *DBConfig, callBack VisitCallBack) int {
 	return total
 }
 
+
 func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 
 	if threadId > config.MAX_THREAD_COUNT-1{
@@ -90,13 +97,22 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 
 	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
 	iter := db.NewIterator(&region,&dbConfig.ReadOptions)
-	iter.Seek([]byte{threadByte})
-	if !iter.Valid(){
-		fmt.Println("no data for thread: ", threadId)
-		visitFinished <- 0
-		return
+
+	if 0 != len(callback.GetLastVisitPos(dbConfig.Id, threadId)){
+		iter.Seek(callback.GetLastVisitPos(dbConfig.Id, threadId))
+		//若当前 iter 或者 Next 都是无效的, 则不再处理, 否则从 Next 处开始处理
+		if !iter.Valid() || !iter.Next(){
+			fmt.Println("according to last dealed key, no data to deal for thread: ", threadId)
+			visitFinished <- 0
+			return
+		}
 	}else{
-		//fmt.Println("begin : ", string(ParseImgKeyToPlainTxt(iter.Key())), ", len(value): ", len(iter.Value()))
+		iter.Seek([]byte{threadByte})
+		if !iter.Valid(){
+			fmt.Println("no data for thread: ", threadId)
+			visitFinished <- 0
+			return
+		}
 	}
 
 //	buffer := bytes.NewBufferString("")

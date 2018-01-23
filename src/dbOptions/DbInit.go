@@ -12,6 +12,7 @@ import (
 	"strings"
 	"io"
 	"util"
+	"bytes"
 )
 
 var SECOND_DB_DIR_BASE = "E:/search/"
@@ -286,7 +287,7 @@ func ReadKeys(dbPtr *leveldb.DB, count int)  {
 }
 
 func ReadClipValuesInCount(count int)  {
-	iter := imgClipsReverseIndexDBConfig.DBPtr.NewIterator(nil, &opt.ReadOptions{})
+	iter := InitImgClipsReverseIndexDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){
 		fmt.Println("seek to first error")
@@ -294,10 +295,15 @@ func ReadClipValuesInCount(count int)  {
 
 	for iter.Valid(){
 		//writeToFile(iter.Value(), string(iter.Key()))
-		valueList := ParseImgClipIdentListBytesToStrings(iter.Value())
-		for _, valueStr := range valueList{
-			fmt.Println(valueStr)
+		if -1 != bytes.Index(iter.Key(), config.STAT_KEY_PREX){
+			continue
 		}
+
+		valueList := ParseImgClipIdentListBytesToStrings(iter.Value())
+	//	for _, valueStr := range valueList{
+	//		fmt.Println(valueStr)
+	//	}
+		fmt.Println(valueList)
 		iter.Next()
 		count --
 		if count <= 0{

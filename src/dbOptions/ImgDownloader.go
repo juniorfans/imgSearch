@@ -16,6 +16,7 @@ import (
     "bufio"
     "strings"
     "errors"
+    "imgCache"
 )
 
 var img_dir string = "E:/gen/3/"
@@ -217,6 +218,14 @@ func singleSaveImages(img_url string, goId int, maxImgId int, imgId int) int {
     return imgId
 }
 
+func InitDownCache() []*imgCache.KeyValueCache {
+    cacheList := make([]*imgCache.KeyValueCache, config.MAX_THREAD_COUNT)
+    for i:=0;i < config.MAX_THREAD_COUNT;i++{
+        curCache := imgCache.KeyValueCache(make(map[string] []interface{}))
+        cacheList[i] = &curCache
+    }
+    return cacheList
+}
 
 
 /**
@@ -256,7 +265,7 @@ func save(goId int, base int, times int)  {
 
 
 
-func Begin(lastBase int, cores int, eachTimes int) int {
+func BeginDownload(lastBase int, cores int, eachTimes int) int {
     runtime.GOMAXPROCS(cores)
     downloadFinished = make(chan int, cores)
 
@@ -330,7 +339,7 @@ func DownloaderRun()  {
 
         st := time.Now().Unix()
 
-        total := Begin(newBase, cores, eachTimes)
+        total := BeginDownload(newBase, cores, eachTimes)
         et := time.Now().Unix()
         fmt.Println("cost ", (et-st), " seconds")
 

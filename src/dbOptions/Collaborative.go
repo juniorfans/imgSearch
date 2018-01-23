@@ -22,9 +22,9 @@ func ExposeCalCollaborat(dbId uint8, imgId []byte)  {
 		return
 	}
 	for i:=0;i < len(indexes);i ++{
-		i_index :=  indexes[i].GetFlatInfo()
+		i_index :=  indexes[i].GetIndexBytesIn3Chanel()
 		for j:=i+1;j < len(indexes) ;j++  {
-			j_index := indexes[j].GetFlatInfo()
+			j_index := indexes[j].GetIndexBytesIn3Chanel()
 
 			fmt.Println("-------------------------------------------------")
 			fmt.Println(indexes[i].Which, " -- ", indexes[j].Which)
@@ -49,9 +49,9 @@ func ExposeCalCollaboratEx(dbId uint8, imgId []byte)  {
 		return
 	}
 	for i:=0;i < len(indexes);i ++{
-		i_index :=  indexes[i].GetFlatInfo()
+		i_index :=  indexes[i].GetIndexBytesIn3Chanel()
 		for j:=i+1;j < len(indexes) ;j++  {
-			j_index := indexes[j].GetFlatInfo()
+			j_index := indexes[j].GetIndexBytesIn3Chanel()
 
 			fmt.Println("-------------------------------------------------")
 			fmt.Println(indexes[i].Which, " -- ", indexes[j].Which)
@@ -74,9 +74,9 @@ func ExposeCalCollaboratWith(dbId uint8, imgId []byte, whichl, whichr uint8)  {
 		return
 	}
 
-	i_index :=  indexes[whichl].GetFlatInfo()
+	i_index :=  indexes[whichl].GetIndexBytesIn3Chanel()
 
-	j_index := indexes[whichr].GetFlatInfo()
+	j_index := indexes[whichr].GetIndexBytesIn3Chanel()
 
 	fmt.Println("-------------------------------------------------")
 	fmt.Println(indexes[int(whichl)].Which, " -- ", indexes[int(whichr)].Which)

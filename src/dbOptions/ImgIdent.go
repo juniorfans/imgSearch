@@ -5,6 +5,7 @@ import (
 	"config"
 	"strconv"
 	"strings"
+	"util"
 )
 
 type ClipIdentInfo struct {
@@ -106,7 +107,8 @@ func ParseImgClipIdentListBytesToStrings(clipIdentListBytes []byte) [] string{
 
 func ParseImgClipIdentListBytes(clipIdentListBytes []byte) [] ClipIdentInfo{
 	if len(clipIdentListBytes) % IMG_CLIP_IDENT_LENGTH != 0{
-		fmt.Println("clip ident list bytes lenth is not multy of ", IMG_CLIP_IDENT_LENGTH)
+		fmt.Println("clip ident list bytes lenth is not multy of ", IMG_CLIP_IDENT_LENGTH, ": ", len(clipIdentListBytes))
+		fileUtil.PrintBytes(clipIdentListBytes)
 		return nil
 	}
 	nsize := len(clipIdentListBytes)/IMG_CLIP_IDENT_LENGTH

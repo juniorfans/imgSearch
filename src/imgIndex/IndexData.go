@@ -49,11 +49,19 @@ func (this *SubImgIndex) Finish() *SubImgIndex {
 	return this
 }
 
+func (this *SubImgIndex)GetIndexBytesIn3Chanel () []byte {
+	return this.getFlatInfo()
+}
+
+func (this *SubImgIndex)GetBranchIndexBytesIn3Chanel (branchBits int, bound uint8) [][]byte {
+	indexBytes := this.getFlatInfo()
+	return ClipIndexBranch(branchBits, bound, indexBytes)
+}
 
 /**
-	获得字节数据. [TODO 此处要优化为获得所有 index 加上元数据信息 -- 已优化]
+	获得字节数据.
  */
-func (this *SubImgIndex)GetFlatInfo () []byte {
+func (this *SubImgIndex)getFlatInfo () []byte {
 	if len(this.IndexUnits) == 0{
 		return nil
 	}else{
@@ -67,10 +75,10 @@ func (this *SubImgIndex)GetFlatInfo () []byte {
 			ci += copy(res[ci:], curIndex.Index.GetBytes())
 		}
 		if ci != totalSize{
-			fmt.Println("GetFlatInfo error: ", totalSize, ", ", ci)
+			fmt.Println("getFlatInfo error: ", totalSize, ", ", ci)
 			return nil
 		}
-		return res
+		return ClipIndexSave3Chanel(res)
 	}
 }
 
@@ -82,15 +90,16 @@ func GetFlatIndexBytesFrom(subIndexes []SubImgIndex) []byte {
 	}
 
 	clipCount := len(subIndexes)
-	//clipCount 张切图，每张切图的索引单元有 len(clipsIndexs[0].IndexUnits) 个，每个索引单元长度是 clipsIndexes[0].UnitLength，有四个颜色通道，所以乘以 4
-	estimateSize := clipCount * subIndexes[0].UnitLength * len(subIndexes[0].IndexUnits) * 4
+	//clipCount 张切图，每张切图的索引单元有 len(clipsIndexs[0].IndexUnits) 个，每个索引单元长度是 clipsIndexes[0].UnitLength(即有多少个点)
+	// 四个颜色通道，但是索引时只用到3个，所以乘以 3
+	estimateSize := clipCount * subIndexes[0].UnitLength * len(subIndexes[0].IndexUnits) * 3
 	//	fmt.Println(clipCount , clipsIndexes[0].UnitLength , len(clipsIndexes[0].IndexUnits))
 	//	fmt.Println(imgConfig.ClipIndexLength)
 
 	retBytes := make([]byte, estimateSize)
 	recvBytes := 0
 	for _, clipIndex := range subIndexes {
-		clipIndexBytes := clipIndex.GetFlatInfo()
+		clipIndexBytes := clipIndex.GetIndexBytesIn3Chanel()
 
 		copy(retBytes[recvBytes:], clipIndexBytes)
 
@@ -101,6 +110,11 @@ func GetFlatIndexBytesFrom(subIndexes []SubImgIndex) []byte {
 			return retBytes
 		}
 	}
+
+	if len(retBytes) % 3 != 0{
+		fmt.Println("error, index bytes len is not multy of 4")
+	}
+
 	return retBytes
 }
 
