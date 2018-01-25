@@ -7,116 +7,121 @@ import (
 	"strconv"
 	"imgOptions"
 	"strings"
-	"runtime"
 	"config"
 	"util"
 	"sort"
-	"github.com/syndtr/goleveldb/leveldb/util"
+	"imgCache"
 )
 
+type ImgIndexSaverVisitParams struct {
+	dbId uint8
+	cacheList imgCache.KeyValueCacheList	//缓存,key 是 imgIndex, value 是 imgIdent 列表
+}
+type ImgIndexSaverVisitCallBack struct {
+	maxVisitCount int
+	params ImgIndexSaverVisitParams
+}
 
+func (this *ImgIndexSaverVisitCallBack) GetMaxVisitCount() int{
+	return this.maxVisitCount
+}
 
+func (this *ImgIndexSaverVisitCallBack) GetLastVisitPos(dbId uint8, threadId int) []byte{
+	lastVisitedKey, _ := GetThreadLastDealedKey(InitIndexToImgDB(), dbId, threadId)
+	return lastVisitedKey
+}
 
+func (this *ImgIndexSaverVisitCallBack) SetMaxVisitCount(maxVisitCount int) {
+	this.maxVisitCount = maxVisitCount
+}
 
-var indexSaveFinished chan int
+func (this *ImgIndexSaverVisitCallBack) SetParams(params *ImgIndexSaverVisitParams) {
+	this.params.dbId = (*params).dbId
+}
 
+func (this *ImgIndexSaverVisitCallBack) getParams() *ImgIndexSaverVisitParams {
+	return &this.params
+}
 
-func PrintMagicNumber(data []byte)  {
-	for i:=0;i< len(data) / 8;i++{
-		fmt.Printf("%X", int(data[i]))
+func (this *ImgIndexSaverVisitCallBack) Visit(visitInfo *VisitIngInfo) bool {
+	if 0 != visitInfo.curSuccessCount && 0 == visitInfo.curSuccessCount%1000{
+		fmt.Println("thread ", visitInfo.threadId, " dealed ", visitInfo.curSuccessCount)
 	}
-	fmt.Println()
+
+	return SaveImgIndexToDBBySrcData(this.params.dbId,&this.params.cacheList,visitInfo.threadId ,visitInfo.value, visitInfo.key)
+}
+
+func (this *ImgIndexSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
+	SetThreadLastDealedKey(InitIndexToImgDB(),
+		finishInfo.dbId, finishInfo.threadId,
+		finishInfo.lastSuccessDealedKey,
+		finishInfo.totalCount)
+
+	fmt.Println("thread ", finishInfo.threadId," dealed: ", finishInfo.totalCount ,
+		", failedCount: ", (finishInfo.totalCount-finishInfo.successCount),
+		", lastDealedImgKey: ", string(ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
+}
+
+
+type ImgIndexCacheFlushCallBack struct {
 
 }
 
-func imgIndexGoUnit(dbIndex uint8, threadId int, count int)  {
+func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
+	indexToImgBatch := leveldb.Batch{}
+	imgToIndexBatch := leveldb.Batch{}
 
-	srcDB := GetImgDBWhichPicked()
-	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
-	iter := srcDB.DBPtr.NewIterator(&region,&srcDB.ReadOptions)
+	//计算旧的 value
+	//合并新的 value
+	//写回 db
+	for k,vlist := range kvCache.Iterator(){
+		indexBytes := imgCache.GetKeyAsBytes(&k)	//转化为 bytes
+		exsitsImgIdents := InitIndexToClipDB().ReadFor(indexBytes)
 
-	failedCount := 0
-	lastDealedKey,curCount := GetThreadLastDealedKey(InitIndexToImgDB(), dbIndex, threadId)
-	baseCount := 0
-
-	iter.First()
-
-	if nil != lastDealedKey{
-		iter.Seek(lastDealedKey)
-		if iter.Valid(){
-			iter.Next()
+		if len(exsitsImgIdents) % IMG_IDENT_LENGTH != 0{
+			fmt.Println("exsits img ident len is not multiple of ", IMG_IDENT_LENGTH)
+			return false
 		}
+
+		//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 []byte
+		newImgIdents := make([]byte, len(exsitsImgIdents) + IMG_IDENT_LENGTH * len(vlist))
+		ci :=0
+		ci += copy(newImgIdents[ci:], exsitsImgIdents)
+		for _,v := range vlist{
+			var imgIdent []byte  = v.([]byte)
+			ci += copy(newImgIdents[ci:], imgIdent)
+			imgToIndexBatch.Put(imgIdent , indexBytes)
+		}
+		if len(newImgIdents) % IMG_IDENT_LENGTH != 0 {
+			fmt.Println("new img ident len is not multiple of ", IMG_IDENT_LENGTH)
+			return false
+		}
+		indexToImgBatch.Put(indexBytes, newImgIdents)
 	}
-
-
-	if !iter.Valid(){
-		fmt.Println("thread ", threadId, " iterator is invalid or not img to deal")
-		return
-	}
-
-	for{
-		if !iter.Valid(){
-			iter.Prev()
-			lastDealedKey = iter.Key()
-			break
-		}
-		if(!SaveImgIndexToDBBySrcData(iter.Value(), iter.Key())){
-			fmt.Println("save img index error: ", string(iter.Key()))
-			PrintMagicNumber(iter.Value())
-			failedCount ++
-			continue
-		}else{
-
-		}
-
-		lastDealedKey = iter.Key()
-
-		iter.Next()
-		baseCount ++
-		if 0 == baseCount % 1000{
-			fmt.Println("thread ", threadId, " had dealed ", baseCount, ", failed count: ", failedCount)
-		}
-		count --
-		if count <= 0{
-			lastDealedKey = iter.Key()
-			break
-		}
-	}
-	curCount += baseCount
-	SetThreadLastDealedKey(InitIndexToImgDB(),dbIndex, threadId, lastDealedKey, curCount)
-	fmt.Println("thread ", threadId, ", failedCount: ", failedCount)
-	indexSaveFinished <- threadId
-
-	iter.Release()
+	InitIndexToClipDB().WriteBatchTo(&indexToImgBatch)
+	ImgClipsToIndexBatchSaver(&imgToIndexBatch)
+	return true
 }
 
-func DoImgIndexSave(dbIndex uint8, count int) {
-	cores := 8
-	runtime.GOMAXPROCS(cores)
+func BeginImgSaveEx(dbIndex uint8, count int)  {
 
-	indexSaveFinished = make(chan int, cores)
+	//初始化 visit 的 cache, 以及 cache 满了后调用的刷新回调结构
+	imgIndexCacheList := imgCache.KeyValueCacheList{}
 
-	InitIndexToImgDB()
+	//缓存 img index -> img ident, 支持重复的 values
+	var callBack imgCache.CacheFlushCallBack = &ImgIndexCacheFlushCallBack{}
+	imgIndexCacheList.Init(true, &callBack,true,2000)
 
-	for i:=0;i != cores;i++{
-		go imgIndexGoUnit(dbIndex, i,count)
-	}
+	var visitCallBack VisitCallBack = &ImgIndexSaverVisitCallBack{maxVisitCount:count,
+		params:ImgIndexSaverVisitParams{dbId:dbIndex, cacheList:imgIndexCacheList}}
 
-	for i:=0;i < cores;i ++{
-		threadId := <- indexSaveFinished
-		fmt.Println("thread ", threadId ," finished")
-	}
+	VisitBySeek(PickImgDB(dbIndex), visitCallBack)
 
+	//flush 剩余的 cache
+	imgIndexCacheList.FlushRemainKVCaches()
 	RepairTotalSize(InitIndexToImgDB())
-	fmt.Println("All finished ~")
 }
 
-func Stat(dbIndex uint8)  {
-	for i:=0;i < 8;i ++ {
-		_, count := GetThreadLastDealedKey(InitIndexToImgDB(),dbIndex, i)
-		fmt.Println(strconv.Itoa(count))
-	}
-}
 
 func ImgIndexSaveRun(dbIndex uint8, eachThreadCount int)  {
 	imgIndexDB:= InitIndexToImgDB()
@@ -125,96 +130,27 @@ func ImgIndexSaveRun(dbIndex uint8, eachThreadCount int)  {
 		return
 	}
 
-	DoImgIndexSave(dbIndex, eachThreadCount)
-
-	Stat(dbIndex)
+	BeginImgSaveEx(dbIndex, eachThreadCount)
 }
 
-func imgIndexRepair()  {
-	indexDB := InitIndexToImgDB()
-	if nil == indexDB{
-		fmt.Println("open index db error")
-		return
-	}
-	for threadId:=0;threadId < 16;threadId++{
-		key := string("ZLAST_") + string(config.ThreadIdToByte[threadId])
-		ckey := string("ZLAST_C_") + string(config.ThreadIdToByte[threadId])
-
-		kvalue, err := indexDB.DBPtr.Get([]byte(key), &indexDB.ReadOptions)
-		if err != leveldb.ErrNotFound{
-			indexDB.DBPtr.Delete([]byte(key), &indexDB.WriteOptions)
-			newKey := string("ZLAST_") + strconv.Itoa(1) + "_" +  string(config.ThreadIdToByte[threadId])
-			indexDB.DBPtr.Put([]byte(newKey), kvalue, &indexDB.WriteOptions)
-		}
-
-		ckvalue , err := indexDB.DBPtr.Get([]byte(ckey), &indexDB.ReadOptions)
-		if err != leveldb.ErrNotFound{
-			indexDB.DBPtr.Delete([]byte(ckey), &indexDB.WriteOptions)
-			newCKey := string("ZLAST_C_") + strconv.Itoa(1) + "_" + string(config.ThreadIdToByte[threadId])
-			indexDB.DBPtr.Put([]byte(newCKey), ckvalue, &indexDB.WriteOptions)
-		}
-	}
-
-	iter := indexDB.DBPtr.NewIterator(nil, &indexDB.ReadOptions)
-	iter.First()
-	if iter.Valid(){
-		iter.Seek([]byte("ZLAST_"))
-		if !iter.Valid() {
-			fmt.Println("find no ZLAST_")
-			return
-		}
-
-		for iter.Valid(){
-			k := iter.Key()
-			v := iter.Value()
-			if -1 ==strings.Index(string(k), "ZLAST_"){
-				break;
-			}
-			fmt.Println(string(k), " -- ", string(v))
-
-			iter.Next()
-		}
-
-	}else{
-		fmt.Println("iterator is invalid")
-	}
-
-	iter.Release()
-}
-
-func SaveImgIndexToDBBySrcData(srcData, imgKey []byte) bool {
-	indexToImgDB := InitIndexToImgDB()
-	if nil == indexToImgDB {
-		fmt.Println("open img index db error")
-		return false
-	}
-
-	imgIndexBytes := GetImgIndexBySrcData(srcData)
+func SaveImgIndexToDBBySrcData(dbId uint8, cacheList *imgCache.KeyValueCacheList, threadId int, imgSrcBytes, imgKey []byte) bool {
+	imgIndexBytes := GetImgIndexBySrcBytes(imgSrcBytes)
 	if nil == imgIndexBytes {
 		fmt.Println("get index for ", string(imgKey)," failed")
 		return false
 	}
 
-	exsitsImgKey , err := indexToImgDB.DBPtr.Get(imgIndexBytes, &indexToImgDB.ReadOptions)
-	if err != leveldb.ErrNotFound{
-		newName := string(exsitsImgKey) + "-" + string(imgKey)
-	//	fmt.Println(newName)
-		imgKey = []byte(newName)
+	//此处添加的 value 类型是 []byte
+	imgIdent := GetImgIdent(dbId,imgKey)
+	if len(imgIdent) % IMG_IDENT_LENGTH != 0{
+		fmt.Println("to save img ident len is not multiple of ", IMG_IDENT_LENGTH)
 	}
-
-	err = indexToImgDB.DBPtr.Put(imgIndexBytes, imgKey, &indexToImgDB.WriteOptions)
-	if nil != err{
-		fmt.Println("save index error for ", string(imgKey))
-		return false
-	}
-
-	ImgToIndexSaver(imgKey, imgIndexBytes)
-
+	cacheList.Add(threadId, &imgIndexBytes, imgIdent)
 	return true
 }
 
 
-func GetImgIndexBySrcData(srcData []byte) []byte {
+func GetImgIndexBySrcBytes(srcData []byte) []byte {
 	data := ImgOptions.FromImageFlatBytesToStructBytes(srcData)
 	if nil == data{
 		fmt.Println("get image struct data error")
@@ -224,42 +160,6 @@ func GetImgIndexBySrcData(srcData []byte) []byte {
 
 	return indexBytes
 }
-/*
-func SaveImgIndexByImgKey(imgKey []byte)  {
-	imgIndexDB := InitImgIndexDB()
-	if nil == imgIndexDB{
-		fmt.Println("open img index db error")
-		return
-	}
-
-	imgBytes := GetImgIndexByImgKey(imgKey)
-	if nil == imgBytes{
-		fmt.Println("get index for ", string(imgKey)," failed")
-		return
-	}
-	err := imgIndexDB.DBPtr.Put(imgBytes, imgKey, &imgIndexDB.WriteOptions)
-	if nil != err{
-		fmt.Println("save index error for ", string(imgKey))
-	}
-}
-*/
-
-/*
-func GetImgIndexByImgKey(imgKey []byte) []byte {
- 	imgDB := GetImgDBWhichPicked()
-	if nil == imgDB{
-		fmt.Println("open img db error")
-		return nil
-	}
-
-	srcData, err := imgDB.DBPtr.Get(imgKey, &imgDB.ReadOptions)
-	if err == leveldb.ErrNotFound{
-		fmt.Println("can't find img: ", string(imgKey))
-		return nil
-	}
-	return GetImgIndexBySrcData(srcData)
-}
-*/
 
 type IndexInfo struct {
 	key   [] byte

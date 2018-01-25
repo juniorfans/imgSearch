@@ -42,7 +42,7 @@ func PrintClipIndexBytes()  {
 	var input string
 	var dbId, which uint8
 	var mainImgId string
-	InitImgClipsIndexDB()
+	InitClipsIndexDB()
 
 	for {
 		fmt.Print("input dbId_mainImgId_which: ")
@@ -58,7 +58,7 @@ func PrintClipIndexBytes()  {
 
 		indexBytes := ImgClipsToIndexReader(dbId, FormatImgKey([]byte(mainImgId)), which)
 		if len(indexBytes) % 3 != 0{
-			fmt.Println("error, clip index length is not multy of 3")
+			fmt.Println("error, clip index length is not multiple of 3")
 		}
 		fmt.Print(input," -- ")
 		nsize := len(indexBytes) / 3

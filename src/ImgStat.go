@@ -54,7 +54,7 @@ func main(){
 		}else if(5 == testCase){
 			dbOptions.SaveTheInputImg()
 		}else if(6 == testCase){
-			clipDB:=dbOptions.InitImgClipsReverseIndexDB()
+			clipDB:=dbOptions.InitIndexToClipDB()
 			dbOptions.ReadClipValues()
 			clipDB.CloseDB()
 		}else if(7 == testCase){

@@ -10,7 +10,7 @@ import (
  */
 func ImgClipsToIndexSaver(index []byte, dbId uint8, mainImgId []byte, which uint8)  {
 	imgIdent := GetImgClipIdent(dbId, mainImgId, which)
-	err := InitImgClipsIndexDB().WriteTo([]byte(imgIdent),index)
+	err := InitClipsIndexDB().WriteTo([]byte(imgIdent),index)
 	if nil != err{
 		fmt.Println(err)
 	}
@@ -20,7 +20,7 @@ func ImgClipsToIndexSaver(index []byte, dbId uint8, mainImgId []byte, which uint
 	保存大图中某个小图的 index
  */
 func ImgClipsToIndexBatchSaver(batch *leveldb.Batch)  {
-	InitImgClipsIndexDB().WriteBatchTo(batch)
+	InitClipsIndexDB().WriteBatchTo(batch)
 }
 
 /**
@@ -28,5 +28,5 @@ func ImgClipsToIndexBatchSaver(batch *leveldb.Batch)  {
  */
 func ImgClipsToIndexReader(dbId uint8, mainImgId []byte, which uint8) []byte {
 	imgIdent := GetImgClipIdent(dbId, mainImgId, which)
-	return InitImgClipsIndexDB().ReadFor([]byte(imgIdent))
+	return InitClipsIndexDB().ReadFor([]byte(imgIdent))
 }

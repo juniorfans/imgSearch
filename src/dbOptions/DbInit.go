@@ -131,7 +131,7 @@ var imgClipsIndexDBConfig = DBConfig{
 	 key 	: clip 索引值
 	 value	: clip 集合{某个库的某个 mainImgId 的第 which 张子图}
  */
-func InitImgClipsReverseIndexDB() *DBConfig {
+func InitIndexToClipDB() *DBConfig {
 	_, err :=  initDB(&imgClipsReverseIndexDBConfig)
 	if err != nil{
 		fmt.Println("open img clip reverse index db error, ", err)
@@ -171,7 +171,7 @@ func InitImgToIndexDB() *DBConfig {
 	key	: clip 信息(某个库的某个 mainImgId 的第 which 张子图)
 	value	: 该 clip 的索引
  */
-func InitImgClipsIndexDB() *DBConfig {
+func InitClipsIndexDB() *DBConfig {
 	_, err :=  initDB(&imgClipsIndexDBConfig)
 	if err != nil{
 		fmt.Println("open img to clips index db error, ", err)
@@ -287,7 +287,7 @@ func ReadKeys(dbPtr *leveldb.DB, count int)  {
 }
 
 func ReadClipValuesInCount(count int)  {
-	iter := InitImgClipsReverseIndexDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
+	iter := InitIndexToClipDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){
 		fmt.Println("seek to first error")

@@ -27,6 +27,7 @@ type VisitIngInfo struct {
 	key, value []byte
 	curCount, curSuccessCount int
 	threadId int
+	//visitCallBackPtr *VisitCallBack	//当前使用的 visitcallBack 指针
 }
 
 //告诉调用者当前遍历的信息
@@ -98,8 +99,9 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
 	iter := db.NewIterator(&region,&dbConfig.ReadOptions)
 
-	if 0 != len(callback.GetLastVisitPos(dbConfig.Id, threadId)){
-		iter.Seek(callback.GetLastVisitPos(dbConfig.Id, threadId))
+	lastVisitPos := callback.GetLastVisitPos(dbConfig.Id, threadId)
+	if 0 != len(lastVisitPos){
+		iter.Seek(lastVisitPos)
 		//若当前 iter 或者 Next 都是无效的, 则不再处理, 否则从 Next 处开始处理
 		if !iter.Valid() || !iter.Next(){
 			fmt.Println("according to last dealed key, no data to deal for thread: ", threadId)
@@ -125,7 +127,7 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 	successCount := 0
 	totalCount := 0
 	visitInfo := VisitIngInfo{key:imgId, value:iter.Value(), curCount:totalCount, curSuccessCount: successCount,
-		threadId:threadId}
+		threadId:threadId, /*visitCallBackPtr:&callback*/}
 
 	for {
 		if !iter.Seek(imgId){

@@ -21,7 +21,7 @@ func main()  {
 
 		dbOptions.ExposeCalCollaboratWithEx(dbId, dbOptions.FormatImgKey([]byte(imgId)), whichl, whichr)
 
-		dbOptions.InitImgClipsReverseIndexDB().CloseDB()
+		dbOptions.InitIndexToClipDB().CloseDB()
 	}
 
 }

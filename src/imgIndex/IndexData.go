@@ -112,7 +112,7 @@ func GetFlatIndexBytesFrom(subIndexes []SubImgIndex) []byte {
 	}
 
 	if len(retBytes) % 3 != 0{
-		fmt.Println("error, index bytes len is not multy of 4")
+		fmt.Println("error, index bytes len is not multiple of 4")
 	}
 
 	return retBytes

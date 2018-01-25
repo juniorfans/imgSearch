@@ -112,7 +112,7 @@ func DeleteStatImgClipsInfo()  {
 
 	fmt.Fscan(stdin,&dbId)
 
-	clipDB:= InitImgClipsReverseIndexDB()
+	clipDB:= InitIndexToClipDB()
 
 	for i:=0;i < 8 ;i++  {
 		//lastKey,count := GetThreadLastDealedKey(clipDB,dbId,i)
@@ -131,7 +131,7 @@ func StatImgClipsInfo()  {
 
 	fmt.Fscan(stdin,&dbId)
 
-	clipDB:= InitImgClipsReverseIndexDB()
+	clipDB:= InitIndexToClipDB()
 
 	for i:=0;i < 8 ;i++  {
 		lastKey,count := GetThreadLastDealedKey(clipDB,dbId,i)
@@ -181,10 +181,10 @@ func PrintAllStatInfo()  {
 		imgDB.PrintStat()
 	}
 
-	clipToIndexDB := InitImgClipsIndexDB()
+	clipToIndexDB := InitClipsIndexDB()
 	clipToIndexDB.PrintStat()
 
-	clipReverseIndexDB := InitImgClipsReverseIndexDB()
+	clipReverseIndexDB := InitIndexToClipDB()
 	clipReverseIndexDB.PrintStat()
 
 	indexDB := InitIndexToImgDB()
@@ -255,18 +255,18 @@ func ReadClipValues()  {
 
 
 func SaveClipsFromClipReverseIndex()  {
-	InitImgClipsReverseIndexDB()
+	InitIndexToClipDB()
 	stdin := bufio.NewReader(os.Stdin)
 	var input int
 
 	fmt.Println("input how many count values for clip db to save clips ")
 	fmt.Fscan(stdin,&input)
 	saveClipsFromClipReverseIndexForCounts(input)
-	InitImgClipsReverseIndexDB().CloseDB()
+	InitIndexToClipDB().CloseDB()
 }
 
 func saveClipsFromClipReverseIndexForCounts(count int)  {
-	iter := InitImgClipsReverseIndexDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
+	iter := InitIndexToClipDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){
 		fmt.Println("seek to first error")

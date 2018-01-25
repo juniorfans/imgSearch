@@ -101,7 +101,7 @@ func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  
  */
 func FindTwoClipsSameMainImgs(left, right []byte)  {
 
-	clipDB := InitImgClipsReverseIndexDB()
+	clipDB := InitIndexToClipDB()
 
 	lv := clipDB.ReadFor(left)	//left 在哪些大图中出现过
 	rv := clipDB.ReadFor(right)
@@ -158,6 +158,9 @@ func DeleteSameMainImg(imgClipIdents []string) []string {
 			continue
 		}
 
+
+		// InitImgToIndexDB().ReadFor(GetImgIdent(clipInfo.dbId, clipInfo.imgKey))
+
 		imgDB := PickImgDB(clipInfo.dbId)
 		imgBytes := imgDB.ReadFor(clipInfo.imgKey)
 
@@ -167,8 +170,9 @@ func DeleteSameMainImg(imgClipIdents []string) []string {
 		}else{
 			//fmt.Println("img bytes of ", strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is : ", len(imgBytes))
 		}
+		imgIndex := GetImgIndexBySrcBytes(imgBytes)
 
-		imgIndex := GetImgIndexBySrcData(imgBytes)
+
 		imgIndexStr := string(imgIndex)
 		if nil == filter[imgIndexStr]{
 			filter[imgIndexStr] = clipInfo.imgKey
@@ -184,12 +188,12 @@ func DeleteSameMainImg(imgClipIdents []string) []string {
 
 func FindClipMainImg(dbId uint8, imgId []byte, which uint8)  {
 	clipIdent := GetImgClipIdent(dbId, imgId, which)
-	clipIndex := InitImgClipsIndexDB().ReadFor(clipIdent)
+	clipIndex := InitClipsIndexDB().ReadFor(clipIdent)
 	if nil == clipIndex{
 		fmt.Println("can't find clip index in clip_to_index db by clip ident")
 		return
 	}
-	imgsInfo := InitImgClipsReverseIndexDB().ReadFor(clipIndex)
+	imgsInfo := InitIndexToClipDB().ReadFor(clipIndex)
 	if nil == imgsInfo{
 		fmt.Println("can't find clip's img info in clip_reverse_index db by clip index")
 		return

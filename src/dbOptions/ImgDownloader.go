@@ -29,6 +29,11 @@ func initImgDB() *DBConfig {
     return GetImgDBWhichPicked()
 }
 
+func addToCacheList(cacheList *imgCache.KeyValueCacheList, threadId, seqNo int, value[]byte)  {
+    imgKey := GetImgKey(uint8(threadId), seqNo)
+    cacheList.Add(threadId, &imgKey, value)
+}
+
 func writeImgToDB(goId int, seqNo int , value []byte)  {
     batch := leveldb.Batch{}
 
@@ -41,41 +46,6 @@ func writeImgToDB(goId int, seqNo int , value []byte)  {
         return
     }
     imgDB.DBPtr.Write(&batch,&imgDB.WriteOptions)
-}
-
-func writeBatchToDB(batch *leveldb.Batch)  {
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return
-    }
-
-    imgDB.DBPtr.Write(batch,&imgDB.WriteOptions)
-}
-
-func readDBToImage(key string)  {
-
-    imgDB := initImgDB()
-    if nil == imgDB{
-        return
-    }
-
-    value,err := imgDB.DBPtr.Get([]byte(key),&imgDB.ReadOptions)
-    if err == leveldb.ErrNotFound{
-        return
-    }
-    writeToFile(value, key)
-}
-
-
-func writeToAbsFile(content []byte, fileName string)  {
-    image, err := os.Create(fileName)
-    if err != nil {
-        fmt.Println("create file failed:", fileName, err)
-        return
-    }
-
-    defer image.Close()
-    image.Write(content)
 }
 
 func isValidImage(img []byte) bool {
@@ -125,7 +95,7 @@ func downLoadImageOnConnection(httpClient *http.Client, img_url string) (retData
 /***
     下载图片，在同一个 http 上下载多次图片会触发“请求太快，请稍后再试”，此图片对应的是 invalidImageData
  */
-func saveImages(img_url string, goId int, maxImgId int, imgId int) int {
+func saveImages(img_url string, goId int, maxImgId int, imgId int,cacheList *imgCache.KeyValueCacheList) int {
 
 
     proxy := func(_ *http.Request) (*url.URL, error) {
@@ -158,14 +128,16 @@ func saveImages(img_url string, goId int, maxImgId int, imgId int) int {
 
         if !firstTime {
             if isValidImage(data){
-                writeImgToDB(goId, imgId,data)
+                //writeImgToDB(goId, imgId,data)
+                addToCacheList(cacheList,goId, imgId, data)
                 imgId ++
             }else{
                 //如果触发了 invalidImage 则当前连接需要终止使用
                 return imgId
             }
         }else{
-            writeImgToDB(goId, imgId,data)
+            //writeImgToDB(goId, imgId,data)
+            addToCacheList(cacheList,goId, imgId, data)
             imgId ++
         }
         successDealed ++
@@ -193,7 +165,7 @@ func saveImages(img_url string, goId int, maxImgId int, imgId int) int {
 /***
     下载图片，在同一个 http 上下载多次图片会触发“请求太快，请稍后再试”，此图片对应的是 invalidImageData
  */
-func singleSaveImages(img_url string, goId int, maxImgId int, imgId int) int {
+func singleSaveImages(img_url string, threadId int, maxImgId int, imgSeqNo int, cacheList *imgCache.KeyValueCacheList) int {
 
     proxy := func(_ *http.Request) (*url.URL, error) {
         //注意下面的 url 一定要包含 http:// 否则运行报错
@@ -206,44 +178,41 @@ func singleSaveImages(img_url string, goId int, maxImgId int, imgId int) int {
 
     if err != nil {
         fmt.Println("download image error: ", err)
-        return imgId
+        return imgSeqNo
     }
 
-    //img_name := config.ThreadIdToName[goId] + strconv.Itoa(imgId)
-    writeImgToDB(goId, imgId,data)
+    //writeImgToDB(goId, imgId,data)
+    addToCacheList(cacheList, threadId, imgSeqNo, data)
 
-  //  writeToFile(data, img_dir+"/"+img_name+".jpg")
-    imgId ++
+    imgSeqNo ++
 
-    return imgId
+    return imgSeqNo
 }
 
-func InitDownCache() []*imgCache.KeyValueCache {
-    cacheList := make([]*imgCache.KeyValueCache, config.MAX_THREAD_COUNT)
-    for i:=0;i < config.MAX_THREAD_COUNT;i++{
-        curCache := imgCache.KeyValueCache(make(map[string] []interface{}))
-        cacheList[i] = &curCache
-    }
-    return cacheList
-}
 
+var signalListener *SignalListener
 
 /**
     正常情况下，一次调用 saveImages 只会下载一张图片，但有时可以下载多张，我们利用这个特性加快下载
  */
-func save(goId int, base int, times int)  {
+func save(goId int, base int, times int,cacheList *imgCache.KeyValueCacheList)  {
     maxImageId := base+times
     nextImgId := base
 
     dealCost := int64(0)
     for i := 0; i != times; {
 
+        if signalListener.HasRecvQuitSignal(){
+            fmt.Println("thread ", goId, " recv quit signal, task will quit after all cache flush")
+            break
+        }
+
         if(0 != i && 0 == i % 100) {
             fmt.Println("dealing ", i, ", speed: 1/", float64(dealCost)/float64(i),"s")
         }
         startT := time.Now().Unix()
         newImgId := //saveImages("https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module=login", goId, maxImageId, nextImgId)
-        singleSaveImages("https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module=login", goId, maxImageId, nextImgId)
+        singleSaveImages("https://kyfw.12306.cn/passport/captcha/captcha-image?login_site=E&module=login", goId, maxImageId, nextImgId, cacheList)
         endT := time.Now().Unix()
 
         dealCost += endT - startT
@@ -252,25 +221,60 @@ func save(goId int, base int, times int)  {
         nextImgId = newImgId
 
         if(nextImgId >= maxImageId){
-            fmt.Println("just before thread ", goId, " going to return")
-            //提前完成任务: 此时  nextImgId 正好是它下载图片的个数
-            downloadFinished <- nextImgId-base
-            return
+            break
         }
     }
-    fmt.Println("just before thread ", goId, " going to return")
+    fmt.Println("thread ", goId, " finished ~")
     //此时  nextImgId 正好是它下载图片的个数
-    downloadFinished <- nextImgId
+    downloadFinished <- nextImgId-base
+}
+
+type DownloadCacheFlushCallBack struct {
+    imgDB *DBConfig
+}
+
+func (this *DownloadCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
+
+    imgBatch := leveldb.Batch{}
+
+    for k,vlist := range kvCache.Iterator(){
+        imgKeys := imgCache.GetKeyAsBytes(&k)	//转化为 bytes
+
+        if len(vlist) != 1{
+            fmt.Println("error, a download img key has more than one img bytes")
+            return false
+        }
+
+        imgSrcBytes := vlist[0].([]byte)
+
+        imgBatch.Put(imgKeys, imgSrcBytes)
+    }
+
+    fmt.Println("----------- write to ", this.imgDB.Id, ", ", imgBatch.Len())
+    this.imgDB.WriteBatchTo(&imgBatch)
+
+    return true
 }
 
 
+func BeginDownload(imgDB *DBConfig,cores int, eachTimes int) int {
 
-func BeginDownload(lastBase int, cores int, eachTimes int) int {
+    lastBase, _,_ ,_, _, _:= GetStatInfo(imgDB)
+
+    signalListener = NewSignalListener()
+    signalListener.WaitForSignal()
+
     runtime.GOMAXPROCS(cores)
     downloadFinished = make(chan int, cores)
 
+    downloadCacheList := imgCache.KeyValueCacheList{}
+    var downloadCache imgCache.CacheFlushCallBack = &DownloadCacheFlushCallBack{imgDB:imgDB}
+    downloadCacheList.Init(false, &downloadCache, true, 100)
+
+    st := time.Now().Unix()
+
     for i:=0;i < cores; i++{
-        go save(i,lastBase, eachTimes)
+        go save(i,lastBase, eachTimes, &downloadCacheList)
         fmt.Println("thread ", i, " going to start")
     }
 
@@ -282,7 +286,19 @@ func BeginDownload(lastBase int, cores int, eachTimes int) int {
         fmt.Println("thread ", i ," finished")
     }
 
+    fmt.Println("flush all cache to db")
+    downloadCacheList.FlushRemainKVCaches()
+
+    et := time.Now().Unix()
+    setStatInfo(imgDB, lastBase + total,cores,eachTimes,(et-st))
+
+    imgDB.CloseDB()
     fmt.Println("total download: ", total)
+
+    //由于收到了用户的 quit 信号故此处响应此信号
+    if signalListener.HasRecvQuitSignal(){
+        signalListener.ResponseForUserQuit(nil) //简单地告诉信号处理器，任务已经都处理完了
+    }
     return total
 }
 
@@ -318,6 +334,7 @@ func RandomVerify(){
     }
 }
 
+
 func DownloaderRun()  {
     cores := 16
     eachTimes := 10000
@@ -335,17 +352,7 @@ func DownloaderRun()  {
 
         fmt.Println("cores: ", cores, ", eachTimes: ", eachTimes)
 
-        newBase, _,_ ,_, _, _:= GetStatInfo(imgDB)
-
-        st := time.Now().Unix()
-
-        total := BeginDownload(newBase, cores, eachTimes)
-        et := time.Now().Unix()
-        fmt.Println("cost ", (et-st), " seconds")
-
-        setStatInfo(imgDB, newBase + total,cores,eachTimes,(et-st))
-
-        imgDB.CloseDB()
+        BeginDownload(imgDB, cores, eachTimes)
     }
 
 }

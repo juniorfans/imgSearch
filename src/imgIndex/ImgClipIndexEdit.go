@@ -8,7 +8,7 @@ import (
 //输入要求是 4 通道索引值
 func ClipIndexSave3Chanel(clipIndex []byte) [] byte {
 	if len(clipIndex) % 4 != 0{
-		fmt.Println("clip index length is not multy of 4")
+		fmt.Println("clip index length is not multiple of 4")
 		return nil
 	}
 
