@@ -89,6 +89,17 @@ func ParseImgKeyToPlainTxt(imgKey []byte) []byte {
 	return MakeSurePlainImgIdIsOk([]byte(plainTxt))
 }
 
+func ParseImgIdentToPlainTxt(imgIdent []byte) string {
+	if IMG_IDENT_LENGTH != len(imgIdent){
+		fmt.Println("imgKey format error, must be 4 bytes,but is ", len(imgIdent))
+		return ""
+	}
+
+	plainTxt := string(ParseImgKeyToPlainTxt(imgIdent[1:]))
+
+	return "" + strconv.Itoa(int(imgIdent[0])) + "-" + string(MakeSurePlainImgIdIsOk([]byte(plainTxt)))
+}
+
 
 //大端模式, 字节数组中高位是原值中的低位
 func BytesToInt32(b []byte) int {

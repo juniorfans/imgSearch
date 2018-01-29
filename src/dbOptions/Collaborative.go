@@ -3,9 +3,9 @@ package dbOptions
 import (
 	"fmt"
 	"config"
-	"bufio"
-	"os"
-	"strconv"
+	"imgIndex"
+	"util"
+	"imgCache"
 )
 
 /**
@@ -90,6 +90,14 @@ func ExposeCalCollaboratWith(dbId uint8, imgId []byte, whichl, whichr uint8)  {
 func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  {
 	i_index := ImgClipsToIndexReader(dbId,imgId,whichl)
 	j_index := ImgClipsToIndexReader(dbId,imgId,whichr)
+
+	if nil == i_index{
+		fmt.Println("read clip index nil: ", dbId, ", ", string(ParseImgKeyToPlainTxt(imgId)), ",", whichl)
+	}
+	if nil == j_index{
+		fmt.Println("read clip index nil: ", dbId, ", ", string(ParseImgKeyToPlainTxt(imgId)), ",", whichr)
+	}
+
 	fmt.Println("-------------------------------------------------")
 	fmt.Println(whichl, " -- ", whichr)
 	FindTwoClipsSameMainImgs(i_index ,j_index)
@@ -101,114 +109,116 @@ func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  
  */
 func FindTwoClipsSameMainImgs(left, right []byte)  {
 
-	clipDB := InitIndexToClipDB()
+	indexToClip := InitIndexToClipDB()
 
-	lv := clipDB.ReadFor(left)	//left 在哪些大图中出现过
-	rv := clipDB.ReadFor(right)
+	leftBranches := ImgIndex.ClipIndexBranch(4,10, left)
+	rightBranches := ImgIndex.ClipIndexBranch(4,10, right)
+	var lvlist, rvlist []byte
 
-	lvlist := ParseImgClipIdentListBytesToStrings(lv)
-	rvlist := ParseImgClipIdentListBytesToStrings(rv)
+	{
+		for _,lb := range leftBranches{
+			curlist := indexToClip.ReadFor(lb)	//left 在哪些大图中出现过
+			fileUtil.MergeBytesTo(&lvlist, &curlist)
+		}
+	}
 
-	if nil == lvlist || nil == rvlist{
-		fmt.Println("lvlist or rvlist is null")
+	{
+		for _,rb := range rightBranches{
+			curList := indexToClip.ReadFor(rb)	//left 在哪些大图中出现过
+			fileUtil.MergeBytesTo(&rvlist, &curList)
+		}
+	}
+
+	if 0 == len(lvlist){
+		fmt.Println("lvlist is null")
+		return
+	}
+	if 0 == len(rvlist){
+		fmt.Println("rvlist is null")
 		return
 	}
 
-	res := make(map[string]int)
 
+	//indexBytes to indexIdent
+	lmap := RemoveDuplicate(lvlist)
+	rmap := RemoveDuplicate(rvlist)
 
-	//lvlist 和 vlist 中需要过滤出相同的照片
-	fmt.Println("left is in images: ", lvlist)
-	lvlist = DeleteSameMainImg(lvlist)
-	for _,lvc := range lvlist{
-		res[lvc] ++
-		fmt.Println(lvc)
-	}
-	fmt.Println("----------------------------------")
-	fmt.Println("right is in images: ", rvlist)
-	rvlist = DeleteSameMainImg(rvlist)
-	for _,rvc := range rvlist{
-		res[rvc] ++
-		fmt.Println(rvc)
-	}
+	FindSameImg(lmap, rmap)
 
-	for id,sup := range res{
-		if sup > 1{
-			dbId, imgId := ParseImgIden(id)
-			fmt.Println("dbId: ", dbId, ", imgId: ", string(imgId), "sup: ", sup)
-		}
-	}
 }
 
 
 
-func DeleteSameMainImg(imgClipIdents []string) []string {
-	filter := make(map[string][]byte)
-	ret := make([]string, len(imgClipIdents))
-	realCount := 0
+func RemoveDuplicate(imgClipIdents []byte) *imgCache.MyMap {
+	imgIndexToIdent := imgCache.NewMyMap(false)
 
-	var clipInfo ClipIdentInfo
-	for _, clipIdent := range imgClipIdents {
-		if 0 == len(clipIdent){
-			fmt.Println("empty ident")
-			continue
+	for i:=0;i < len(imgClipIdents);i += IMG_CLIP_IDENT_LENGTH{
+		imgClipIdent := FromClipIdentToImgIdent(imgClipIdents[i:i+IMG_CLIP_IDENT_LENGTH])
+		imgIdent := imgClipIdent[0:IMG_CLIP_IDENT_LENGTH-1]
+		imgIndexBytes := InitImgToIndexDB().ReadFor(imgIdent)
+		if nil == imgIndexBytes{
+			fmt.Println("img index nil: ", string(ParseImgKeyToPlainTxt(imgIdent[1:])))
 		}
-		if !clipInfo.ParseFromIdenString(clipIdent){
-
-			continue
-		}
-
-
-		// InitImgToIndexDB().ReadFor(GetImgIdent(clipInfo.dbId, clipInfo.imgKey))
-
-		imgDB := PickImgDB(clipInfo.dbId)
-		imgBytes := imgDB.ReadFor(clipInfo.imgKey)
-
-		if 0 == len(imgBytes){
-			fmt.Println("img bytes of ",strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is empty")
-			continue
-		}else{
-			//fmt.Println("img bytes of ", strconv.Itoa(int(clipInfo.dbId)), "-", string(ParseImgKeyToPlainTxt(clipInfo.imgKey)), " is : ", len(imgBytes))
-		}
-		imgIndex := GetImgIndexBySrcBytes(imgBytes)
-
-
-		imgIndexStr := string(imgIndex)
-		if nil == filter[imgIndexStr]{
-			filter[imgIndexStr] = clipInfo.imgKey
-			ret[realCount]= clipIdent
-			realCount ++
-		}else{
-			//abort
-			//fmt.Println("abort: ", string(imgId))
-		}
+		imgIndexToIdent.Put(imgIndexBytes, imgIdent)
 	}
-	return ret[0:realCount]
+	return imgIndexToIdent
 }
 
-func FindClipMainImg(dbId uint8, imgId []byte, which uint8)  {
-	clipIdent := GetImgClipIdent(dbId, imgId, which)
-	clipIndex := InitClipsIndexDB().ReadFor(clipIdent)
-	if nil == clipIndex{
-		fmt.Println("can't find clip index in clip_to_index db by clip ident")
-		return
-	}
-	imgsInfo := InitIndexToClipDB().ReadFor(clipIndex)
-	if nil == imgsInfo{
-		fmt.Println("can't find clip's img info in clip_reverse_index db by clip index")
-		return
-	}
-	valueList := ParseImgClipIdentListBytesToStrings(imgsInfo)
-	fmt.Println(valueList)
+func FindSameImg(left, right *imgCache.MyMap) *imgCache.MyMap {
+
+	//img index bytes -- img ident
+	statMap := imgCache.NewMyMap(true)
+
+	combineVisitor := &combineVisitor{}
+	left.Visit(combineVisitor, -1, []interface{}{statMap})
+	right.Visit(combineVisitor, -1, []interface{}{statMap})
+
+	resultMap := imgCache.NewMyMap(false)
+	removeDuplicateVisitor := &removeDuplicateVisitor{}
+	statMap.Visit(removeDuplicateVisitor, -1, []interface{}{resultMap})
+
+	return resultMap
 }
 
-func TestFindClipMainImg()  {
-	stdin := bufio.NewReader(os.Stdin)
-	var dbId , which uint8
-	var imgKey string
-	for{
-		fmt.Print("input dbId, imgKey, which: ")
-		fmt.Fscan(stdin, &dbId, &imgKey, & which)
-		FindClipMainImg(dbId, FormatImgKey([]byte(imgKey)), which)
+
+//-------------------------------------------------------------------------------------------
+type combineVisitor struct {
+
+}
+
+func (this *combineVisitor) Visit(imgIndexBytes []byte, imgIdent []interface{}, otherParams []interface{}) bool {
+	if 1 != len(otherParams){
+		fmt.Println("NoNameVisitor other params not 1")
+		return false
 	}
+
+	statMap := otherParams[0].(*imgCache.MyMap)
+	statMap.Put(imgIndexBytes, imgIdent[0])
+
+	return true
+}
+
+
+type removeDuplicateVisitor struct {
+
+}
+
+func (this *removeDuplicateVisitor) Visit(imgIndexBytes []byte, imgIdents []interface{}, otherParams []interface{}) bool {
+	if 1 != len(otherParams){
+		fmt.Println("NoNameVisitor other params not 1")
+		return false
+	}
+
+	resultMap := otherParams[0].(*imgCache.MyMap)
+
+	count := len(imgIdents)
+	if 1 < count{
+		resultMap.Put(imgIndexBytes, count)
+		imgIdent := imgIdents[0].([]byte)
+		fmt.Println("------------ ", count)
+		fmt.Println(ParseImgIdentToPlainTxt(imgIdent)," : ", count)
+
+	}
+
+	return true
 }

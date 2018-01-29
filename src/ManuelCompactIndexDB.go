@@ -11,7 +11,7 @@ func main()  {
 	dbOptions.InitIndexToClipDB().DBPtr.CompactRange(util.Range{nil,nil})
 
 	fmt.Println("start to compact clip index")
-	dbOptions.InitClipsIndexDB().DBPtr.CompactRange(util.Range{nil,nil})
+	dbOptions.InitClipToIndexDB().DBPtr.CompactRange(util.Range{nil,nil})
 
 	fmt.Println("all compact finished ~")
 }

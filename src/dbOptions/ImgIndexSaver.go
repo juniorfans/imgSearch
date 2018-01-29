@@ -62,46 +62,68 @@ func (this *ImgIndexSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInf
 		", lastDealedImgKey: ", string(ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
 }
 
+//---------------------------------------------------------------------------------
 
 type ImgIndexCacheFlushCallBack struct {
-
+	visitor imgCache.KeyValueCacheVisitor
 }
 
 func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
 	indexToImgBatch := leveldb.Batch{}
 	imgToIndexBatch := leveldb.Batch{}
 
-	//计算旧的 value
-	//合并新的 value
-	//写回 db
-	for k,vlist := range kvCache.Iterator(){
-		indexBytes := imgCache.GetKeyAsBytes(&k)	//转化为 bytes
-		exsitsImgIdents := InitIndexToClipDB().ReadFor(indexBytes)
+	kvCache.Visit(this.visitor,-1,[]interface{}{&indexToImgBatch, &imgToIndexBatch})
 
-		if len(exsitsImgIdents) % IMG_IDENT_LENGTH != 0{
-			fmt.Println("exsits img ident len is not multiple of ", IMG_IDENT_LENGTH)
-			return false
-		}
-
-		//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 []byte
-		newImgIdents := make([]byte, len(exsitsImgIdents) + IMG_IDENT_LENGTH * len(vlist))
-		ci :=0
-		ci += copy(newImgIdents[ci:], exsitsImgIdents)
-		for _,v := range vlist{
-			var imgIdent []byte  = v.([]byte)
-			ci += copy(newImgIdents[ci:], imgIdent)
-			imgToIndexBatch.Put(imgIdent , indexBytes)
-		}
-		if len(newImgIdents) % IMG_IDENT_LENGTH != 0 {
-			fmt.Println("new img ident len is not multiple of ", IMG_IDENT_LENGTH)
-			return false
-		}
-		indexToImgBatch.Put(indexBytes, newImgIdents)
-	}
-	InitIndexToClipDB().WriteBatchTo(&indexToImgBatch)
-	ImgClipsToIndexBatchSaver(&imgToIndexBatch)
+	InitIndexToImgDB().WriteBatchTo(&indexToImgBatch)
+	ImgToIndexBatchSaver(&imgToIndexBatch)
 	return true
 }
+
+//------------------------------------------------------------------------------------------
+type ImgIndexCacheVisitor struct {
+
+}
+
+
+//遍历 key-value, key 是 clip index Bytes, value 是 clip ident bytes(单个).
+func (this *ImgIndexCacheVisitor) Visit(imgIndexBytes []byte, imgIdents []interface{},otherParams [] interface{}) bool {
+
+	if 2 != len(otherParams){
+		fmt.Println("ImgIndexCacheVisitor need 2 other params, but only: ", len(otherParams))
+		return false
+	}
+
+	indexToImgBatch := otherParams[0].(*leveldb.Batch)
+	imgToIndexBatch := otherParams[1].(*leveldb.Batch)
+
+	exsitsImgIdents := InitIndexToImgDB().ReadFor(imgIndexBytes)
+
+	if len(exsitsImgIdents) % IMG_IDENT_LENGTH != 0{
+		fmt.Println("exsits img ident len is not multiple of ", IMG_IDENT_LENGTH)
+		return false
+	}
+
+	//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 []byte
+	newImgIdents := make([]byte, len(exsitsImgIdents) + IMG_IDENT_LENGTH * len(imgIdents))
+	ci :=0
+	if 0!=len(exsitsImgIdents){
+		ci += copy(newImgIdents[ci:], exsitsImgIdents)
+	}
+	for _,v := range imgIdents{
+		var imgIdent []byte  = v.([]byte)
+		ci += copy(newImgIdents[ci:], imgIdent)
+		imgToIndexBatch.Put(imgIdent , imgIndexBytes)
+	}
+	if len(newImgIdents) % IMG_IDENT_LENGTH != 0 {
+		fmt.Println("new img ident len is not multiple of ", IMG_IDENT_LENGTH)
+		return false
+	}
+	indexToImgBatch.Put(imgIndexBytes, newImgIdents)
+
+	return true
+}
+
+//------------------------------------------------------------------------------------------
 
 func BeginImgSaveEx(dbIndex uint8, count int)  {
 
@@ -109,8 +131,8 @@ func BeginImgSaveEx(dbIndex uint8, count int)  {
 	imgIndexCacheList := imgCache.KeyValueCacheList{}
 
 	//缓存 img index -> img ident, 支持重复的 values
-	var callBack imgCache.CacheFlushCallBack = &ImgIndexCacheFlushCallBack{}
-	imgIndexCacheList.Init(true, &callBack,true,2000)
+	var callBack imgCache.CacheFlushCallBack = &ImgIndexCacheFlushCallBack{visitor:&ImgIndexCacheVisitor{}}
+	imgIndexCacheList.Init(true, &callBack,false,64000)
 
 	var visitCallBack VisitCallBack = &ImgIndexSaverVisitCallBack{maxVisitCount:count,
 		params:ImgIndexSaverVisitParams{dbId:dbIndex, cacheList:imgIndexCacheList}}
@@ -145,7 +167,7 @@ func SaveImgIndexToDBBySrcData(dbId uint8, cacheList *imgCache.KeyValueCacheList
 	if len(imgIdent) % IMG_IDENT_LENGTH != 0{
 		fmt.Println("to save img ident len is not multiple of ", IMG_IDENT_LENGTH)
 	}
-	cacheList.Add(threadId, &imgIndexBytes, imgIdent)
+	cacheList.Add(threadId, imgIndexBytes, imgIdent)
 	return true
 }
 

@@ -22,15 +22,38 @@ type IndexUnit struct {
 
 //一个子图索引: 一张图片可能有多个子图索引
 type SubImgIndex struct {
-	IndexUnits   []IndexUnit //一个小图支持多个索引数据
+	IndexUnits      []IndexUnit //一个小图支持多个索引数据
 
-	UnitLength   int         //每个索引单元的字节数
+	UnitLength      int         //每个索引单元的字节数
 
-	KeyOfMainImg []byte      //主图像在 db 中的键值
-	DBIdOfMainImg uint8      //主图像所在的 db
-	Which        uint8         //当前小图是主图像的第几幅小图
+	KeyOfMainImg    []byte      //主图像在 db 中的键值
+	DBIdOfMainImg   uint8       //主图像所在的 db
+	Which           uint8       //当前小图是主图像的第几幅小图
 
-	ConfigId     uint8       //使用的切图配置/Letter 配置 id
+	cachedFlatBytes []byte
+	IsSourceIndex   bool        //当前索引是否是原始索引, 即非分支索引. 一个原始索引对应多个分支索引
+
+	ConfigId        uint8       //使用的切图配置/Letter 配置 id
+}
+
+func (this *SubImgIndex) Clone() *SubImgIndex {
+	ret := SubImgIndex{}
+	ret.IndexUnits = this.IndexUnits		//此处用浅拷贝即可，一旦生成就不再变化
+	ret.KeyOfMainImg = this.KeyOfMainImg
+	ret.DBIdOfMainImg = this.DBIdOfMainImg
+	ret.Which = this.Which
+	ret.ConfigId = this.ConfigId
+	ret.UnitLength = this.UnitLength
+
+	ret.cachedFlatBytes = this.cachedFlatBytes	//此处用浅拷贝即可，一旦生成就不再变化
+/*
+	if 0 != len(this.cachedFlatBytes){
+		ret.cachedFlatBytes = make([]byte, len(this.cachedFlatBytes))
+		copy(ret.cachedFlatBytes, this.cachedFlatBytes)
+	}
+*/
+	ret.IsSourceIndex = this.IsSourceIndex
+	return &ret
 }
 
 func (this *SubImgIndex) Init(dbId uint8, mainImgKey[]byte, which uint8, unitLength int, clipConfigId uint8)  {
@@ -39,6 +62,8 @@ func (this *SubImgIndex) Init(dbId uint8, mainImgKey[]byte, which uint8, unitLen
 	this.Which = which
 	this.ConfigId = clipConfigId
 	this.UnitLength = unitLength
+	this.cachedFlatBytes = nil
+	this.IsSourceIndex = false
 }
 
 func (this *SubImgIndex) AddIndex(offset int, index IndexData)  {
@@ -53,15 +78,21 @@ func (this *SubImgIndex)GetIndexBytesIn3Chanel () []byte {
 	return this.getFlatInfo()
 }
 
-func (this *SubImgIndex)GetBranchIndexBytesIn3Chanel (branchBits int, bound uint8) [][]byte {
-	indexBytes := this.getFlatInfo()
-	return ClipIndexBranch(branchBits, bound, indexBytes)
+func (this *SubImgIndex)GetBranchIndexBytesIn3Chanel (branchBits int, bound uint8) (branchIndexes [][]byte){
+	sourceIndex := this.getFlatInfo()
+	branchIndexes = ClipIndexBranch(branchBits, bound, sourceIndex)
+	return
 }
 
 /**
 	获得字节数据.
  */
 func (this *SubImgIndex)getFlatInfo () []byte {
+
+	if 0 != len(this.cachedFlatBytes){
+		return this.cachedFlatBytes
+	}
+
 	if len(this.IndexUnits) == 0{
 		return nil
 	}else{
@@ -78,7 +109,8 @@ func (this *SubImgIndex)getFlatInfo () []byte {
 			fmt.Println("getFlatInfo error: ", totalSize, ", ", ci)
 			return nil
 		}
-		return ClipIndexSave3Chanel(res)
+		this.cachedFlatBytes = ClipIndexSave3Chanel(res)
+		return this.cachedFlatBytes
 	}
 }
 

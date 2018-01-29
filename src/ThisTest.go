@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 
 
@@ -47,6 +50,11 @@ func (this *A) SetThis()  {
 
 func main()  {
 	var a A
+	mutex := sync.Mutex{}
+	mutex.Lock()
+	mutex.Lock()
+	mutex.Unlock()
+	mutex.Unlock()
 	fmt.Printf("before set this, a addr; %p\n", &a)
 	a.SetThis()
 	fmt.Printf("after set this, a addr; %p\n", &a)

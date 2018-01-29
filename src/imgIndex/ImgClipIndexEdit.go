@@ -2,6 +2,7 @@ package ImgIndex
 
 import (
 	"fmt"
+	"util"
 )
 
 //编辑 clip 的 index, 只保留 RGB 通道，删除 A 通道
@@ -36,12 +37,6 @@ func ClipIndexSave3Chanel(clipIndex []byte) [] byte {
 	return ret
 }
 
-func makeIndex(src []byte) []byte {
-	ret := make([]byte, len(src))
-	copy(ret, src)
-	return ret
-}
-
 //clip index 进行分支, branchBits 表示使用索引的前几位
 // 输入的索引要求是 3 通道索引
 func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][] byte {
@@ -60,11 +55,7 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 	for i:=0;i < branchBits;i ++{
 		c := clipIndexIn3Chanel[i]
 		branchBytes[i] = GetBound(c, bound)
-		if branchBytes[i].isThirdValid(){
-			totalCount *= 3
-		}else{
-			totalCount *= 2
-		}
+		totalCount *= branchBytes[i].getValidSize()
 	}
 
 	branchIndex := make([][]byte, totalCount)
@@ -73,52 +64,50 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 	for i, branch:=range branchBytes{
 		ci := 0	//每轮计算都重新从 0 开始
 		//更改已经存在的分支
-		{
+
+		//do up
+		if branch.upValid{
 			if 0 == exsitsCount {
-				up := makeIndex(clipIndexIn3Chanel)
+				up := fileUtil.CopyBytesTo(clipIndexIn3Chanel)
 				up[i] = branch.up
 				branchIndex[ci] = up;ci ++
 			}
 			for b:=0;b < exsitsCount;b ++{
-				up := makeIndex(branchIndex[b])
+				up := fileUtil.CopyBytesTo(branchIndex[b])
 				up[i] = branch.up
 				branchIndex[ci] = up;ci ++
 			}
-
 		}
 
-		{
+		//do down
+		if branch.downValid{
 			if 0 == exsitsCount {
-				down := makeIndex(clipIndexIn3Chanel)
+				down := fileUtil.CopyBytesTo(clipIndexIn3Chanel)
 				down[i] = branch.down
 				branchIndex[ci] = down;ci ++
 			}
 
 			for b:=0;b < exsitsCount;b ++{
-				down := makeIndex(branchIndex[b])
+				down := fileUtil.CopyBytesTo(branchIndex[b])
 				down[i] = branch.down
 				branchIndex[ci] = down;ci ++
 			}
 
 		}
 
-		{
-			if branch.isThirdValid(){
-
-				if 0 == exsitsCount {
-					third := makeIndex(clipIndexIn3Chanel)
-					third[i] = branch.third
-					branchIndex[ci] = third;ci ++
-				}
-
-				for b:=0;b < exsitsCount;b ++{
-					third := makeIndex(branchIndex[b])
-					third[i] = branch.third
-
-					branchIndex[ci] = third;ci ++
-				}
+		//do third
+		if branch.thirdValid{
+			if 0 == exsitsCount {
+				third := fileUtil.CopyBytesTo(clipIndexIn3Chanel)
+				third[i] = branch.third
+				branchIndex[ci] = third;ci ++
 			}
 
+			for b:=0;b < exsitsCount;b ++{
+				third := fileUtil.CopyBytesTo(branchIndex[b])
+				third[i] = branch.third
+				branchIndex[ci] = third;ci ++
+			}
 		}
 		exsitsCount = ci
 	}
@@ -131,16 +120,37 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 
 type ByteBound struct {
 	down, up, third uint8
-	thirdValid bool
+	downValid, upValid, thirdValid bool
 }
-
-func (this *ByteBound) isThirdValid() bool {
-	return this.thirdValid
-}
-func (this *ByteBound) setThirdInValid() {
+func (this *ByteBound) setAllInvalid() {
+	this.downValid = false
+	this.upValid = false
 	this.thirdValid = false
 }
-func (this *ByteBound) setThirdValid() {
+
+func (this *ByteBound) getValidSize() int {
+	count := 0
+	if this.downValid{
+		count ++
+	}
+	if this.upValid{
+		count ++
+	}
+	if this.thirdValid{
+		count ++
+	}
+	return count
+}
+func (this *ByteBound) setDown(down uint8)  {
+	this.down = down
+	this.downValid = true
+}
+func (this *ByteBound) setUp(up uint8)  {
+	this.up = up
+	this.upValid = true
+}
+func (this *ByteBound) setThird(third uint8)  {
+	this.third = third
 	this.thirdValid = true
 }
 
@@ -148,27 +158,32 @@ func (this *ByteBound) setThirdValid() {
 //13 的以10为基上限是 20，下限是10，没有 third
 //3 以10为基的上限是10，下限是0，没有 third
 //30 以10为基的上限是40，下限是20，third 是30
+//250 以10为基上限是250, 下限是 240
+//251 以10为基没有上限, 下限是 250
+//总之, 保证输入值最大向下或者向上，最多跨越 10
 func GetBound(c uint8, bound uint8) *ByteBound {
 	ret := ByteBound{}
-	ret.setThirdInValid()
+	ret.setAllInvalid()
 
 	if c < bound{
-		ret.down = 0
-		ret.up = bound
+		ret.setDown(0)
+		ret.setUp(bound)
 	}else{
-		if 0 == c % bound{
-			ret.setThirdValid()
-			ret.third = c
-			ret.down = c - bound
-			ret.up = c + bound
+		limit := 255/bound * bound	//对于 bound=10, limit 即为 250
+		if c == limit{
+			ret.setDown(limit - bound)
+			ret.setUp(limit)
+		}else if c > limit{
+			ret.setDown(limit)
 		}else{
-			limit := 255/bound * bound
-			if limit <= c{
-				ret.up = limit
+			if 0 == c % bound{
+				ret.setThird(c)
+				ret.setDown(c - bound)
+				ret.setUp(c+bound)
 			}else{
-				ret.up = c / bound * bound + bound
+				ret.setUp(c / bound * bound + bound)
+				ret.setDown(c / bound * bound)
 			}
-			ret.down = c / bound * bound
 		}
 	}
 	return &ret

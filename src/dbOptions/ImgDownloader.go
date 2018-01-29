@@ -31,7 +31,7 @@ func initImgDB() *DBConfig {
 
 func addToCacheList(cacheList *imgCache.KeyValueCacheList, threadId, seqNo int, value[]byte)  {
     imgKey := GetImgKey(uint8(threadId), seqNo)
-    cacheList.Add(threadId, &imgKey, value)
+    cacheList.Add(threadId, imgKey, value)
 }
 
 func writeImgToDB(goId int, seqNo int , value []byte)  {
@@ -231,26 +231,15 @@ func save(goId int, base int, times int,cacheList *imgCache.KeyValueCacheList)  
 
 type DownloadCacheFlushCallBack struct {
     imgDB *DBConfig
+    visitor imgCache.KeyValueCacheVisitor
 }
 
 func (this *DownloadCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
 
     imgBatch := leveldb.Batch{}
 
-    for k,vlist := range kvCache.Iterator(){
-        imgKeys := imgCache.GetKeyAsBytes(&k)	//转化为 bytes
+    kvCache.Visit(this.visitor, -1, []interface{}{&imgBatch})
 
-        if len(vlist) != 1{
-            fmt.Println("error, a download img key has more than one img bytes")
-            return false
-        }
-
-        imgSrcBytes := vlist[0].([]byte)
-
-        imgBatch.Put(imgKeys, imgSrcBytes)
-    }
-
-    fmt.Println("----------- write to ", this.imgDB.Id, ", ", imgBatch.Len())
     this.imgDB.WriteBatchTo(&imgBatch)
 
     return true
@@ -268,7 +257,7 @@ func BeginDownload(imgDB *DBConfig,cores int, eachTimes int) int {
     downloadFinished = make(chan int, cores)
 
     downloadCacheList := imgCache.KeyValueCacheList{}
-    var downloadCache imgCache.CacheFlushCallBack = &DownloadCacheFlushCallBack{imgDB:imgDB}
+    var downloadCache imgCache.CacheFlushCallBack = &DownloadCacheFlushCallBack{imgDB:imgDB, visitor:&DownloadImgCacheVisitor{}}
     downloadCacheList.Init(false, &downloadCache, true, 100)
 
     st := time.Now().Unix()
@@ -299,6 +288,9 @@ func BeginDownload(imgDB *DBConfig,cores int, eachTimes int) int {
     if signalListener.HasRecvQuitSignal(){
         signalListener.ResponseForUserQuit(nil) //简单地告诉信号处理器，任务已经都处理完了
     }
+
+
+    signalListener.StopWait()
     return total
 }
 
@@ -355,4 +347,29 @@ func DownloaderRun()  {
         BeginDownload(imgDB, cores, eachTimes)
     }
 
+}
+
+//-------------------------------------------------------------------------------------------------
+type DownloadImgCacheVisitor struct {
+
+}
+
+func (this *DownloadImgCacheVisitor) Visit(imgKey []byte, imgData []interface{}, otherParams []interface{}) bool {
+
+    if 1 != len(otherParams){
+        fmt.Println("DownloadImgVisitor need 1 other params, but only: ", len(otherParams))
+        return false
+    }
+
+    imgBatch := otherParams[0].(*leveldb.Batch)
+
+    if len(imgData) != 1{
+        fmt.Println("error, a download img key has more than one img data: ", string(ParseImgKeyToPlainTxt(imgKey)))
+    }
+
+    imgSrcBytes := imgData[0].([]byte)
+
+    imgBatch.Put(imgKey, imgSrcBytes)
+
+    return true
 }

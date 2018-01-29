@@ -11,6 +11,8 @@ import (
 type SignalListener struct {
 	signalQuit                int32
 	taskToResponseForUserQuit chan interface{}
+
+	sig chan os.Signal
 }
 
 func (this *SignalListener) HasRecvQuitSignal() bool {
@@ -41,18 +43,27 @@ func (this *SignalListener) quitSignal(signal os.Signal)  {
 }
 
 func (this *SignalListener) WaitForSignal()  {
-	c := make(chan os.Signal)
+	this.sig = make(chan os.Signal)
 
-	signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(this.sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	go func() {
-		for s := range c {
+		for s := range this.sig {
 			switch s {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				this.quitSignal(s)
+				break;
+			case syscall.Signal(31):
+				fmt.Println("stop signal listener")
 				break;
 			default:
 				fmt.Println("unsupported signal", s)
 			}
 		}
 	}()
+}
+
+func (this *SignalListener) StopWait()  {
+
+	signal.Stop(this.sig)
+	this.sig = nil
 }

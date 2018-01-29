@@ -1,3 +1,0 @@
-second_db_dir_base=D:/
-
-soruce_db_dir_base=D:/

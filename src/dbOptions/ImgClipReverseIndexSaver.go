@@ -71,45 +71,16 @@ func (this *ClipSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
 		", lastDealedImgKey: ", string(ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
 }
 
-
-type IndexToClipCacheFlushCallBack struct {
-
-}
-
-func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
-	reverseIndexBatch := leveldb.Batch{}
-	indexBatch := leveldb.Batch{}
-
-	//计算旧的 value
-	//合并新的 value
-	//写回 db
-	for k,vlist := range kvCache.Iterator(){
-		keyBytes := imgCache.GetKeyAsBytes(&k)	//转化为 bytes
-		oldValue := InitIndexToClipDB().ReadFor(keyBytes)
-
-		//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 *ImgIndex.SubImgIndex
-		for _,v := range vlist{
-			var indexData *ImgIndex.SubImgIndex  = v.(*ImgIndex.SubImgIndex )
-			oldValue = getValueForClipsKeyEx(oldValue, indexData)
-			imgIdent := GetImgClipIdent(indexData.DBIdOfMainImg, indexData.KeyOfMainImg, indexData.Which)
-			indexBatch.Put(imgIdent ,keyBytes)
-		}
-		if len(oldValue) % 6 !=0 {
-			fmt.Println("fuck , real not multiple of 6: ", len(oldValue))
-		}
-		reverseIndexBatch.Put(keyBytes, oldValue)
-	}
-	InitIndexToClipDB().WriteBatchTo(&reverseIndexBatch)
-	ImgClipsToIndexBatchSaver(&indexBatch)
-	return true
-}
-
-
 func BeginImgClipSaveEx(dbIndex uint8, count int, offsetOfClip []int, indexLength int) {
 	//初始化线程缓存及总体缓存. 线程缓存满了之后即加入总体缓存，则总体缓存统一写入内存
 	indexToClipCacheList := imgCache.KeyValueCacheList{}
-	var callBack imgCache.CacheFlushCallBack = &IndexToClipCacheFlushCallBack{}
-	indexToClipCacheList.Init(true, &callBack,true, 400)
+	var callBack imgCache.CacheFlushCallBack = &IndexToClipCacheFlushCallBack{visitor:&ClipIndexCacheVisitor{}}
+
+	//二级缓存会导致性能下降: 由于使用了 mutex 去同步合并各个线程的缓存。在高密集的计算中，这个锁会导致性能下降了近一半，直观的感受是
+	//cpu (8核，开启 16 个 goroutine)由 99% 占用率下降到了 50%
+	indexToClipCacheList.Init(true, &callBack,false, 640000)	//一张大图有 8 * 8 *2 * 3 * 16 = 6144 个条目
+									//大小约为 640000 * 100bit = 61 M
+									//16 个线程总大小约为 1G
 
 	var visitCallBack VisitCallBack = &ClipSaverVisitCallBack{maxVisitCount:count,
 		params:ClipSaverVisitParams{dbId:dbIndex, offsetOfClip:offsetOfClip,indexLength:indexLength,
@@ -133,46 +104,30 @@ func SaveAllClipsToDBOf(cacheList *imgCache.KeyValueCacheList, threadId int, src
 
 	//保存各个索引数据
 	for _, index := range indexes{
+	//	fmt.Println("to save: ", string(ParseImgKeyToPlainTxt(index.KeyOfMainImg)), "-", index.Which)
 		SaveClipsToDB(cacheList, threadId, &index)
 	}
 
 	return true
 }
 
-func SaveClipsToDB(cacheList *imgCache.KeyValueCacheList, threadId int, indexData *ImgIndex.SubImgIndex) {
-	//index := indexData.GetFlatInfo()
-	//计算分支 index，都对应于同样的值
-	indexes := indexData.GetBranchIndexBytesIn3Chanel(4, 10)
+func SaveClipsToDB(cacheList *imgCache.KeyValueCacheList, threadId int, theIndexData *ImgIndex.SubImgIndex) {
+	indexDataPtr := theIndexData.Clone()
 
-	//注意, cache 的 value 的类型是 *ImgIndex.SubImgIndex
-	cacheList.AddKeysToSameValue(threadId, &indexes, indexData)
+	indexDataPtr.IsSourceIndex = true
+	sourceIndex := indexDataPtr.GetIndexBytesIn3Chanel()
+	cacheList.Add(threadId, sourceIndex, indexDataPtr)
+
+	dupIndexDataPtr := indexDataPtr.Clone()
+	dupIndexDataPtr.IsSourceIndex = false
+	branchIndexes := dupIndexDataPtr.GetBranchIndexBytesIn3Chanel(4, 10)
+
+	//注意, cache 的 value 的类型是 *ImgIndex.SubImgIndex'
+	for _, branchIndex := range branchIndexes{
+		cacheList.Add(threadId, branchIndex, dupIndexDataPtr)
+	}
+
 }
-
-/**
-	将原 oldValue 与新的 clip value 合并, 支持 oldValue 为 nil
- */
-func getValueForClipsKeyEx(oldValue []byte, indexData *ImgIndex.SubImgIndex) []byte {
-	if len(oldValue) % IMG_CLIP_IDENT_LENGTH != 0{
-		fmt.Println("old clip ident length is not multiple of ", IMG_CLIP_IDENT_LENGTH)
-		return nil
-	}
-
-	if len(indexData.KeyOfMainImg) == 0{
-		fmt.Println("fuck, real empty")
-	}
-
-	clipIdent := GetImgClipIdent(indexData.DBIdOfMainImg,indexData.KeyOfMainImg,indexData.Which)
-
-	ret := make([]byte,len(oldValue)+IMG_CLIP_IDENT_LENGTH)
-	ci := 0
-	if 0 != len(oldValue){
-		ci += copy(ret[ci:], oldValue)
-	}
-	ci += copy(ret[ci:], clipIdent)
-	return ret
-}
-
-
 
 
 /**
@@ -211,4 +166,82 @@ func GetDBIndexOfClipsBySrcData(srcData []byte, dbId uint8,mainImgkey []byte, of
 	}
 
 	return ImgIndex.GetClipsIndexOfImgEx(data, dbId, mainImgkey, offsetOfClip, indexLength)
+}
+
+
+//--------------------------------------------------------------------------------
+
+type ClipIndexCacheVisitor struct {
+
+}
+
+
+//遍历 key-value, key 是 clip index Bytes, value 是 clip ident bytes(单个).
+func (this *ClipIndexCacheVisitor) Visit(clipIndexBytes []byte, subImgIndexs []interface{},otherParams [] interface{}) bool {
+
+	if 2 != len(otherParams){
+		fmt.Println("ClipIndexCacheVisitor need 2 other params, but only: ", len(otherParams))
+		return false
+	}
+
+	indexToClipBatch := otherParams[0].(*leveldb.Batch)
+	clipToIndexBatch := otherParams[1].(*leveldb.Batch)
+
+	exsitsClipIdents := InitIndexToClipDB().ReadFor(clipIndexBytes)
+
+	//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 *ImgIndex.SubImgInde
+	for _,v := range subImgIndexs{
+		var indexData *ImgIndex.SubImgIndex  = v.(*ImgIndex.SubImgIndex )
+
+		//当前索引值若是原始索引/不是分支索引则需要写入一条 clip -> index 的记录
+		if indexData.IsSourceIndex{
+			clipIdent := GetImgClipIdent(indexData.DBIdOfMainImg, indexData.KeyOfMainImg, indexData.Which)
+			clipToIndexBatch.Put(clipIdent, clipIndexBytes)
+		}
+		exsitsClipIdents = mergeExsitsClipIdentAndNew(exsitsClipIdents, indexData)
+	}
+
+	if len(exsitsClipIdents) % 6 !=0 {
+		fmt.Println("fuck , new clip ident length is not multiple of 6: ", len(exsitsClipIdents))
+	}
+	indexToClipBatch.Put(clipIndexBytes, exsitsClipIdents)
+
+	return true
+}
+
+/**
+	将原 exsitsClipInfo 与新的 clip idents 合并, 支持 exsitsClipInfo 为 nil
+ */
+func mergeExsitsClipIdentAndNew(exsitsClipInfo []byte, indexData *ImgIndex.SubImgIndex) []byte {
+	if len(exsitsClipInfo) % IMG_CLIP_IDENT_LENGTH != 0{
+		fmt.Println("old clip ident length is not multiple of ", IMG_CLIP_IDENT_LENGTH)
+		return nil
+	}
+
+	clipIdent := GetImgClipIdent(indexData.DBIdOfMainImg,indexData.KeyOfMainImg,indexData.Which)
+
+	ret := make([]byte,len(exsitsClipInfo)+IMG_CLIP_IDENT_LENGTH)
+	ci := 0
+	if 0 != len(exsitsClipInfo){
+		ci += copy(ret[ci:], exsitsClipInfo)
+	}
+	ci += copy(ret[ci:], clipIdent)
+	return ret
+}
+
+//-------------------------------------------------------------------------------------------
+type IndexToClipCacheFlushCallBack struct {
+	visitor imgCache.KeyValueCacheVisitor
+}
+
+//clip index 的 kvCache 中存储的是, key: clip index bytes, values: 子图信息?
+func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
+	indexToClipBatch := leveldb.Batch{}
+	clipToIndexBatch := leveldb.Batch{}
+
+	kvCache.Visit(this.visitor, -1, []interface{}{&indexToClipBatch, &clipToIndexBatch})
+
+	InitIndexToClipDB().WriteBatchTo(&indexToClipBatch)
+	ImgClipsToIndexBatchSaver(&clipToIndexBatch)
+	return true
 }

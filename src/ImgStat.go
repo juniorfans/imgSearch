@@ -87,10 +87,20 @@ func main(){
 			dbOptions.TestFindClipMainImg()
 		}else if(18 == testCase){
 			dbOptions.TestReadImgDBKey(imgDB)
+		}else if(19 == testCase){
+			dbOptions.TestReadClipToIndexKeys()
+		}else if(20 == testCase){
+			dbOptions.TestFindClipToIndexKeys()
+		}else if(21 == testCase){
+			dbOptions.TestReadImgToIndexKeys()
+		}else if(22 == testCase){
+			dbOptions.TestFindImgToIndexKeys()
+		}else if(23 == testCase){
+			dbOptions.TestDumpImg(imgDB)
 		}else{
 			fmt.Println("invalid options")
 		}
-		imgDB.CloseDB()
+	//	imgDB.CloseDB()
 	}
 
 }

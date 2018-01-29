@@ -6,9 +6,6 @@ import (
 	"strconv"
 )
 
-var DB_DIR_BASE = "D:/"
-//var DB_DIR_BASE = "J:/search/"
-
 var imgDBs map[uint8]*DBConfig = make(map[uint8]*DBConfig)
 
 func GetImgDBs() []*DBConfig {
@@ -41,6 +38,7 @@ func PickImgDB(dbId uint8) *DBConfig {
 			Id : dbId,
 			Name:"img db",
 			dbType:0,	//source db
+			initParams:nil,
 		}
 
 		_, err :=  initDB(&imgDBConfig)

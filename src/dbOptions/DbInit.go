@@ -7,15 +7,10 @@ import (
 	"errors"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"config"
-	"os"
-	"bufio"
-	"strings"
-	"io"
-	"util"
 	"bytes"
 )
 
-var SECOND_DB_DIR_BASE = "E:/search/"
+var INDEX_DB_DIR_BASE = "E:/search/"
 
 type DBConfig struct {
 	Dir          string
@@ -28,51 +23,10 @@ type DBConfig struct {
 	Name	string
 	Id           uint8
 	dbType	uint8	//0:source_db 1:second_db
+
+	initParams *DBInitParams
 }
 
-var HAS_READ_DB_CONF = false
-func readDBDirConf() {
-	if HAS_READ_DB_CONF == true{
-		return
-	}
-	HAS_READ_DB_CONF = true
-	exedir,err := fileUtil.GetCurrentMoudlePath()
-	if nil != err{
-		fmt.Println("get current moudle error: ", err)
-		return
-	}
-	f, err := os.Open(exedir + "/" + "config.txt")
-	if err != nil {
-		fmt.Println("open config error: ", err)
-		return
-	}
-	buf := bufio.NewReader(f)
-	for {
-		line, err := buf.ReadString('\n')
-
-		if io.EOF == err{
-			return
-		}else if nil != err {
-			fmt.Println("read config error")
-			return
-		}
-		line = strings.TrimSpace(line)
-		if 0 == len(line){
-			continue
-		}
-		kv := strings.Split(line,"=")
-		if 2 == len(kv){
-			if 0==strings.Compare("second_db_dir_base",kv[0]){
-				SECOND_DB_DIR_BASE = strings.TrimSpace(kv[1])
-				fmt.Println("second_db_dir_base: ", SECOND_DB_DIR_BASE)
-			}else if 0==strings.Compare("soruce_db_dir_base",kv[0]){
-				DB_DIR_BASE = strings.TrimSpace(kv[1])
-				fmt.Println("source_db_dir_base: ", DB_DIR_BASE)
-			}
-		}
-	}
-	return
-}
 
 
 var imgClipsReverseIndexDBConfig = DBConfig{
@@ -83,6 +37,7 @@ var imgClipsReverseIndexDBConfig = DBConfig{
 	Id:0,
 	Name:"img clip db",
 	dbType:1,
+	initParams:nil,
 }
 
 
@@ -94,6 +49,7 @@ var imgIndexToImgDBConfig = DBConfig{
 	Id:0,
 	Name:"index to img db",
 	dbType:1,
+	initParams:nil,
 }
 
 var imgLetterDBConfig = DBConfig{
@@ -117,7 +73,7 @@ var imgToIndexDBConfig = DBConfig{
 }
 
 
-var imgClipsIndexDBConfig = DBConfig{
+var imgClipToIndexDBConfig = DBConfig{
 	Dir : "img_clips_index/clips.db",
 	DBPtr : nil,
 	inited : false,
@@ -171,13 +127,13 @@ func InitImgToIndexDB() *DBConfig {
 	key	: clip 信息(某个库的某个 mainImgId 的第 which 张子图)
 	value	: 该 clip 的索引
  */
-func InitClipsIndexDB() *DBConfig {
-	_, err :=  initDB(&imgClipsIndexDBConfig)
+func InitClipToIndexDB() *DBConfig {
+	_, err :=  initDB(&imgClipToIndexDBConfig)
 	if err != nil{
 		fmt.Println("open img to clips index db error, ", err)
 		return nil
 	}
-	return &imgClipsIndexDBConfig
+	return &imgClipToIndexDBConfig
 }
 
 func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
@@ -191,16 +147,14 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 		err = nil
 		return
 	}
-	{
-		config.OpenOptions = opt.Options{
-			ErrorIfMissing:false,
-			BlockSize:40 * opt.KiB,
-			CompactionTableSize:20*opt.MiB,
-			BlockCacheCapacity:128 * opt.MiB,
-			WriteBuffer:32*opt.MiB,
-			CompactionL0Trigger:4,
-			CompactionTotalSize:40*opt.MiB,
-		}
+
+	if nil == config.initParams{
+		config.initParams = ReadDBConf("conf_img_db.txt")
+
+		config.Dir = config.initParams.DirBase + config.Dir
+		config.OpenOptions = *getLevelDBOpenOption(config.initParams)
+		fmt.Println("has pick this img db: ", config.Dir)
+		config.initParams.PrintLn()
 	}
 
 	{
@@ -209,18 +163,6 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 	{
 		config.WriteOptions = opt.WriteOptions{Sync:false}
 	}
-
-	{
-		readDBDirConf()
-		if uint8(0) == config.dbType{
-			config.Dir = DB_DIR_BASE + config.Dir
-		}else if uint8(1) == config.dbType{
-			config.Dir = SECOND_DB_DIR_BASE + config.Dir
-		}
-
-		fmt.Println("has pick this img db: ", config.Dir)
-	}
-
 	config.DBPtr,err = leveldb.OpenFile(config.Dir, &config.OpenOptions)
 	if err != nil{
 		fmt.Println("open db failed")
@@ -230,6 +172,18 @@ func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
 	config.inited = true
 
 	return
+}
+
+func getLevelDBOpenOption(dbParams *DBInitParams) *opt.Options {
+	return &opt.Options{
+		ErrorIfMissing:false,
+		BlockSize: dbParams.BlockSize,
+		CompactionTableSize: dbParams.CompactionTableSize,
+		BlockCacheCapacity: dbParams.BlockCacheCapacity,
+		WriteBuffer: dbParams.WriteBuffer,
+		CompactionL0Trigger: dbParams.CompactionL0Trigger,
+		CompactionTotalSize: dbParams.CompactionTotalSize,
+	}
 }
 
 func (this *DBConfig)WriteTo(key , value[]byte) error {
@@ -299,7 +253,7 @@ func ReadClipValuesInCount(count int)  {
 			continue
 		}
 
-		valueList := ParseImgClipIdentListBytesToStrings(iter.Value())
+		valueList := FromClipIdentsToStrings(iter.Value())
 	//	for _, valueStr := range valueList{
 	//		fmt.Println(valueStr)
 	//	}

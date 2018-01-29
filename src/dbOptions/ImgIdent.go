@@ -3,8 +3,6 @@ package dbOptions
 import (
 	"fmt"
 	"config"
-	"strconv"
-	"strings"
 	"util"
 )
 
@@ -21,24 +19,17 @@ func (this *ClipIdentInfo) ToBytes() []byte {
 	return GetImgClipIdent(this.dbId, this.imgKey, this.which)
 }
 func (this *ClipIdentInfo) ToString() string {
-	return strconv.Itoa(int(this.dbId)) + "-" + string(ParseImgKeyToPlainTxt(this.imgKey)) + "-" + strconv.Itoa(int(this.which))
+	return string(GetImgClipIdent(this.dbId, this.imgKey, this.which))
 }
 
-func (this *ClipIdentInfo) ParseFromIdenString(clipIdent string) bool {
-	ss := strings.Split(clipIdent,"-")
-	if 3 != len(ss){
-		fmt.Println("clip ident format error: ", clipIdent, ", must be split by - in 3 units: ", clipIdent)
-		return false
-	}
-	idbId,_ := strconv.Atoi(ss[0])
-	this.dbId = uint8(idbId)
+func NewClipIdentInfo(clipIdentBytes []byte) *ClipIdentInfo {
+	ret := ClipIdentInfo{}
+	dbId, imgKey, which := ParseAImgClipIdentBytes(clipIdentBytes)
+	ret.dbId = uint8(dbId)
+	ret.imgKey = imgKey
+	ret.which = uint8(which)
+	return &ret
 
-	sImdKey := ss[1]
-	this.imgKey = FormatImgKey([]byte(sImdKey))
-
-	iWhich,_ := strconv.Atoi(ss[2])
-	this.which = uint8(iWhich)
-	return true
 }
 
 var IMG_KEY_LENGTH = 4				//img key 的长度
@@ -93,17 +84,27 @@ func GetImgClipIdent(dbId uint8, imgId []byte, which uint8) []byte {
 	return ret
 }
 
-func ParseImgClipIdentListBytesToStrings(clipIdentListBytes []byte) [] string{
+func FromClipIdentToImgIdent(clipIdent []byte) []byte{
+	ret := make([]byte, IMG_IDENT_LENGTH)
+	ci:=0
+	ci += copy(ret[ci:], clipIdent[0:IMG_IDENT_LENGTH])
+	return ret
+}
+
+func FromClipIdentsToStrings(clipIdentListBytes []byte) [] string{
+	fmt.Println("clip belong to how many imgs: ", len(clipIdentListBytes) / IMG_CLIP_IDENT_LENGTH)
 	infos := ParseImgClipIdentListBytes(clipIdentListBytes)
 	if nil == infos{
 		return nil
 	}
 	ret := make([]string, len(infos))
 	for i, info := range infos {
+		fmt.Println(info.dbId, "-", string(ParseImgKeyToPlainTxt(info.imgKey)), "-", info.which)
 		ret[i] = info.ToString()
 	}
 	return ret
 }
+
 
 func ParseImgClipIdentListBytes(clipIdentListBytes []byte) [] ClipIdentInfo{
 	if len(clipIdentListBytes) % IMG_CLIP_IDENT_LENGTH != 0{

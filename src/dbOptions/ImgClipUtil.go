@@ -42,7 +42,7 @@ func PrintClipIndexBytes()  {
 	var input string
 	var dbId, which uint8
 	var mainImgId string
-	InitClipsIndexDB()
+	InitClipToIndexDB()
 
 	for {
 		fmt.Print("input dbId_mainImgId_which: ")

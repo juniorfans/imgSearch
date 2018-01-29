@@ -6,6 +6,7 @@ import (
 	"config"
 	"time"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"util"
 )
 
 type VisitCallBack interface {
@@ -137,8 +138,8 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 		//防止顺序的 imgId 中有连续的空洞
 		if bytes.Equal(imgId,iter.Key()){
 //			buffer.WriteString(string(ParseImgKeyToPlainTxt(iter.Key())) + "\n")
-			visitInfo.key = imgId
-			visitInfo.value = iter.Value()
+			visitInfo.key = fileUtil.CopyBytesTo(imgId)
+			visitInfo.value = fileUtil.CopyBytesTo(iter.Value())
 			visitInfo.threadId = threadId
 			visitInfo.curCount = totalCount
 			visitInfo.curSuccessCount = successCount

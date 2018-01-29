@@ -3,6 +3,7 @@ package dbOptions
 import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
+	"util"
 )
 
 /**
@@ -10,7 +11,7 @@ import (
  */
 func ImgClipsToIndexSaver(index []byte, dbId uint8, mainImgId []byte, which uint8)  {
 	imgIdent := GetImgClipIdent(dbId, mainImgId, which)
-	err := InitClipsIndexDB().WriteTo([]byte(imgIdent),index)
+	err := InitClipToIndexDB().WriteTo([]byte(imgIdent),index)
 	if nil != err{
 		fmt.Println(err)
 	}
@@ -20,7 +21,7 @@ func ImgClipsToIndexSaver(index []byte, dbId uint8, mainImgId []byte, which uint
 	保存大图中某个小图的 index
  */
 func ImgClipsToIndexBatchSaver(batch *leveldb.Batch)  {
-	InitClipsIndexDB().WriteBatchTo(batch)
+	InitClipToIndexDB().WriteBatchTo(batch)
 }
 
 /**
@@ -28,5 +29,6 @@ func ImgClipsToIndexBatchSaver(batch *leveldb.Batch)  {
  */
 func ImgClipsToIndexReader(dbId uint8, mainImgId []byte, which uint8) []byte {
 	imgIdent := GetImgClipIdent(dbId, mainImgId, which)
-	return InitClipsIndexDB().ReadFor([]byte(imgIdent))
+	fileUtil.PrintBytes(imgIdent)
+	return InitClipToIndexDB().ReadFor([]byte(imgIdent))
 }

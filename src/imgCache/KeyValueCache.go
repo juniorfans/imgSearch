@@ -2,7 +2,6 @@ package imgCache
 
 import (
 	"config"
-	"unsafe"
 	"fmt"
 	"sync"
 	"os"
@@ -13,77 +12,48 @@ import (
 	每个线程有这样的一个 key-values 缓存器
  */
 
-//一个 key 对应多个 interface{}
+//key-value 缓存. 使用组合的方式: 内部使用 MyMap
 type KeyValueCache struct {
-	data map[string][]interface{}
+	imap *MyMap
 	multyValuesSupported bool
 }
 
 func NewKeyValueCache(multyValuesSupported bool) *KeyValueCache{
 	ret := KeyValueCache{}
 	ret.multyValuesSupported = multyValuesSupported
-	ret.data = make(map[string][]interface{})
+	ret.imap = NewMyMap(multyValuesSupported)
 	return &ret
-}
-
-func (this *KeyValueCache) EnableMultyValues()  {
-	this.multyValuesSupported = true
 }
 
 func (this *KeyValueCache) IsMultyValuesEnable() bool {
 	return this.multyValuesSupported
 }
 
-func (this *KeyValueCache) GetValue(key *string) []interface{} {
-	return this.data[*key]
+func (this *KeyValueCache) GetValue(key []byte) []interface{} {
+	return this.imap.Get(key)
 }
 
-func (this *KeyValueCache) GetValueByBytesPtr(keyPtr *[]byte) []interface{} {
-	iss := (*string)(unsafe.Pointer(keyPtr))
-	return this.data[*iss]
+func (this *KeyValueCache) Add(key []byte, value interface{})  {
+	this.imap.Put(key, value)
 }
 
-func (this *KeyValueCache) Add(keyPtr *[]byte, value interface{})  {
-	iss := (*string)(unsafe.Pointer(keyPtr))
-	if nil == this{
-		fmt.Println("FUCK, real nil")
-		os.Exit(0)
-	}
-	if this.multyValuesSupported{
-		this.data[*iss] = append(this.data[*iss], value)
-	}else{
-		this.data[*iss] = []interface{}{value}
-	}
-}
-
-func (this *KeyValueCache) innerAdd(key *string, value interface{})  {
-	if this.multyValuesSupported{
-		this.data[*key] = append(this.data[*key], value)
-	}else{
-		this.data[*key] = []interface{}{value}
-	}
-}
-
-func (this *KeyValueCache) Iterator() map[string][]interface{} {
-	return this.data
+func (this *KeyValueCache) Visit(visitor KeyValueCacheVisitor, vcount int, otherParams [] interface{}){
+	var myMapVisitor MyMapVisitor = visitor
+	this.imap.Visit(myMapVisitor, vcount, otherParams)
 }
 
 //合并
-func (this *KeyValueCache) Compact(right *KeyValueCache)  {
-	for key, vlist := range right.data{
-		for _, v := range vlist{
-			this.innerAdd(&key, v)
-		}
-	}
+func (this *KeyValueCache) Merge(right *KeyValueCache)  {
+	this.imap.Merge(right.imap)
 }
 
+//keyValue 缓存中 值 的个数
 func (this *KeyValueCache) Size() int{
-	return len(this.data)
+	return this.imap.GetValueCounts()
 }
 
 func (this *KeyValueCache) Destroy(){
-
-	this.data = nil
+	this.imap.Destroy()
 }
 
 //----------------------------------------------------------------------------------------------------------
@@ -124,7 +94,10 @@ func (this *KeyValueCacheList)Destroy()  {
 		this.GetSubCache(i).Destroy()
 		(*this).cacheList[i] = nil
 	}
-	this.twoLevelCache.cache.Destroy()
+	if nil != this.twoLevelCache{
+		this.twoLevelCache.cache.Destroy()
+	}
+
 	this.cacheList = nil
 }
 
@@ -139,13 +112,13 @@ func (this *KeyValueCacheList)GetSubCache(threadId int) *KeyValueCache {
 	return cache
 }
 
-func (this *KeyValueCacheList)Add(threadId int, keyPtr *[]byte, value interface{})  {
+func (this *KeyValueCacheList)Add(threadId int, key []byte, value interface{})  {
 	cache := this.GetSubCache(threadId)
 	if nil == cache{
 		fmt.Println("get sub cache null: ", threadId)
 		os.Exit(-1)
 	}
-	cache.Add(keyPtr, value)
+	cache.Add(key, value)
 	this.flushIfNeed(threadId)
 }
 
@@ -154,7 +127,7 @@ func (this *KeyValueCacheList)AddKeysToSameValue(threadId int, keysPtr *[][]byte
 	list := *keysPtr
 	keyLen := len(list)
 	for i:=0;i < keyLen;i ++{
-		this.Add(threadId, &list[i], value)
+		this.Add(threadId, list[i], value)
 	}
 	this.flushIfNeed(threadId)
 }
@@ -170,10 +143,15 @@ func (this *KeyValueCacheList) flushIfNeed (threadId int) bool {
 
 		//若存在二级缓存则不要执行 flush 直接将缓存加入到二级缓存中
 		if nil != this.twoLevelCache{
-			(*this.twoLevelCache).Add(this.ResetSubCache(threadId))
-
+			oldCache := this.ResetSubCache(threadId)
+			(*this.twoLevelCache).Add(oldCache)
+			oldCache.Destroy()
+			oldCache = nil
 		}else{
-			(*(this.flushCallBack)).FlushCache(this.ResetSubCache(threadId))
+			oldCache := this.ResetSubCache(threadId)
+			(*(this.flushCallBack)).FlushCache(oldCache)
+			oldCache.Destroy()
+			oldCache = nil
 		}
 	}
 	return true
@@ -226,7 +204,7 @@ func (this *TwoLevelKeyValueCache) Add(kvCache *KeyValueCache) {
 	}
 	this.mutex.Lock()
 
-	this.cache.Compact(kvCache)
+	this.cache.Merge(kvCache)
 
 	//条目个数超过一定的数目则写数据库
 	if this.Size() > this.GetFlushThreshold(){
@@ -250,16 +228,6 @@ func (this *TwoLevelKeyValueCache) Destroy(){
 	this.cache.Destroy()
 }
 
-//----------------------------------------------------------------------------------------------------------
-//----------------------------------------------------------------------------------------------------------
-func GetKeyAsBytes(key *string) []byte {
-	return *(* []byte)(unsafe.Pointer(key))
-}
-
-func GetKeyAsSringPtr(key *[]byte) *string {
-	return (* string)(unsafe.Pointer(key))
-}
-
 
 //----------------------------------------------------------------------------------------------------------
 //						user interface
@@ -268,4 +236,12 @@ func GetKeyAsSringPtr(key *[]byte) *string {
 type CacheFlushCallBack interface {
 	//返回值表示此次 Visit 的成功/失败
 	FlushCache(*KeyValueCache) bool
+}
+
+
+
+//-------------------------------------------------------------------------------------------------------
+type KeyValueCacheVisitor interface {
+	//若 Visit 返回 false 则停止遍历
+	Visit(key []byte, values []interface{}, otherParams [] interface{}) bool
 }
