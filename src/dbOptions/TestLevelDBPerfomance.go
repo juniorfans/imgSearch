@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"strconv"
+	"imgIndex"
 )
 
 var readFinished chan int
@@ -70,7 +71,7 @@ func ReadByIteratorOnThread(dbConfig *DBConfig, threadId int)  {
 	}
 	buffer := bytes.NewBufferString("")
 	for iter.Valid() {
-		buffer.WriteString(string(ParseImgKeyToPlainTxt(iter.Key()))+"\n")
+		buffer.WriteString(string(ImgIndex.ParseImgKeyToPlainTxt(iter.Key()))+"\n")
 		count ++
 		iter.Next()
 	}

@@ -27,7 +27,7 @@ func (this *ImgIndexSaverVisitCallBack) GetMaxVisitCount() int{
 }
 
 func (this *ImgIndexSaverVisitCallBack) GetLastVisitPos(dbId uint8, threadId int) []byte{
-	lastVisitedKey, _ := GetThreadLastDealedKey(InitIndexToImgDB(), dbId, threadId)
+	lastVisitedKey, _ := GetThreadLastDealedKey(InitMuIndexToImgDB(dbId), dbId, threadId)
 	return lastVisitedKey
 }
 
@@ -52,20 +52,21 @@ func (this *ImgIndexSaverVisitCallBack) Visit(visitInfo *VisitIngInfo) bool {
 }
 
 func (this *ImgIndexSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
-	SetThreadLastDealedKey(InitIndexToImgDB(),
+	SetThreadLastDealedKey(InitMuIndexToImgDB(finishInfo.dbId),
 		finishInfo.dbId, finishInfo.threadId,
 		finishInfo.lastSuccessDealedKey,
 		finishInfo.totalCount)
 
 	fmt.Println("thread ", finishInfo.threadId," dealed: ", finishInfo.totalCount ,
 		", failedCount: ", (finishInfo.totalCount-finishInfo.successCount),
-		", lastDealedImgKey: ", string(ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
+		", lastDealedImgKey: ", string(ImgIndex.ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
 }
 
 //---------------------------------------------------------------------------------
 
 type ImgIndexCacheFlushCallBack struct {
 	visitor imgCache.KeyValueCacheVisitor
+	dbId uint8
 }
 
 func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
@@ -74,18 +75,18 @@ func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCac
 
 	kvCache.Visit(this.visitor,-1,[]interface{}{&indexToImgBatch, &imgToIndexBatch})
 
-	InitIndexToImgDB().WriteBatchTo(&indexToImgBatch)
-	ImgToIndexBatchSaver(&imgToIndexBatch)
+	InitMuIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+	ImgToIndexBatchSaver(this.dbId, &imgToIndexBatch)
 	return true
 }
 
 //------------------------------------------------------------------------------------------
 type ImgIndexCacheVisitor struct {
-
+	dbId uint8
 }
 
 
-//遍历 key-value, key 是 clip index Bytes, value 是 clip ident bytes(单个).
+//遍历 key-value, key 是 index Bytes, value 是 ident bytes(单个).
 func (this *ImgIndexCacheVisitor) Visit(imgIndexBytes []byte, imgIdents []interface{},otherParams [] interface{}) bool {
 
 	if 2 != len(otherParams){
@@ -96,15 +97,15 @@ func (this *ImgIndexCacheVisitor) Visit(imgIndexBytes []byte, imgIdents []interf
 	indexToImgBatch := otherParams[0].(*leveldb.Batch)
 	imgToIndexBatch := otherParams[1].(*leveldb.Batch)
 
-	exsitsImgIdents := InitIndexToImgDB().ReadFor(imgIndexBytes)
+	exsitsImgIdents := InitMuIndexToImgDB(this.dbId).ReadFor(imgIndexBytes)
 
-	if len(exsitsImgIdents) % IMG_IDENT_LENGTH != 0{
-		fmt.Println("exsits img ident len is not multiple of ", IMG_IDENT_LENGTH)
+	if len(exsitsImgIdents) % ImgIndex.IMG_IDENT_LENGTH != 0{
+		fmt.Println("exsits img ident len is not multiple of ", ImgIndex.IMG_IDENT_LENGTH)
 		return false
 	}
 
 	//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 []byte
-	newImgIdents := make([]byte, len(exsitsImgIdents) + IMG_IDENT_LENGTH * len(imgIdents))
+	newImgIdents := make([]byte, len(exsitsImgIdents) + ImgIndex.IMG_IDENT_LENGTH * len(imgIdents))
 	ci :=0
 	if 0!=len(exsitsImgIdents){
 		ci += copy(newImgIdents[ci:], exsitsImgIdents)
@@ -114,8 +115,8 @@ func (this *ImgIndexCacheVisitor) Visit(imgIndexBytes []byte, imgIdents []interf
 		ci += copy(newImgIdents[ci:], imgIdent)
 		imgToIndexBatch.Put(imgIdent , imgIndexBytes)
 	}
-	if len(newImgIdents) % IMG_IDENT_LENGTH != 0 {
-		fmt.Println("new img ident len is not multiple of ", IMG_IDENT_LENGTH)
+	if len(newImgIdents) % ImgIndex.IMG_IDENT_LENGTH != 0 {
+		fmt.Println("new img ident len is not multiple of ", ImgIndex.IMG_IDENT_LENGTH)
 		return false
 	}
 	indexToImgBatch.Put(imgIndexBytes, newImgIdents)
@@ -131,7 +132,7 @@ func BeginImgSaveEx(dbIndex uint8, count int)  {
 	imgIndexCacheList := imgCache.KeyValueCacheList{}
 
 	//缓存 img index -> img ident, 支持重复的 values
-	var callBack imgCache.CacheFlushCallBack = &ImgIndexCacheFlushCallBack{visitor:&ImgIndexCacheVisitor{}}
+	var callBack imgCache.CacheFlushCallBack = &ImgIndexCacheFlushCallBack{visitor:&ImgIndexCacheVisitor{dbId:dbIndex}, dbId:dbIndex}
 	imgIndexCacheList.Init(true, &callBack,false,64000)
 
 	var visitCallBack VisitCallBack = &ImgIndexSaverVisitCallBack{maxVisitCount:count,
@@ -141,17 +142,11 @@ func BeginImgSaveEx(dbIndex uint8, count int)  {
 
 	//flush 剩余的 cache
 	imgIndexCacheList.FlushRemainKVCaches()
-	RepairTotalSize(InitIndexToImgDB())
+	RepairTotalSize(InitMuIndexToImgDB(dbIndex))
 }
 
 
 func ImgIndexSaveRun(dbIndex uint8, eachThreadCount int)  {
-	imgIndexDB:= InitIndexToImgDB()
-	if nil == imgIndexDB{
-		fmt.Println("open img index db error")
-		return
-	}
-
 	BeginImgSaveEx(dbIndex, eachThreadCount)
 }
 
@@ -163,9 +158,9 @@ func SaveImgIndexToDBBySrcData(dbId uint8, cacheList *imgCache.KeyValueCacheList
 	}
 
 	//此处添加的 value 类型是 []byte
-	imgIdent := GetImgIdent(dbId,imgKey)
-	if len(imgIdent) % IMG_IDENT_LENGTH != 0{
-		fmt.Println("to save img ident len is not multiple of ", IMG_IDENT_LENGTH)
+	imgIdent := ImgIndex.GetImgIdent(dbId,imgKey)
+	if len(imgIdent) % ImgIndex.IMG_IDENT_LENGTH != 0{
+		fmt.Println("to save img ident len is not multiple of ", ImgIndex.IMG_IDENT_LENGTH)
 	}
 	cacheList.Add(threadId, imgIndexBytes, imgIdent)
 	return true
@@ -223,8 +218,8 @@ func (this IndexInfoList) Less(i, j int) bool {
 	img index 库的 key - value 表示：拥有特征 key 的图像的 id ，以 - 为分隔符放在 value 中
 	现在将拥有最多图像的 key 按逆序放入到 STAT_KEY_SORT_BY_VALUE_SIZE_PREX 字段中
  */
-func SetIndexSortInfo()  {
-	imgIndexDB := InitIndexToImgDB()
+func SetIndexSortInfo(dbId uint8)  {
+	imgIndexDB := InitMuIndexToImgDB(dbId)
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return
@@ -279,13 +274,13 @@ func SetIndexSortInfo()  {
 		return
 	}
 
-	SetSortedStatInfo(InitIndexToImgDB(), res[0: keyTotalSize-len(splitBytes)])//去掉最后一个分隔序列
+	SetSortedStatInfo(InitMuIndexToImgDB(dbId), res[0: keyTotalSize-len(splitBytes)])//去掉最后一个分隔序列
 }
 
 
 
-func ReadIndexSortInfo(count int){
-	res := GetSortedStatInfo(InitIndexToImgDB())
+func ReadIndexSortInfo(dbId uint8, count int){
+	res := GetSortedStatInfo(InitMuIndexToImgDB(dbId))
 	if nil == res{
 		fmt.Println("no sorted stat info")
 		return
@@ -299,12 +294,12 @@ func ReadIndexSortInfo(count int){
 			break
 		}
 		fileUtil.PrintBytes([]byte(id))
-		DumpImagesWithImgIndex(strconv.Itoa(i) ,[]byte(id))
+		DumpImagesWithImgIndex(dbId, strconv.Itoa(i) ,[]byte(id))
 	}
 }
 
-func DumpImagesWithImgIndex(dirName string, index []byte)  {
-	indexDB := InitIndexToImgDB()
+func DumpImagesWithImgIndex(dbId uint8, dirName string, index []byte)  {
+	indexDB := InitMuIndexToImgDB(dbId)
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return
@@ -318,8 +313,8 @@ func DumpImagesWithImgIndex(dirName string, index []byte)  {
 	SaveMainImgsIn(imgList,"E:/gen/sorted/" + dirName)
 }
 
-func DumpImageLettersWithImgIndex(dirName string, index []byte)  {
-	indexDB := InitIndexToImgDB()
+func DumpImageLettersWithImgIndex(dbId uint8, dirName string, index []byte)  {
+	indexDB := InitMuIndexToImgDB(dbId)
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return

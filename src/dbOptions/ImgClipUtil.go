@@ -10,9 +10,10 @@ import (
 	"config"
 	"imgIndex"
 	"github.com/Comdex/imgo"
+	"util"
 )
 
-func TestClipsSaveToJpgFromImgDB()  {
+func SaveAllClipsOfImgs()  {
 	stdin := bufio.NewReader(os.Stdin)
 	var dbIndex uint8
 	var input string
@@ -31,18 +32,19 @@ func TestClipsSaveToJpgFromImgDB()  {
 
 		imgKeyArray := strings.Split(input, "-")
 		for _, imgKey := range imgKeyArray {
-			SaveAllClipsAsJpgOf("E:/gen/clips/" , FormatImgKey([]byte(imgKey)), []int{-1} ,-1)
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , ImgIndex.FormatImgKey([]byte(imgKey)), []int{-1} ,-1)
 		}
 		imgDB.CloseDB()
 	}
 }
 
-func PrintClipIndexBytes()  {
+
+
+func PrintClipIndex()  {
 	stdin := bufio.NewReader(os.Stdin)
 	var input string
 	var dbId, which uint8
 	var mainImgId string
-	InitClipToIndexDB()
 
 	for {
 		fmt.Print("input dbId_mainImgId_which: ")
@@ -56,7 +58,35 @@ func PrintClipIndexBytes()  {
 		t, _ = strconv.Atoi(inputs[2])
 		which = uint8(t)
 
-		indexBytes := ImgClipsToIndexReader(dbId, FormatImgKey([]byte(mainImgId)), which)
+		//clip index 是 rgb 三个通道的字节. 所以是 3 的倍数
+		indexBytes := GetImgClipIndexFromClipIdent(dbId, ImgIndex.FormatImgKey([]byte(mainImgId)), which)
+		fmt.Print(input," -- ")
+		fileUtil.PrintBytes(indexBytes)
+		fmt.Println()
+		//fileUtil.PrintBytes(indexBytes)
+	}
+}
+
+func PrintClipIndexInYCBCR()  {
+	stdin := bufio.NewReader(os.Stdin)
+	var input string
+	var dbId, which uint8
+	var mainImgId string
+
+	for {
+		fmt.Print("input dbId_mainImgId_which: ")
+		fmt.Fscan(stdin, &input)
+		inputs := strings.Split(input, "_")
+		t, _ := strconv.Atoi(inputs[0])
+		dbId = uint8(t)
+
+		mainImgId = inputs[1]
+
+		t, _ = strconv.Atoi(inputs[2])
+		which = uint8(t)
+
+		//clip index 是 rgb 三个通道的字节. 所以是 3 的倍数
+		indexBytes := GetImgClipIndexFromClipIdent(dbId, ImgIndex.FormatImgKey([]byte(mainImgId)), which)
 		if len(indexBytes) % 3 != 0{
 			fmt.Println("error, clip index length is not multiple of 3")
 		}
@@ -77,7 +107,7 @@ func PrintYCBCR(rgba []uint8)  {
 }
 
 
-func TestClipsIndexSaveToJpgFromImgDB(imgDB *DBConfig)  {
+func MarkClipIndexOnImg(imgDB *DBConfig)  {
 	stdin := bufio.NewReader(os.Stdin)
 	var input string
 
@@ -88,7 +118,7 @@ func TestClipsIndexSaveToJpgFromImgDB(imgDB *DBConfig)  {
 		clipConfig := config.GetClipConfigById(0)
 		imgKeyArray := strings.Split(input, "-")
 		for _, imgKey := range imgKeyArray {
-			SaveAllClipsAsJpgOf("E:/gen/clips/" , FormatImgKey([]byte(imgKey)), clipConfig.ClipOffsets ,10)
+			SaveAllClipsAsJpgOf("E:/gen/clips/" , ImgIndex.FormatImgKey([]byte(imgKey)), clipConfig.ClipOffsets ,10)
 		}
 		imgDB.CloseDB()
 	}
@@ -97,9 +127,9 @@ func TestClipsIndexSaveToJpgFromImgDB(imgDB *DBConfig)  {
 func SaveClipAsJpgFromIndexValue(value []byte, dir string)  {
 	os.MkdirAll(dir, 0777)
 
-	clipInfos := ParseImgClipIdentListBytes(value)
+	clipInfos := ImgIndex.ParseImgClipIdentListBytes(value)
 	for _,clipInfo := range clipInfos{
-		SaveAClipAsJpg(0,dir, clipInfo.dbId, clipInfo.imgKey, clipInfo.which)
+		SaveAClipAsJpg(0,dir, clipInfo.DbId, clipInfo.ImgKey, clipInfo.Which)
 	}
 }
 
@@ -151,7 +181,7 @@ func SaveAllClipsAsJpgOf(dir string, mainImgkey []byte, offsetOfClip[] int, inde
 }
 
 func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byte, which uint8){
-	clipName := strconv.Itoa(int(dbId)) + "_" + string(ParseImgKeyToPlainTxt(mainImgkey)) + "_" + strconv.Itoa(int(which))+".jpg"
+	clipName := strconv.Itoa(int(dbId)) + "_" + string(ImgIndex.ParseImgKeyToPlainTxt(mainImgkey)) + "_" + strconv.Itoa(int(which))+".jpg"
 	clipConfig := config.GetClipConfigById(clipConfigId)
 
 	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像
@@ -179,7 +209,7 @@ func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byt
 }
 
 func SaveClipsAsJpg(dir string, indexData ImgIndex.SubImgIndex) {
-	mainImgName := ParseImgKeyToPlainTxt(indexData.KeyOfMainImg)
+	mainImgName := ImgIndex.ParseImgKeyToPlainTxt(indexData.KeyOfMainImg)
 	clipName := string(mainImgName) + "_" +strconv.Itoa(int(indexData.Which))+".jpg"
 	clipConfig := config.GetClipConfigById(indexData.ConfigId)
 

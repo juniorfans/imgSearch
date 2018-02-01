@@ -4,10 +4,12 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"fmt"
-	"errors"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"config"
 	"bytes"
+	"os"
+	"strconv"
+	"imgIndex"
 )
 
 var INDEX_DB_DIR_BASE = "E:/search/"
@@ -22,34 +24,9 @@ type DBConfig struct {
 
 	Name	string
 	Id           uint8
-	dbType	uint8	//0:source_db 1:second_db
+	dbType	uint8	//0:source_db 1:index_db
 
 	initParams *DBInitParams
-}
-
-
-
-var imgClipsReverseIndexDBConfig = DBConfig{
-	Dir : "img_clips_index_reverse/clips.db",
-	DBPtr : nil,
-	inited : false,
-
-	Id:0,
-	Name:"img clip db",
-	dbType:1,
-	initParams:nil,
-}
-
-
-var imgIndexToImgDBConfig = DBConfig{
-	Dir : "img_index/img_index.db",
-	DBPtr : nil,
-	inited : false,
-
-	Id:0,
-	Name:"index to img db",
-	dbType:1,
-	initParams:nil,
 }
 
 var imgLetterDBConfig = DBConfig{
@@ -62,7 +39,42 @@ var imgLetterDBConfig = DBConfig{
 	dbType:1,
 }
 
-var imgToIndexDBConfig = DBConfig{
+func InitImgLetterDB() *DBConfig {
+	_, err :=  initDB(&imgLetterDBConfig)
+	if err != nil{
+		fmt.Println("open img letter db error, ", err)
+		return nil
+	}
+	return &imgLetterDBConfig
+}
+
+/*
+var imgClipsReverseIndexDBConfig = &DBConfig{
+	Dir : "img_clips_index_reverse/clips.db",
+	DBPtr : nil,
+	inited : false,
+
+	Id:0,
+	Name:"img clip db",
+	dbType:1,
+	initParams:nil,
+}
+
+
+var imgIndexToImgDBConfig = &DBConfig{
+	Dir : "img_index/img_index.db",
+	DBPtr : nil,
+	inited : false,
+
+	Id:0,
+	Name:"index to img db",
+	dbType:1,
+	initParams:nil,
+}
+
+
+
+var imgToIndexDBConfig = &DBConfig{
 	Dir : "img_to_index/img_to_index.db",
 	DBPtr : nil,
 	inited : false,
@@ -73,7 +85,7 @@ var imgToIndexDBConfig = DBConfig{
 }
 
 
-var imgClipToIndexDBConfig = DBConfig{
+var imgClipToIndexDBConfig = &DBConfig{
 	Dir : "img_clips_index/clips.db",
 	DBPtr : nil,
 	inited : false,
@@ -83,96 +95,131 @@ var imgClipToIndexDBConfig = DBConfig{
 	dbType:1,
 }
 
-/**
-	 key 	: clip 索引值
-	 value	: clip 集合{某个库的某个 mainImgId 的第 which 张子图}
- */
-func InitIndexToClipDB() *DBConfig {
-	_, err :=  initDB(&imgClipsReverseIndexDBConfig)
-	if err != nil{
-		fmt.Println("open img clip reverse index db error, ", err)
-		return nil
-	}
-	return &imgClipsReverseIndexDBConfig
-}
 
+*/
+
+/*
 func InitIndexToImgDB() *DBConfig {
-	_, err :=  initDB(&imgIndexToImgDBConfig)
-	if err != nil{
-		fmt.Println("open img index db error, ", err)
-		return nil
-	}
-	return &imgIndexToImgDBConfig
-}
-
-func InitImgLetterDB() *DBConfig {
-	_, err :=  initDB(&imgLetterDBConfig)
-	if err != nil{
-		fmt.Println("open img letter db error, ", err)
-		return nil
-	}
-	return &imgLetterDBConfig
+	return InitIndexDBByBaseDir(255,3)
 }
 
 func InitImgToIndexDB() *DBConfig {
-	_, err :=  initDB(&imgToIndexDBConfig)
-	if err != nil{
-		fmt.Println("open img to index db error, ", err)
-		return nil
-	}
-	return &imgToIndexDBConfig
+	return InitIndexDBByBaseDir(255,4)
 }
 
-/**
-	key	: clip 信息(某个库的某个 mainImgId 的第 which 张子图)
-	value	: 该 clip 的索引
- */
+func InitIndexToClipDB() *DBConfig {
+	return InitIndexDBByBaseDir(255,2)
+}
+
 func InitClipToIndexDB() *DBConfig {
-	_, err :=  initDB(&imgClipToIndexDBConfig)
-	if err != nil{
-		fmt.Println("open img to clips index db error, ", err)
-		return nil
-	}
-	return &imgClipToIndexDBConfig
+	return InitIndexDBByBaseDir(255,1)
+}
+*/
+
+var initedIndexDb map[int] *DBConfig
+
+func GetTotalMuIndexToClipDB() *DBConfig {
+	return InitIndexDBByBaseDir(255,2)
 }
 
-func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
-	if nil == config{
-		dbPtr = nil
-		err = errors.New("db config is nil")
-		return
-	}
-	if config.inited{
-		dbPtr = config.DBPtr
-		err = nil
-		return
+func GetTotalMuClipToIndexDb() *DBConfig {
+	return InitIndexDBByBaseDir(255,1)
+}
+
+
+func GetTotalMuIndexToImgDB() *DBConfig {
+	return InitIndexDBByBaseDir(255,3)
+}
+
+
+func GetTotalMuImgToIndexDb() *DBConfig {
+	return InitIndexDBByBaseDir(255,4)
+}
+
+func InitMuIndexToClipDB(dbId uint8) *DBConfig {
+	return InitIndexDBByBaseDir(dbId,2)
+}
+
+func InitMuClipToIndexDb(dbId uint8) *DBConfig {
+	return InitIndexDBByBaseDir(dbId,1)
+}
+
+
+func InitMuIndexToImgDB(dbId uint8) *DBConfig {
+	return InitIndexDBByBaseDir(dbId,3)
+}
+
+
+func InitMuImgToIndexDb(dbId uint8) *DBConfig {
+	return InitIndexDBByBaseDir(dbId,4)
+}
+
+
+func InitIndexDBByBaseDir(dbId uint8, whichDB int) *DBConfig{
+
+	if nil == initedIndexDb{
+		initedIndexDb = make(map[int] *DBConfig)
 	}
 
-	if nil == config.initParams{
-		config.initParams = ReadDBConf("conf_img_db.txt")
+	hash := (whichDB << 8) + int(dbId)
+	if exsitsDB, ok := initedIndexDb[hash];ok && true == exsitsDB.inited{
+		return exsitsDB
+	}
 
-		config.Dir = config.initParams.DirBase + config.Dir
-		config.OpenOptions = *getLevelDBOpenOption(config.initParams)
-		fmt.Println("has pick this img db: ", config.Dir)
-		config.initParams.PrintLn()
+	indexDB := DBConfig{
+		Dir : "",
+		DBPtr : nil,
+		inited : false,
+
+		Id:dbId,
+		Name:"",
+		dbType:1,
+		}
+
+	if nil == indexDB.initParams{
+		indexDB.initParams = ReadDBConf("conf_index_db.txt")
+		indexDB.OpenOptions = *getLevelDBOpenOption(indexDB.initParams)
+		indexDB.initParams.PrintLn()
 	}
 
 	{
-		config.ReadOptions = opt.ReadOptions{}
+		indexDB.ReadOptions = opt.ReadOptions{}
 	}
 	{
-		config.WriteOptions = opt.WriteOptions{Sync:false}
-	}
-	config.DBPtr,err = leveldb.OpenFile(config.Dir, &config.OpenOptions)
-	if err != nil{
-		fmt.Println("open db failed")
-		return
+		indexDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	config.inited = true
+	indexDB.inited = true
 
-	return
+	switch whichDB {
+	case 1:
+		indexDB.Name = "clip_ident_to_index/data.db"
+		break
+	case 2:
+		indexDB.Name = "clip_index_to_ident/data.db"
+		break
+	case 3:
+		indexDB.Name = "img_index_to_ident/data.db"
+		break
+	case 4:
+		indexDB.Name = "img_ident_to_index/data.db"
+		break
+	default:
+		fmt.Println("whichDB must be 1,2,3,4")
+		os.Exit(-1)
+		break
+	}
+
+	indexDB.Dir = indexDB.initParams.DirBase + "/" + strconv.Itoa(int(dbId)) + "/" + indexDB.Name
+	fmt.Println("has pick this index db: ", indexDB.Dir)
+	indexDB.DBPtr,_ = leveldb.OpenFile(indexDB.Dir, &indexDB.OpenOptions)
+	indexDB.inited = true
+
+	initedIndexDb[hash] = &indexDB
+
+	return &indexDB
 }
+
 
 func getLevelDBOpenOption(dbParams *DBInitParams) *opt.Options {
 	return &opt.Options{
@@ -240,8 +287,8 @@ func ReadKeys(dbPtr *leveldb.DB, count int)  {
 	iter.First()
 }
 
-func ReadClipValuesInCount(count int)  {
-	iter := InitIndexToClipDB().DBPtr.NewIterator(nil, &opt.ReadOptions{})
+func ReadClipValuesInCount(dbId uint8, count int)  {
+	iter := InitMuIndexToClipDB(dbId).DBPtr.NewIterator(nil, &opt.ReadOptions{})
 
 	if(!iter.First()){
 		fmt.Println("seek to first error")
@@ -253,7 +300,7 @@ func ReadClipValuesInCount(count int)  {
 			continue
 		}
 
-		valueList := FromClipIdentsToStrings(iter.Value())
+		valueList := ImgIndex.FromClipIdentsToStrings(iter.Value())
 	//	for _, valueStr := range valueList{
 	//		fmt.Println(valueStr)
 	//	}

@@ -17,6 +17,7 @@ import (
     "strings"
     "errors"
     "imgCache"
+    "imgIndex"
 )
 
 var img_dir string = "E:/gen/3/"
@@ -30,14 +31,14 @@ func initImgDB() *DBConfig {
 }
 
 func addToCacheList(cacheList *imgCache.KeyValueCacheList, threadId, seqNo int, value[]byte)  {
-    imgKey := GetImgKey(uint8(threadId), seqNo)
+    imgKey := ImgIndex.GetImgKey(uint8(threadId), seqNo)
     cacheList.Add(threadId, imgKey, value)
 }
 
 func writeImgToDB(goId int, seqNo int , value []byte)  {
     batch := leveldb.Batch{}
 
-    imgId := GetImgKey(uint8(goId), seqNo)
+    imgId := ImgIndex.GetImgKey(uint8(goId), seqNo)
 //    fmt.Println("imgId: ", string(ParseImgKeyToPlainTxt(imgId)))
     batch.Put(imgId, value)
 
@@ -312,16 +313,16 @@ func RandomVerify(){
 
         letter:=r.Intn(16)
 
-        plainImgId := MakeSurePlainImgIdIsOk([]byte(config.ThreadIdToName[letter] + strconv.Itoa(index)))
+        plainImgId := ImgIndex.MakeSurePlainImgIdIsOk([]byte(config.ThreadIdToName[letter] + strconv.Itoa(index)))
 
-        key := FormatImgKey(plainImgId)
+        key := ImgIndex.FormatImgKey(plainImgId)
 
         fmt.Println("random imgid: ", string(plainImgId))
         value,err := db.Get(key, readOptions)
         if err == leveldb.ErrNotFound{
-            fmt.Println("can't get :",  string(ParseImgKeyToPlainTxt(key)))
+            fmt.Println("can't get :",  string(ImgIndex.ParseImgKeyToPlainTxt(key)))
         }else {
-            writeToFile(value, "E:/gen/verify/" + string(ParseImgKeyToPlainTxt(key)) +".jpg")
+            writeToFile(value, "E:/gen/verify/" + string(ImgIndex.ParseImgKeyToPlainTxt(key)) +".jpg")
         }
     }
 }
@@ -364,7 +365,7 @@ func (this *DownloadImgCacheVisitor) Visit(imgKey []byte, imgData []interface{},
     imgBatch := otherParams[0].(*leveldb.Batch)
 
     if len(imgData) != 1{
-        fmt.Println("error, a download img key has more than one img data: ", string(ParseImgKeyToPlainTxt(imgKey)))
+        fmt.Println("error, a download img key has more than one img data: ", string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)))
     }
 
     imgSrcBytes := imgData[0].([]byte)

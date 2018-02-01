@@ -1,4 +1,4 @@
-package dbOptions
+package ImgIndex
 
 import (
 	"fmt"
@@ -7,27 +7,27 @@ import (
 )
 
 type ClipIdentInfo struct {
-	dbId	uint8
-	imgKey	[]byte
-	which	uint8
+	DbId   uint8
+	ImgKey []byte
+	Which  uint8
 }
 
 func (this *ClipIdentInfo) GetThreadId() uint8 {
-	return uint8(this.imgKey[0])
+	return uint8(this.ImgKey[0])
 }
 func (this *ClipIdentInfo) ToBytes() []byte {
-	return GetImgClipIdent(this.dbId, this.imgKey, this.which)
+	return GetImgClipIdent(this.DbId, this.ImgKey, this.Which)
 }
 func (this *ClipIdentInfo) ToString() string {
-	return string(GetImgClipIdent(this.dbId, this.imgKey, this.which))
+	return string(GetImgClipIdent(this.DbId, this.ImgKey, this.Which))
 }
 
 func NewClipIdentInfo(clipIdentBytes []byte) *ClipIdentInfo {
 	ret := ClipIdentInfo{}
 	dbId, imgKey, which := ParseAImgClipIdentBytes(clipIdentBytes)
-	ret.dbId = uint8(dbId)
-	ret.imgKey = imgKey
-	ret.which = uint8(which)
+	ret.DbId = uint8(dbId)
+	ret.ImgKey = imgKey
+	ret.Which = uint8(which)
 	return &ret
 
 }
@@ -99,7 +99,7 @@ func FromClipIdentsToStrings(clipIdentListBytes []byte) [] string{
 	}
 	ret := make([]string, len(infos))
 	for i, info := range infos {
-		fmt.Println(info.dbId, "-", string(ParseImgKeyToPlainTxt(info.imgKey)), "-", info.which)
+		fmt.Println(info.DbId, "-", string(ParseImgKeyToPlainTxt(info.ImgKey)), "-", info.Which)
 		ret[i] = info.ToString()
 	}
 	return ret
@@ -117,9 +117,9 @@ func ParseImgClipIdentListBytes(clipIdentListBytes []byte) [] ClipIdentInfo{
 
 	for i:=0;i < nsize;i ++{
 		dbId, imgKey, which := ParseAImgClipIdentBytes(clipIdentListBytes[i*IMG_CLIP_IDENT_LENGTH : (i+1)*IMG_CLIP_IDENT_LENGTH])
-		ret[i].dbId = dbId
-		ret[i].imgKey = imgKey
-		ret[i].which = which
+		ret[i].DbId = dbId
+		ret[i].ImgKey = imgKey
+		ret[i].Which = which
 	}
 
 	return ret

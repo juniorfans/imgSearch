@@ -2,15 +2,15 @@ package dbOptions
 
 import "github.com/syndtr/goleveldb/leveldb"
 
-func ImgToIndexSaver(imgId []byte, indexBytes[]byte){
-	imgToIndexDB := InitImgToIndexDB()
+func ImgToIndexSaver(dbId uint8, imgId []byte, indexBytes[]byte){
+	imgToIndexDB := InitMuImgToIndexDb(dbId)
 	imgToIndexDB.WriteTo(imgId, indexBytes)
 
 }
 
 
-func ImgToIndexBatchSaver(batch *leveldb.Batch){
-	imgToIndexDB := InitImgToIndexDB()
+func ImgToIndexBatchSaver(dbId uint8, batch *leveldb.Batch){
+	imgToIndexDB := InitMuImgToIndexDb(dbId)
 	imgToIndexDB.WriteBatchTo(batch)
 
 }

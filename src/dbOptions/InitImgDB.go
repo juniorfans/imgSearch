@@ -4,6 +4,8 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/opt"
 	"fmt"
 	"strconv"
+	"github.com/syndtr/goleveldb/leveldb"
+	"errors"
 )
 
 var imgDBs map[uint8]*DBConfig = make(map[uint8]*DBConfig)
@@ -83,4 +85,49 @@ func removeClosed()  {
 	for _,db := range aliveDBs{
 		imgDBs[db.Id]=db
 	}
+}
+
+
+func initDB(config *DBConfig) (dbPtr *leveldb.DB, err error) {
+	if nil == config{
+		dbPtr = nil
+		err = errors.New("db config is nil")
+		return
+	}
+	if config.inited{
+		dbPtr = config.DBPtr
+		err = nil
+		return
+	}
+
+	if nil == config.initParams{
+		if 0 == config.dbType{
+			config.initParams = ReadDBConf("conf_img_db.txt")
+		}else if 1 == config.dbType{
+			fmt.Println("error, init index db must use InitIndexDB")
+			dbPtr = nil
+			err = errors.New("init index db must use InitIndexDB")
+		}
+
+		config.Dir = config.initParams.DirBase + config.Dir
+		config.OpenOptions = *getLevelDBOpenOption(config.initParams)
+		fmt.Println("has pick this img db: ", config.Dir)
+		config.initParams.PrintLn()
+	}
+
+	{
+		config.ReadOptions = opt.ReadOptions{}
+	}
+	{
+		config.WriteOptions = opt.WriteOptions{Sync:false}
+	}
+	config.DBPtr,err = leveldb.OpenFile(config.Dir, &config.OpenOptions)
+	if err != nil{
+		fmt.Println("open db failed")
+		return
+	}
+
+	config.inited = true
+
+	return
 }

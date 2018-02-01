@@ -21,27 +21,18 @@ func ClipIndexSave3Chanel(clipIndex []byte) [] byte {
 		rgb := clipIndex[i*4 : (i+1)*4 - 1]
 		ci += copy(ret[ci:], rgb)
 	}
-/*
-	//转换 rgb
-	for i, c := range ret{
-		if c >= 250{
-			ret[i] = 250
-		}
-		if c%10 < 5{
-			ret[i] = (c/10) * 10
-		}else{
-			ret[i] = (c/10) * 10 + 10
-		}
-	}
-*/
 	return ret
+}
+
+func ClipIndexStatInfo(indexBytes []byte) () {
+	
 }
 
 //clip index 进行分支, branchBits 表示使用索引的前几位
 // 输入的索引要求是 3 通道索引
 func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][] byte {
 	if branchBits <= 0{
-		return [][]byte{ClipIndexSave3Chanel(clipIndexIn3Chanel)}
+		return [][]byte{}
 	}
 	indexLen := len(clipIndexIn3Chanel)
 
@@ -58,7 +49,7 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 		totalCount *= branchBytes[i].getValidSize()
 	}
 
-	branchIndex := make([][]byte, totalCount)
+	branchIndexes := make([][]byte, totalCount)
 	exsitsCount := 0
 
 	for i, branch:=range branchBytes{
@@ -70,12 +61,12 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 			if 0 == exsitsCount {
 				up := fileUtil.CopyBytesTo(clipIndexIn3Chanel)
 				up[i] = branch.up
-				branchIndex[ci] = up;ci ++
+				branchIndexes[ci] = up;ci ++
 			}
 			for b:=0;b < exsitsCount;b ++{
-				up := fileUtil.CopyBytesTo(branchIndex[b])
+				up := fileUtil.CopyBytesTo(branchIndexes[b])
 				up[i] = branch.up
-				branchIndex[ci] = up;ci ++
+				branchIndexes[ci] = up;ci ++
 			}
 		}
 
@@ -84,13 +75,13 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 			if 0 == exsitsCount {
 				down := fileUtil.CopyBytesTo(clipIndexIn3Chanel)
 				down[i] = branch.down
-				branchIndex[ci] = down;ci ++
+				branchIndexes[ci] = down;ci ++
 			}
 
 			for b:=0;b < exsitsCount;b ++{
-				down := fileUtil.CopyBytesTo(branchIndex[b])
+				down := fileUtil.CopyBytesTo(branchIndexes[b])
 				down[i] = branch.down
-				branchIndex[ci] = down;ci ++
+				branchIndexes[ci] = down;ci ++
 			}
 
 		}
@@ -100,13 +91,13 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 			if 0 == exsitsCount {
 				third := fileUtil.CopyBytesTo(clipIndexIn3Chanel)
 				third[i] = branch.third
-				branchIndex[ci] = third;ci ++
+				branchIndexes[ci] = third;ci ++
 			}
 
 			for b:=0;b < exsitsCount;b ++{
-				third := fileUtil.CopyBytesTo(branchIndex[b])
+				third := fileUtil.CopyBytesTo(branchIndexes[b])
 				third[i] = branch.third
-				branchIndex[ci] = third;ci ++
+				branchIndexes[ci] = third;ci ++
 			}
 		}
 		exsitsCount = ci
@@ -115,7 +106,28 @@ func ClipIndexBranch(branchBits int, bound uint8, clipIndexIn3Chanel []byte) [][
 	if exsitsCount != totalCount{
 		fmt.Println("error: total count is error. totalCount: ", totalCount, ", realCount: ",exsitsCount)
 	}
-	return branchIndex
+
+	for _,branchIndex := range branchIndexes{
+		formatBranchIndex(branchBits, branchIndex)
+	}
+
+	return branchIndexes
+}
+
+func formatBranchIndex(offset int, branchIndex []byte)  {
+	for i, c := range branchIndex{
+		if i < offset{
+			continue
+		}
+		if c >= 250{
+			branchIndex[i] = 250
+		}
+		if c%10 < 5{
+			branchIndex[i] = (c/10) * 10
+		}else{
+			branchIndex[i] = (c/10) * 10 + 10
+		}
+	}
 }
 
 type ByteBound struct {

@@ -1,4 +1,4 @@
-package dbOptions
+package ImgIndex
 
 import (
 	"fmt"

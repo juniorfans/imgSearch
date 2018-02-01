@@ -70,8 +70,8 @@ func HowManyImages() int  {
 	return ret
 }
 
-func HowManyImageClipIndexes() int  {
-	return RepairTotalSize(InitIndexToClipDB())
+func HowManyImageClipIndexes(dbId uint8) int  {
+	return RepairTotalSize(InitMuIndexToClipDB(dbId))
 }
 
 

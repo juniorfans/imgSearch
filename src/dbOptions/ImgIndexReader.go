@@ -5,37 +5,8 @@ import (
 	"strings"
 )
 
-func ReadImgIndex(count int)  {
-	imgIndexDB := InitIndexToImgDB()
-	if nil == imgIndexDB{
-		fmt.Println("open img index db failed")
-		return
-	}
-	iterator := imgIndexDB.DBPtr.NewIterator(nil, &imgIndexDB.ReadOptions)
-	if iterator.Valid(){
-		fmt.Println("invalid iterator ")
-	}
-	iterator.First()
-
-	for iterator.Valid() {
-		if count == 0 {
-			break
-		}
-		imgKeys := iterator.Value()
-		//fmt.Println(string(imgKeys))
-		imgKeyArray := strings.Split(string(imgKeys), "-")
-		if 1 < len(imgKeyArray) {
-			fmt.Println(imgKeyArray)
-		}
-		iterator.Next()
-		count --
-	}
-	iterator.Release()
-	return
-}
-
-func ReadImgStat()  {
-	imgIndexDB := InitIndexToImgDB()
+func ReadImgStat(dbId uint8)  {
+	imgIndexDB := InitMuIndexToImgDB(dbId)
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return

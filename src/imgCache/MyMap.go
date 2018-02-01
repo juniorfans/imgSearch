@@ -42,6 +42,20 @@ func NewMyMap(multyValuesSupported bool) *MyMap {
 	return &ret
 }
 
+func (this *MyMap) KeySet() [][]byte {
+	var ret [][]byte
+	for /*hashcode*/_, conflicts := range this.data{
+		for _, conflict := range conflicts{
+			key := conflict.key
+			if nil == conflict.values{
+				continue
+			}
+			ret = append(ret, key)
+		}
+	}
+	return ret
+}
+
 func (this *MyMap) GetKeyCounts() int{
 	return this.keyCount
 }
@@ -153,7 +167,14 @@ func (this *MyMap) Merge(right *MyMap)  {
 func (this *MyMap) Visit(visitor MyMapVisitor, vcount int, otherParams [] interface{}) int {
 
 	count := 0
+	fmt.Println("slots count: ", len(this.data))
+	ci := 0
 	for _,slot := range this.data{
+
+		if nil == slot{
+			continue
+		}
+		ci ++
 		for _, mapValue := range slot{
 			if count == vcount{
 				break
@@ -202,6 +223,7 @@ func (this *MyMap) Destroy(){
 			mapValue.Clear()
 		}
 	}
+
 	this.data = nil
 
 	this.keyCount = 0

@@ -1,5 +1,7 @@
 package config
 
+import "util"
+
 //系统最多只能允许 25 个线程. 参考 ImgDBKeyFormatDump : region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
 var MAX_THREAD_COUNT = 25
 
@@ -30,3 +32,7 @@ var STAT_KEY_DOWNLOAD_EACH_TIMES []byte = []byte("_ZLAST_D_EACH_TIMES")
 var STAT_KEY_DOWNLOAD_COST_SECS []byte = []byte("_ZLAST_D_COST_SECS")
 var STAT_KEY_DOWNLOAD_STAT []byte = []byte("_ZLAST_D_STAT")
 var STAT_KEY_DOWNLOAD_CUR_STAT_KEY []byte = []byte("_ZLAST_D_CUR_STAT_KEY")
+
+func IsValidUserDBKey(key []byte) bool {
+	return !fileUtil.BytesStartWith(key ,STAT_KEY_PREX)
+}

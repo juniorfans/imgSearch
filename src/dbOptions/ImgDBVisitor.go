@@ -7,6 +7,7 @@ import (
 	"time"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"util"
+	"imgIndex"
 )
 
 type VisitCallBack interface {
@@ -59,7 +60,7 @@ func (this *DefaultVisitCallBack) Visit(*VisitIngInfo) bool {
 func (this *DefaultVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
 	fmt.Println("thread ", finishInfo.threadId," dealed: ", finishInfo.totalCount ,
 		", failedCount: ", (finishInfo.totalCount-finishInfo.successCount),
-		", lastDealedImgKey: ", string(ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
+		", lastDealedImgKey: ", string(ImgIndex.ParseImgKeyToPlainTxt(finishInfo.lastSuccessDealedKey)))
 }
 
 var visitFinished chan int
@@ -131,10 +132,11 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 		threadId:threadId, /*visitCallBackPtr:&callback*/}
 
 	for {
-		if !iter.Seek(imgId){
+		if !iter.Seek(imgId) || !iter.Valid(){
 			copy(limitKeyExclusive, imgId)
 			break
 		}
+
 		//防止顺序的 imgId 中有连续的空洞
 		if bytes.Equal(imgId,iter.Key()){
 //			buffer.WriteString(string(ParseImgKeyToPlainTxt(iter.Key())) + "\n")
@@ -148,15 +150,23 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 				successCount ++
 			}
 			totalCount ++
+		}else{
+		/*	fmt.Print("thread ",threadId," kong dong detect, imgId: ")
+			fileUtil.PrintBytes(imgId)
+			fmt.Print("thread ", threadId,"but iter.Key(): ", iter.Key())
+			fileUtil.PrintBytes(iter.Key())
+			*/
 		}
 
 		if callback.GetMaxVisitCount()>0 && totalCount >= callback.GetMaxVisitCount(){
 			break
 		}
 
-		if !ImgIdIncrement(imgId){
+		if !ImgIndex.ImgIdIncrement(imgId){
 			break
 		}
+
+
 	}
 
 
@@ -168,7 +178,10 @@ func visitOnThread(dbConfig *DBConfig, threadId int, callback VisitCallBack)  {
 	visitFinishedInfo := VisitFinishedInfo{totalCount:totalCount, successCount:successCount,
 		threadId:threadId, lastSuccessDealedKey:lastSuccessDealedImgId, dbId:dbConfig.Id}
 
+	fmt.Println("visit for thread ", threadId, " finished, call VisitFinish")
+
 	callback.VisitFinish(&visitFinishedInfo)
+	fmt.Println("call VisitFinish end ", threadId)
 	visitFinished <- successCount
 	return
 }

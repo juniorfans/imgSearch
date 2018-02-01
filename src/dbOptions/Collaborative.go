@@ -88,18 +88,17 @@ func ExposeCalCollaboratWith(dbId uint8, imgId []byte, whichl, whichr uint8)  {
 	计算一张大图中的小图的协同关系
  */
 func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  {
-	i_index := ImgClipsToIndexReader(dbId,imgId,whichl)
-	j_index := ImgClipsToIndexReader(dbId,imgId,whichr)
+	i_index := GetImgClipIndexFromClipIdent(dbId,imgId,whichl)
+	j_index := GetImgClipIndexFromClipIdent(dbId,imgId,whichr)
 
 	if nil == i_index{
-		fmt.Println("read clip index nil: ", dbId, ", ", string(ParseImgKeyToPlainTxt(imgId)), ",", whichl)
+		fmt.Println("read clip index nil: ", dbId, ", ", string(ImgIndex.ParseImgKeyToPlainTxt(imgId)), ",", whichl)
 	}
 	if nil == j_index{
-		fmt.Println("read clip index nil: ", dbId, ", ", string(ParseImgKeyToPlainTxt(imgId)), ",", whichr)
+		fmt.Println("read clip index nil: ", dbId, ", ", string(ImgIndex.ParseImgKeyToPlainTxt(imgId)), ",", whichr)
 	}
 
 	fmt.Println("-------------------------------------------------")
-	fmt.Println(whichl, " -- ", whichr)
 	FindTwoClipsSameMainImgs(i_index ,j_index)
 }
 
@@ -109,21 +108,30 @@ func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  
  */
 func FindTwoClipsSameMainImgs(left, right []byte)  {
 
-	indexToClip := InitIndexToClipDB()
+	//todo 改回来
+	indexToClip := GetTotalMuIndexToClipDB()
 
-	leftBranches := ImgIndex.ClipIndexBranch(4,10, left)
-	rightBranches := ImgIndex.ClipIndexBranch(4,10, right)
+	leftBranches := ImgIndex.ClipIndexBranch(2,10, left)
+	rightBranches := ImgIndex.ClipIndexBranch(2,10, right)
 	var lvlist, rvlist []byte
 
 	{
+		fmt.Println("left index: ")
+		fileUtil.PrintBytes(left)
+		fmt.Println("left branches: ")
 		for _,lb := range leftBranches{
+			fileUtil.PrintBytes(lb)
 			curlist := indexToClip.ReadFor(lb)	//left 在哪些大图中出现过
 			fileUtil.MergeBytesTo(&lvlist, &curlist)
 		}
 	}
 
 	{
+		fmt.Println("rght index: ")
+		fileUtil.PrintBytes(right)
+		fmt.Println("right branches: ")
 		for _,rb := range rightBranches{
+			fileUtil.PrintBytes(rb)
 			curList := indexToClip.ReadFor(rb)	//left 在哪些大图中出现过
 			fileUtil.MergeBytesTo(&rvlist, &curList)
 		}
@@ -138,7 +146,6 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 		return
 	}
 
-
 	//indexBytes to indexIdent
 	lmap := RemoveDuplicate(lvlist)
 	rmap := RemoveDuplicate(rvlist)
@@ -147,21 +154,45 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 
 }
 
-
-
 func RemoveDuplicate(imgClipIdents []byte) *imgCache.MyMap {
+	imgIdentSingle := imgCache.NewMyMap(false)
+
+	for i:=0;i < len(imgClipIdents);i += ImgIndex.IMG_CLIP_IDENT_LENGTH{
+		imgIdentSingle.Put(imgClipIdents[i:i+ImgIndex.IMG_IDENT_LENGTH], 1)
+	}
+
+	imgIdentSet := imgIdentSingle.KeySet()
+	imgIdents := make([]byte, len(imgIdentSet) * ImgIndex.IMG_IDENT_LENGTH)
+	ci := 0
+	for _,ident := range imgIdentSet {
+		ci += copy(imgIdents[ci:], ident)
+	}
+
+	fmt.Print("img idents: ")
+	PrintPlainTxtOfImgIdents(imgIdents)
+
 	imgIndexToIdent := imgCache.NewMyMap(false)
 
-	for i:=0;i < len(imgClipIdents);i += IMG_CLIP_IDENT_LENGTH{
-		imgClipIdent := FromClipIdentToImgIdent(imgClipIdents[i:i+IMG_CLIP_IDENT_LENGTH])
-		imgIdent := imgClipIdent[0:IMG_CLIP_IDENT_LENGTH-1]
-		imgIndexBytes := InitImgToIndexDB().ReadFor(imgIdent)
+	for i:=0;i < len(imgIdents);i += ImgIndex.IMG_IDENT_LENGTH{
+		imgIdent := imgIdents[i:i+ImgIndex.IMG_IDENT_LENGTH]
+
+		//此处计取某图的 index 从分库中读取即可
+		imgIndexBytes := InitMuImgToIndexDb(uint8(imgIdent[0])).ReadFor(imgIdent)
 		if nil == imgIndexBytes{
-			fmt.Println("img index nil: ", string(ParseImgKeyToPlainTxt(imgIdent[1:])))
+			fmt.Println("img index nil: ", string(ImgIndex.ParseImgKeyToPlainTxt(imgIdent[1:])))
 		}
 		imgIndexToIdent.Put(imgIndexBytes, imgIdent)
 	}
 	return imgIndexToIdent
+}
+
+func PrintPlainTxtOfImgIdents(imgIdents []byte)  {
+	nsize := len(imgIdents)
+	for i:=0;i < nsize;i += ImgIndex.IMG_IDENT_LENGTH{
+		imgIdent := imgIdents[i:i+ImgIndex.IMG_IDENT_LENGTH]
+		fmt.Print(uint8(imgIdent[0]), "-", string(ImgIndex.ParseImgKeyToPlainTxt(imgIdent[1:])), ", ")
+	}
+	fmt.Println()
 }
 
 func FindSameImg(left, right *imgCache.MyMap) *imgCache.MyMap {
@@ -216,7 +247,7 @@ func (this *removeDuplicateVisitor) Visit(imgIndexBytes []byte, imgIdents []inte
 		resultMap.Put(imgIndexBytes, count)
 		imgIdent := imgIdents[0].([]byte)
 		fmt.Println("------------ ", count)
-		fmt.Println(ParseImgIdentToPlainTxt(imgIdent)," : ", count)
+		fmt.Println(ImgIndex.ParseImgIdentToPlainTxt(imgIdent)," : ", count)
 
 	}
 
