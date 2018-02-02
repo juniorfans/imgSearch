@@ -10,6 +10,8 @@ import (
 	"os"
 	"strconv"
 	"imgIndex"
+	"github.com/syndtr/goleveldb/leveldb/filter"
+	"util"
 )
 
 var INDEX_DB_DIR_BASE = "E:/search/"
@@ -230,6 +232,7 @@ func getLevelDBOpenOption(dbParams *DBInitParams) *opt.Options {
 		WriteBuffer: dbParams.WriteBuffer,
 		CompactionL0Trigger: dbParams.CompactionL0Trigger,
 		CompactionTotalSize: dbParams.CompactionTotalSize,
+		Filter:filter.NewBloomFilter(10),
 	}
 }
 
@@ -247,6 +250,23 @@ func (this *DBConfig)ReadFor(key []byte) []byte {
 		return nil
 	}
 	return ret
+}
+
+func (this *DBConfig) IsEmpty() bool {
+	iter := this.DBPtr.NewIterator(nil, &this.ReadOptions)
+	defer iter.Release()
+
+	if false == iter.First(){
+		return true
+	}
+	for iter.Valid(){
+		if !fileUtil.BytesStartWith(iter.Key(), config.STAT_KEY_PREX){
+			return false
+		}
+		iter.Next()
+	}
+
+	return true
 }
 
 func (this *DBConfig) PrintStat()  {

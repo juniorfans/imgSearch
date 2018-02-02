@@ -20,8 +20,8 @@ func SearchClip(clipIndexBytes []byte) {
 	minBranch := []byte{255,255}
 	maxBranch := []byte{0,0}
 	for i, branchIndex := range branchesIndexes{
-		fmt.Print("branchIndex: ")
-		fileUtil.PrintBytes(branchIndex)
+	//	fmt.Print("branchIndex: ")
+	//	fileUtil.PrintBytes(branchIndex)
 		branchBitsArray[i] = fileUtil.CopyBytesTo(branchIndex[ : ImgIndex.CLIP_INDEX_BRANCH_BITS])
 	}
 
@@ -49,7 +49,7 @@ func SearchClip(clipIndexBytes []byte) {
 	//		fileUtil.PrintBytes(curIndex)
 			for _, branchIndex := range branchesIndexes{
 				if IsSameIndex(curIndex, branchIndex){
-					fmt.Println("find same: ----------------------------------")
+				//	fmt.Println("find same: ----------------------------------")
 				//	fileUtil.PrintBytes(curIndex)
 				//	fileUtil.PrintBytes(branchIndex)
 

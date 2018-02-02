@@ -78,9 +78,8 @@ func BeginImgClipSaveEx(dbIndex uint8, count int, offsetOfClip []int, indexLengt
 
 	//二级缓存会导致性能下降: 由于使用了 mutex 去同步合并各个线程的缓存。在高密集的计算中，这个锁会导致性能下降了近一半，直观的感受是
 	//cpu (8核，开启 16 个 goroutine)由 99% 占用率下降到了 50%
-	indexToClipCacheList.Init(true, &callBack,false, 640000)	//一张大图有 8 * 8 *2 * 3 * 16 = 6144 个条目
-									//大小约为 640000 * 100bit = 61 M
-									//16 个线程总大小约为 1G
+	//然而为了解决clip index 对应的 clip ident 追加问题，使用二级缓存，这样会使得写库时只有一个线程在写，可以边写边追加, 同时加大缓存可以减少锁的等待次数
+	indexToClipCacheList.Init(true, &callBack,true, 320000)	//
 
 	var visitCallBack VisitCallBack = &ClipSaverVisitCallBack{maxVisitCount:count,
 		params:ClipSaverVisitParams{dbId:dbIndex, offsetOfClip:offsetOfClip,indexLength:indexLength,
@@ -238,7 +237,8 @@ type IndexToClipCacheFlushCallBack struct {
 	dbId uint8
 }
 
-//clip index 的 kvCache 中存储的是, key: clip index bytes, values: 子图信息?
+/*
+//clip index 的 kvCache 中存储的是, key: clip index bytes, values: 子图信息
 func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
 	indexToClipBatch := leveldb.Batch{}
 	clipToIndexBatch := leveldb.Batch{}
@@ -254,6 +254,94 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 
 	indexToClipBatch.Reset()
 	clipToIndexBatch.Reset()
+
+	kvCache = nil
+	return true
+}
+
+*/
+
+func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
+
+	flushSize := 6400
+	indexToClipBatch := leveldb.Batch{}
+	clipToIndexBatch := leveldb.Batch{}
+	indexToClipDB := InitMuIndexToClipDB(this.dbId)
+
+	dbIsEmpty := indexToClipDB.IsEmpty()
+
+	clipIndexes := kvCache.KeySet()	//clip indexes
+
+	ci := 0
+	fmt.Println(len(clipIndexes), " to flush")
+	empty := []byte{}
+	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
+	newClipIdents := make([]byte, 60, 60)	//一个 clip ident 长度是 6
+	for _,clipIndex := range clipIndexes{
+		ci ++
+		if ci % 1000 == 0{
+			fmt.Println("flushing: ", ci)
+		}
+		subImgIndexs := kvCache.GetValue(clipIndex)
+		if nil == subImgIndexs{
+			continue
+		}
+		exsitsValue := empty
+
+		if !dbIsEmpty{
+			exsitsValue = indexToClipDB.ReadFor(clipIndex)
+		}
+
+		realLen := len(exsitsValue) + len(subImgIndexs) * ImgIndex.IMG_CLIP_IDENT_LENGTH
+		if 60 < realLen{
+			newClipIdents = make([]byte, realLen)
+		}
+
+		ni := 0
+		for _,v := range subImgIndexs{
+			var indexData *ImgIndex.SubImgIndex  = v.(*ImgIndex.SubImgIndex )
+
+			ImgIndex.PutImgIdentTo(indexData.DBIdOfMainImg, indexData.KeyOfMainImg, indexData.Which,clipIdent)
+
+			//当前索引值若是原始索引/不是分支索引则需要写入一条 clip -> index 的记录
+			if indexData.IsSourceIndex{
+				clipToIndexBatch.Put(clipIdent, clipIndex)
+			}
+
+			ni += copy(newClipIdents[ni:], clipIdent)
+		}
+
+		if 0 != len(exsitsValue){
+			ni += copy(newClipIdents[ni:], exsitsValue)
+		}
+
+		if len(exsitsValue) % 6 !=0 {
+			fmt.Println("fuck , new clip ident length is not multiple of 6: ", len(exsitsValue))
+		}
+
+		if realLen != ni{
+			fmt.Println("error, flush error, ni: ", ni, ", realLen: ", realLen)
+		}
+		indexToClipBatch.Put(clipIndex, newClipIdents[:ni])
+
+		if indexToClipBatch.Len() >= flushSize{
+			InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToClipBatch)
+			indexToClipBatch.Reset()
+		}
+		if clipToIndexBatch.Len() >= flushSize{
+			ImgClipsToIndexBatchSaver(this.dbId, &clipToIndexBatch)
+			clipToIndexBatch.Reset()
+		}
+	}
+
+	if indexToClipBatch.Len() > 0{
+		InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToClipBatch)
+		indexToClipBatch.Reset()
+	}
+	if clipToIndexBatch.Len() > 0{
+		ImgClipsToIndexBatchSaver(this.dbId, &clipToIndexBatch)
+		clipToIndexBatch.Reset()
+	}
 
 	kvCache = nil
 	return true

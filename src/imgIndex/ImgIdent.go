@@ -85,6 +85,12 @@ func GetImgClipIdent(dbId uint8, imgId []byte, which uint8) []byte {
 	return ret
 }
 
+func PutImgIdentTo(dbId uint8, imgId []byte, which uint8, imgIdent []byte) {
+	imgIdent[0] = byte(dbId)
+	copy(imgIdent[1:], imgId)
+	imgIdent[IMG_CLIP_IDENT_LENGTH-1] = byte(which)
+}
+
 func FromClipIdentToImgIdent(clipIdent []byte) []byte{
 	ret := make([]byte, IMG_IDENT_LENGTH)
 	ci:=0

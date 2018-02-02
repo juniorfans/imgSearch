@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"github.com/syndtr/goleveldb/leveldb"
 	"errors"
+	"github.com/syndtr/goleveldb/leveldb/filter"
 )
 
 var imgDBs map[uint8]*DBConfig = make(map[uint8]*DBConfig)
@@ -33,6 +34,7 @@ func PickImgDB(dbId uint8) *DBConfig {
 				BlockSize:40 * opt.KiB,
 				CompactionTableSize:20*opt.MiB,
 				BlockCacheCapacity:64 * opt.MiB,
+				Filter:filter.NewBloomFilter(10),
 			},
 			ReadOptions : opt.ReadOptions{},
 			WriteOptions : opt.WriteOptions{Sync:false},

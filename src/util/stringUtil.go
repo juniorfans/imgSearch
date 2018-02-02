@@ -46,14 +46,19 @@ func CopyBytesTo(src []byte) []byte {
 }
 
 func MergeBytesTo(target, given *[]byte) {
+
+	if 0 == len(*given){
+		return
+	}
+
 	ret := make([]byte, len(*target) + len(*given))
 	ci := 0
 	if 0 != len(*target){
 		ci += copy(ret[ci:], *target)
 	}
-	if 0 != len(*given){
-		ci += copy(ret[ci:], *given)
-	}
+
+	ci += copy(ret[ci:], *given)
+
 	*target = ret
 }
 

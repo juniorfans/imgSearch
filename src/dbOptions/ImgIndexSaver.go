@@ -69,14 +69,94 @@ type ImgIndexCacheFlushCallBack struct {
 	dbId uint8
 }
 
+/*
 func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
 	indexToImgBatch := leveldb.Batch{}
 	imgToIndexBatch := leveldb.Batch{}
+
+
 
 	kvCache.Visit(this.visitor,-1,[]interface{}{&indexToImgBatch, &imgToIndexBatch})
 
 	InitMuIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
 	ImgToIndexBatchSaver(this.dbId, &imgToIndexBatch)
+	return true
+}
+*/
+
+
+
+func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCache) bool  {
+
+	flushSize := 6400
+
+	indexToImgBatch := leveldb.Batch{}
+	imgToIndexBatch := leveldb.Batch{}
+
+	indexToImgDB := InitMuIndexToImgDB(this.dbId)
+	imgIndexes := kvCache.KeySet()
+	dbIsEmpty := indexToImgDB.IsEmpty()
+
+	newImgIdents := make([]byte, 50, 50)	//一个 imgIdent 长度为 5
+
+	var imgIdent []byte
+	empty := []byte{}
+	for _,imgIndex := range imgIndexes{
+
+		imgIdents := kvCache.GetValue(imgIndex)
+
+		exsitsValue := empty
+		if !dbIsEmpty{
+			exsitsValue = indexToImgDB.ReadFor(imgIndex)
+		}
+
+
+		realLen := len(exsitsValue) + len(imgIdents) * ImgIndex.IMG_IDENT_LENGTH
+
+		//需要的内存比现有内存多，需要再分配
+		if realLen > len(newImgIdents){
+			newImgIdents = make([]byte, realLen)
+		}
+
+		ni :=0
+
+		if 0 != len(exsitsValue){
+			ni += copy(newImgIdents[ni:], exsitsValue)
+		}
+
+		for _,imgIdentI := range imgIdents{
+			imgIdent = imgIdentI.([]byte)
+			ni += copy(newImgIdents[ni:], imgIdent)
+		}
+
+		if ni != realLen{
+			fmt.Println("error, ni=", ni, ", realLean: ", realLen)
+		}
+
+		indexToImgBatch.Put(imgIndex, newImgIdents[: ni])
+		imgToIndexBatch.Put(imgIdent, imgIndex)
+
+		if indexToImgBatch.Len() >= flushSize{
+			InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+			indexToImgBatch.Reset()
+		}
+		if imgToIndexBatch.Len() >= flushSize{
+			ImgClipsToIndexBatchSaver(this.dbId, &imgToIndexBatch)
+			imgToIndexBatch.Reset()
+		}
+	}
+
+	if indexToImgBatch.Len() > 0{
+		InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+		indexToImgBatch.Reset()
+	}
+	if imgToIndexBatch.Len() > 0{
+		ImgClipsToIndexBatchSaver(this.dbId, &imgToIndexBatch)
+		imgToIndexBatch.Reset()
+	}
+
+	kvCache = nil
+
 	return true
 }
 
@@ -132,8 +212,9 @@ func BeginImgSaveEx(dbIndex uint8, count int)  {
 	imgIndexCacheList := imgCache.KeyValueCacheList{}
 
 	//缓存 img index -> img ident, 支持重复的 values
+	//与 clip index saver 类似, 为了追加 value (index ident) 而不是覆盖, 需要由唯一的线程去写.
 	var callBack imgCache.CacheFlushCallBack = &ImgIndexCacheFlushCallBack{visitor:&ImgIndexCacheVisitor{dbId:dbIndex}, dbId:dbIndex}
-	imgIndexCacheList.Init(true, &callBack,false,64000)
+	imgIndexCacheList.Init(true, &callBack,true,640000)
 
 	var visitCallBack VisitCallBack = &ImgIndexSaverVisitCallBack{maxVisitCount:count,
 		params:ImgIndexSaverVisitParams{dbId:dbIndex, cacheList:imgIndexCacheList}}

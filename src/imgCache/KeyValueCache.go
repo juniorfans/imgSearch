@@ -37,6 +37,10 @@ func (this *KeyValueCache) Add(key []byte, value interface{})  {
 	this.imap.Put(key, value)
 }
 
+func (this *KeyValueCache) KeySet() [][]byte{
+	return this.imap.KeySet()
+}
+
 func (this *KeyValueCache) Visit(visitor KeyValueCacheVisitor, vcount int, otherParams [] interface{}){
 	var myMapVisitor MyMapVisitor = visitor
 	this.imap.Visit(myMapVisitor, vcount, otherParams)
