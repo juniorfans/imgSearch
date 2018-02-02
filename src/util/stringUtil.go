@@ -56,3 +56,43 @@ func MergeBytesTo(target, given *[]byte) {
 	}
 	*target = ret
 }
+
+//大端模式: 原值低位在现在字节数组中的高位，注意顺序
+func BytesIncrement(srcBytes []byte) bool {
+
+	nsize := len(srcBytes)
+	for i:=nsize-1;i>=0;i --{
+		if srcBytes[i] < 255{
+			srcBytes[i] ++
+			return true
+		}else{
+			srcBytes[i] = 0
+		}
+	}
+	return false	//溢出
+}
+
+
+//left compares to right, 0 is equals, 1 is left > right, other: -1
+//if lenth of one less than another, that means it's less.
+func BytesCompare(left, right []byte) int8 {
+	llen := len(left)
+	rlen := len(right)
+	if llen!=rlen{
+		if llen < rlen{
+			return -1
+		}else{
+			return 1
+		}
+	}
+	for i,_ := range left{
+		if left[i] < right[i]{
+			return -1
+		}else if left[i] > right[i]{
+			return 1
+		}else{
+
+		}
+	}
+	return 0
+}

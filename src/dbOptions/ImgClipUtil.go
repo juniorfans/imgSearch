@@ -106,6 +106,32 @@ func PrintYCBCR(rgba []uint8)  {
 	fmt.Print(ycbcr[0]," ",ycbcr[1], " ", ycbcr[2],"| ")
 }
 
+func SaveSpecifiedClip()  {
+	var dbId uint8
+	var imgId string
+	var which uint8
+
+	for{
+		fmt.Print("input dbId, imgId, which: ")
+
+		stdin := bufio.NewReader(os.Stdin)
+		fmt.Fscan(stdin, &dbId, &imgId, &which)
+		imgDB := PickImgDB(dbId)
+		imgKey := ImgIndex.FormatImgKey([]byte(imgId))
+		indexes := GetDBIndexOfClips(imgDB , imgKey, []int{-1} ,-1)
+		SaveClipsAsJpg("E:/gen/search/", indexes[which])
+
+		clipIndexBytes := GetImgClipIndexFromClipIdent(dbId, imgKey, which)
+		fmt.Print("clip index: ")
+		fileUtil.PrintBytes(clipIndexBytes)
+
+		branIndexes := ImgIndex.ClipIndexBranch(clipIndexBytes)
+		fmt.Println("branches: ")
+		for _, branIndex := range branIndexes{
+			fileUtil.PrintBytes(branIndex)
+		}
+	}
+}
 
 func MarkClipIndexOnImg(imgDB *DBConfig)  {
 	stdin := bufio.NewReader(os.Stdin)
@@ -210,7 +236,7 @@ func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byt
 
 func SaveClipsAsJpg(dir string, indexData ImgIndex.SubImgIndex) {
 	mainImgName := ImgIndex.ParseImgKeyToPlainTxt(indexData.KeyOfMainImg)
-	clipName := string(mainImgName) + "_" +strconv.Itoa(int(indexData.Which))+".jpg"
+	clipName := strconv.Itoa(int(indexData.DBIdOfMainImg)) + "_" + string(mainImgName) + "_" +strconv.Itoa(int(indexData.Which))+".jpg"
 	clipConfig := config.GetClipConfigById(indexData.ConfigId)
 
 	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像

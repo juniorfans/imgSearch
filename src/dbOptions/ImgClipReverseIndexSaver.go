@@ -115,12 +115,13 @@ func SaveClipsToDB(cacheList *imgCache.KeyValueCacheList, threadId int, theIndex
 	indexDataPtr := theIndexData.Clone()
 
 	indexDataPtr.IsSourceIndex = true
+
 	sourceIndex := indexDataPtr.GetIndexBytesIn3Chanel()
 	cacheList.Add(threadId, sourceIndex, indexDataPtr)
 
 	dupIndexDataPtr := indexDataPtr.Clone()
 	dupIndexDataPtr.IsSourceIndex = false
-	branchIndexes := dupIndexDataPtr.GetBranchIndexBytesIn3Chanel(2, 10)
+	branchIndexes := dupIndexDataPtr.GetBranchIndexBytesIn3Chanel()
 
 	//注意, cache 的 value 的类型是 *ImgIndex.SubImgIndex'
 

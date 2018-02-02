@@ -78,9 +78,9 @@ func (this *SubImgIndex)GetIndexBytesIn3Chanel () []byte {
 	return this.getFlatInfo()
 }
 
-func (this *SubImgIndex)GetBranchIndexBytesIn3Chanel (branchBits int, bound uint8) (branchIndexes [][]byte){
+func (this *SubImgIndex)GetBranchIndexBytesIn3Chanel () (branchIndexes [][]byte){
 	sourceIndex := this.getFlatInfo()
-	branchIndexes = ClipIndexBranch(branchBits, bound, sourceIndex)
+	branchIndexes = ClipIndexBranch(sourceIndex)
 	return
 }
 

@@ -51,8 +51,8 @@ func main(){
 		21	从 imgToIndex 库中读取键: imgIdent
 		22	是否能从 imgToIndex 库中找到 imgident
 		23	从 imgDB 中某处开始，导出多少个图
-		24	测试 imgDB 库的划分
-		25	测试 imgdb 的划分: 总分核对
+		24	测试 imgdb 的划分: 总分核对
+		25	下载指定的 clip 子图
 		 */
 		if(0 == testCase){
 			dbOptions.PrintAllStatInfo()
@@ -106,6 +106,8 @@ func main(){
 			dbOptions.SaveImgOffsetAndCount(imgDB)
 		}else if(24 == testCase){
 			dbOptions.TestSplitTotalCounts(imgDB, 25)
+		}else if(25 == testCase){
+			dbOptions.SaveSpecifiedClip()
 		}else{
 			fmt.Println("invalid options")
 		}

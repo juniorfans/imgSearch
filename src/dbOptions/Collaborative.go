@@ -111,8 +111,8 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 	//todo 改回来
 	indexToClip := GetTotalMuIndexToClipDB()
 
-	leftBranches := ImgIndex.ClipIndexBranch(2,10, left)
-	rightBranches := ImgIndex.ClipIndexBranch(2,10, right)
+	leftBranches := ImgIndex.ClipIndexBranch(left)
+	rightBranches := ImgIndex.ClipIndexBranch(right)
 	var lvlist, rvlist []byte
 
 	{

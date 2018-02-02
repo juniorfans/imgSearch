@@ -479,6 +479,10 @@ func saveClipAsJpgFromIndexToClipDB(dbId uint8, count int)  {
 
 	for iter.Valid(){
 		//writeToFile(iter.Value(), string(iter.Key()))
+		if ImgIndex.CLIP_INDEX_BYTES_LEN == len(iter.Key()){
+			//原始索引长度. 不含有 stat 信息
+			continue
+		}
 		fmt.Println("-----------------------------------------------------")
 		fileUtil.PrintBytes(iter.Key())
 		SaveClipAsJpgFromIndexValue(iter.Value(), "E:/gen/cclip/")

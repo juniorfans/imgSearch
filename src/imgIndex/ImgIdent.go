@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"config"
 	"util"
+	"strconv"
 )
 
 type ClipIdentInfo struct {
@@ -19,7 +20,7 @@ func (this *ClipIdentInfo) ToBytes() []byte {
 	return GetImgClipIdent(this.DbId, this.ImgKey, this.Which)
 }
 func (this *ClipIdentInfo) ToString() string {
-	return string(GetImgClipIdent(this.DbId, this.ImgKey, this.Which))
+	return strconv.Itoa(int(this.DbId)) + "-" + string(ParseImgKeyToPlainTxt(this.ImgKey)) + "-" + strconv.Itoa(int(this.Which))
 }
 
 func NewClipIdentInfo(clipIdentBytes []byte) *ClipIdentInfo {
@@ -92,14 +93,14 @@ func FromClipIdentToImgIdent(clipIdent []byte) []byte{
 }
 
 func FromClipIdentsToStrings(clipIdentListBytes []byte) [] string{
-	fmt.Println("clip belong to how many imgs: ", len(clipIdentListBytes) / IMG_CLIP_IDENT_LENGTH)
+	//fmt.Println("clip belong to how many imgs: ", len(clipIdentListBytes) / IMG_CLIP_IDENT_LENGTH)
 	infos := ParseImgClipIdentListBytes(clipIdentListBytes)
 	if nil == infos{
 		return nil
 	}
 	ret := make([]string, len(infos))
 	for i, info := range infos {
-		fmt.Println(info.DbId, "-", string(ParseImgKeyToPlainTxt(info.ImgKey)), "-", info.Which)
+		//fmt.Println(info.DbId, "-", string(ParseImgKeyToPlainTxt(info.ImgKey)), "-", info.Which)
 		ret[i] = info.ToString()
 	}
 	return ret
