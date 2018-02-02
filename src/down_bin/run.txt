@@ -1,5 +1,0 @@
-call 02.exe --d=2
-
-call 03.exe --d=3
-
-call 04.exe --d=4
