@@ -22,6 +22,11 @@ func (this* ClipSearchConf) Print()  {
 
 var clipSearchConf *ClipSearchConf = nil
 
+func MustReReadSearchConf(confpath string)  {
+	clipSearchConf = nil
+	ReadClipSearchConf(confpath)
+}
+
 func ReadClipSearchConf(confPath string) *ClipSearchConf{
 
 	if nil != clipSearchConf{

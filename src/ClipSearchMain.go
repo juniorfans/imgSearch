@@ -8,6 +8,7 @@ import (
 	"imgIndex"
 	"strings"
 	"strconv"
+	"config"
 )
 
 func main()  {
@@ -16,6 +17,8 @@ func main()  {
 
 func TestSeek1()  {
 	for{
+
+
 		stdin := bufio.NewReader(os.Stdin)
 		var dbId, which uint8
 		var imgId string
@@ -42,6 +45,8 @@ func TestSeek1()  {
 
 func TestSeek2()  {
 	for{
+		config.MustReReadSearchConf("clip_search_conf.txt")
+
 		stdin := bufio.NewReader(os.Stdin)
 
 		var indexDbIdStr string

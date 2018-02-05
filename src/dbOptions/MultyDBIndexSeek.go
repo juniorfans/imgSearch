@@ -122,14 +122,15 @@ func IsSameIndex(leftIndex, rightIndex[]byte) bool {
 
 	searchConf := config.ReadClipSearchConf("clip_search_conf.txt")
 
-	if searchConf.Delta_mean < math.Abs(float64(leftMean-rightMean)){
-		return false
-	}
-	if searchConf.Delta_sd < math.Abs(float64(leftSD - rightSD)){
+	meanDiff := math.Abs(float64(leftMean-rightMean))
+	if searchConf.Delta_mean < meanDiff{
 		return false
 	}
 
-//	return true
+	sdDiff := math.Abs(float64(leftSD - rightSD))
+	if searchConf.Delta_sd < sdDiff{
+		return false
+	}
 
 	//欧式距离
 	sim := float64(0)
@@ -137,6 +138,13 @@ func IsSameIndex(leftIndex, rightIndex[]byte) bool {
 		sim += math.Pow(float64(leftIndex[i]-rightIndex[i]), 2)
 	}
 
-	diff := math.Pow(sim / float64(len(leftIndex)), 0.5)
-	return diff < searchConf.Delta_Eul
+	eulDiff := math.Pow(sim / float64(len(leftIndex)), 0.5)
+
+	if searchConf.Delta_Eul < eulDiff{
+		return false
+	}
+
+	fmt.Println("meanDiff: ", meanDiff,", sdDiff: ", sdDiff, ", eulDiff: ", eulDiff)
+
+	return true
 }

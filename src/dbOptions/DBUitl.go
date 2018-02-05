@@ -400,6 +400,24 @@ func PrintAllStatInfo()  {
 	}
 }
 
+func SaveAImg(dbId uint8, mainKey []byte, dir string)  {
+	imgDb := PickImgDB(dbId)
+	if nil == imgDb{
+		fmt.Println("open img db failed")
+		return
+	}
+
+	imgData, err := imgDb.DBPtr.Get(mainKey, &imgDb.ReadOptions)
+	if leveldb.ErrNotFound == err{
+		fmt.Println("can't find img: ", string(ImgIndex.ParseImgKeyToPlainTxt(mainKey)))
+		return
+	}
+
+	fileName := dir + string(filepath.Separator) + string(ImgIndex.ParseImgKeyToPlainTxt(mainKey)) + ".jpg"
+	writeToFile(imgData, fileName)
+}
+
+
 func SaveMainImg(mainKey []byte ,dir string)  {
 	imgDb := GetImgDBWhichPicked()
 	if nil == imgDb{

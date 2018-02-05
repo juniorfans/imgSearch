@@ -25,8 +25,9 @@ func SearchClipEx(clipIndexBytes []byte)  {
 			which := uint8(r[5])
 			indexes := GetDBIndexOfClips(PickImgDB(dbId) , imgKey, []int{-1} ,-1)
 			SaveClipsAsJpg("E:/gen/search/", indexes[which])
+			SaveAImg(dbId, imgKey, "E:/gen/search/img/")
 
-			fmt.Println(dbId, string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)), which)
+			//	fmt.Println(dbId, string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)), which)
 		}
 	}
 }
