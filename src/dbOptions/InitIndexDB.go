@@ -120,6 +120,7 @@ func InitClipToIndexDB() *DBConfig {
 
 var initedIndexDb map[int] *DBConfig
 
+/*
 func GetTotalMuIndexToClipDB() *DBConfig {
 	return InitIndexDBByBaseDir(255,2)
 }
@@ -137,6 +138,9 @@ func GetTotalMuIndexToImgDB() *DBConfig {
 func GetTotalMuImgToIndexDb() *DBConfig {
 	return InitIndexDBByBaseDir(255,4)
 }
+*/
+
+
 
 func InitMuIndexToClipDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,2)
@@ -156,6 +160,53 @@ func InitMuImgToIndexDb(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,4)
 }
 
+func GetInitedClipIndexToIdentDB() []*DBConfig {
+
+	var ret []*DBConfig
+	for hash,db :=range initedIndexDb{
+		whichDB := hash >> 8
+		if 2 == whichDB{
+			ret = append(ret, db)
+		}
+	}
+	return ret
+}
+
+func GetInitedClipIdentToIndexDB() []*DBConfig {
+
+	var ret []*DBConfig
+	for hash,db :=range initedIndexDb{
+		whichDB := hash >> 8
+		if 1 == whichDB{
+			ret = append(ret, db)
+		}
+	}
+	return ret
+}
+
+func GetInitedImgIndexToIdentDB() []*DBConfig {
+
+	var ret []*DBConfig
+	for hash,db :=range initedIndexDb{
+		whichDB := hash >> 8
+		if 3 == whichDB{
+			ret = append(ret, db)
+		}
+	}
+	return ret
+}
+
+func GetInitedImgIdentToIndexDB() []*DBConfig {
+
+	var ret []*DBConfig
+	for hash,db :=range initedIndexDb{
+		whichDB := hash >> 8
+		if 4 == whichDB{
+			ret = append(ret, db)
+		}
+	}
+	return ret
+}
 
 func InitIndexDBByBaseDir(dbId uint8, whichDB int) *DBConfig{
 

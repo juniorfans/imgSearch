@@ -5,13 +5,36 @@ import (
 	"util"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"fmt"
-	"math"
 )
+
+func SearchClipEx(clipIndexBytes []byte)  {
+	dbs := GetInitedClipIndexToIdentDB()
+	seeker := NewMultyDBIndexSeeker(dbs)
+	resSet := seeker.SeekRegion(clipIndexBytes)
+	for _,res := range resSet{
+		if 0 == len(res){
+			continue
+		}
+		for _,r := range res{
+			if 0 == len(r){
+				continue
+			}
+
+			dbId := uint8(r[0])
+			imgKey := r[1:5]
+			which := uint8(r[5])
+			indexes := GetDBIndexOfClips(PickImgDB(dbId) , imgKey, []int{-1} ,-1)
+			SaveClipsAsJpg("E:/gen/search/", indexes[which])
+
+			fmt.Println(dbId, string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)), which)
+		}
+	}
+}
 
 //我们认为 index 值是大端模式
 func SearchClip(clipIndexBytes []byte) {
 
-	indexToClipDB := InitMuIndexToClipDB(2)//GetTotalMuIndexToClipDB()
+	indexToClipDB := InitMuIndexToClipDB(2)
 
 
 	branchesIndexes := ImgIndex.ClipIndexBranch(clipIndexBytes)
@@ -68,42 +91,4 @@ func SearchClip(clipIndexBytes []byte) {
 	for clip, _ := range sameClip{
 		fmt.Println(clip)
 	}
-}
-
-var Delta_sd = 5.0
-var Delta_mean = 5.0
-var Delta_Eul = 10.0
-
-func IsSameIndex(leftIndex, rightIndex[]byte) bool {
-	if len(leftIndex) != len(rightIndex){
-		fmt.Println("error, left, right len not equal as the clip index")
-		return false
-	}
-	if len(leftIndex) != ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN{
-		return false
-	}
-
-	leftSD := leftIndex[2]
-	rightSD := rightIndex[2]
-
-	leftMean := leftIndex[3]
-	rightMean := rightIndex[3]
-
-	if Delta_mean < math.Abs(float64(leftMean-rightMean)){
-		return false
-	}
-	if Delta_sd < math.Abs(float64(leftSD - rightSD)){
-		return false
-	}
-
-	return true
-
-	//欧式距离
-	sim := float64(0)
-	for i:=0;i < len(leftIndex);i++{
-		sim += math.Pow(float64(leftIndex[i]-rightIndex[i]), 2)
-	}
-
-	diff := math.Pow(sim / float64(len(leftIndex)), 0.5)
-	return diff < Delta_Eul
 }

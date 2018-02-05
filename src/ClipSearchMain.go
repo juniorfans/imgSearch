@@ -6,9 +6,15 @@ import (
 	"fmt"
 	"dbOptions"
 	"imgIndex"
+	"strings"
+	"strconv"
 )
 
 func main()  {
+	TestSeek2()
+}
+
+func TestSeek1()  {
 	for{
 		stdin := bufio.NewReader(os.Stdin)
 		var dbId, which uint8
@@ -30,7 +36,33 @@ func main()  {
 		}
 		dbOptions.SearchClip(index)
 
-
 		d1.CloseDB();d2.CloseDB();d3.CloseDB();d4.CloseDB()
+	}
+}
+
+func TestSeek2()  {
+	for{
+		stdin := bufio.NewReader(os.Stdin)
+
+		var indexDbIdStr string
+		fmt.Print("input index db, split by dot(,): ")
+		fmt.Fscan(stdin, &indexDbIdStr)
+		indexDBIds := strings.Split(indexDbIdStr, ",")
+		for _,indexDBId := range indexDBIds{
+			dbId, _ := strconv.Atoi(indexDBId)
+			dbOptions.InitMuIndexToClipDB(uint8(dbId))
+		}
+
+		var dbId, which uint8
+		var imgId string
+		fmt.Print("input dbId,imgId,which to search: ")
+		fmt.Fscan(stdin, &dbId, &imgId, &which)
+
+		index := dbOptions.GetImgClipIndexFromClipIdent(dbId,ImgIndex.FormatImgKey([]byte(imgId)),which)
+		if 0 == len(index){
+			fmt.Println("can't find index for clip")
+			continue
+		}
+		dbOptions.SearchClipEx(index)
 	}
 }

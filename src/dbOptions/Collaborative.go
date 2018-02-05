@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"config"
 	"imgIndex"
-	"util"
 	"imgCache"
 )
 
@@ -107,9 +106,8 @@ func ExposeCalCollaboratWithEx(dbId uint8, imgId []byte, whichl, whichr uint8)  
 	left, right 是子图的 index
  */
 func FindTwoClipsSameMainImgs(left, right []byte)  {
-
-	//todo 改回来
-	indexToClip := GetTotalMuIndexToClipDB()
+	/*
+	indexToClip := nil//GetTotalMuIndexToClipDB()
 
 	leftBranches := ImgIndex.ClipIndexBranch(left)
 	rightBranches := ImgIndex.ClipIndexBranch(right)
@@ -151,6 +149,8 @@ func FindTwoClipsSameMainImgs(left, right []byte)  {
 	rmap := RemoveDuplicate(rvlist)
 
 	FindSameImg(lmap, rmap)
+
+	*/
 
 }
 
