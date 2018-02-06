@@ -19,7 +19,7 @@ func main()  {
 		fmt.Print("select a image db to deal: ")
 		fmt.Fscan(stdin, &dbIndex)
 		indexToClipDB := dbOptions.InitMuIndexToClipDB(dbIndex)
-		clipToIndexDB := dbOptions.InitMuClipToIndexDb(dbIndex)
+		clipToIndexDB := dbOptions.InitMuClipToIndexDB(dbIndex)
 		imgDB := dbOptions.PickImgDB(dbIndex)
 		if nil == imgDB{
 			fmt.Println("open img db failed: ", dbIndex)

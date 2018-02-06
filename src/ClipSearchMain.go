@@ -12,7 +12,30 @@ import (
 )
 
 func main()  {
-	TestSeek2()
+	TestSeek3()
+}
+
+func TestSeek3()  {
+	for{
+		config.MustReReadSearchConf("clip_search_conf.txt")
+
+		stdin := bufio.NewReader(os.Stdin)
+
+		var indexDbIdStr string
+		fmt.Print("input index db, split by dot(,): ")
+		fmt.Fscan(stdin, &indexDbIdStr)
+		indexDBIds := strings.Split(indexDbIdStr, ",")
+		for _,indexDBId := range indexDBIds{
+			dbId, _ := strconv.Atoi(indexDBId)
+			dbOptions.InitMuIndexToClipDB(uint8(dbId))
+		}
+
+		var dbId uint8
+		var imgId string
+		fmt.Print("input dbId,imgId to search: ")
+		fmt.Fscan(stdin, &dbId, &imgId)
+		dbOptions.SearchClipsOfImg(dbId, ImgIndex.FormatImgKey([]byte(imgId)))
+	}
 }
 
 func TestSeek1()  {
@@ -56,6 +79,7 @@ func TestSeek2()  {
 		for _,indexDBId := range indexDBIds{
 			dbId, _ := strconv.Atoi(indexDBId)
 			dbOptions.InitMuIndexToClipDB(uint8(dbId))
+			dbOptions.InitMuImgToIndexDb(uint8(dbId))
 		}
 
 		var dbId, which uint8

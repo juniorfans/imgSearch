@@ -23,8 +23,8 @@ func main()  {
 
 		imgToIndexDB := dbOptions.InitMuImgToIndexDb(curDbId)
 		indexToImgDB := dbOptions.InitMuIndexToImgDB(curDbId)
-		imgToClipDB := dbOptions.InitMuClipToIndexDb(curDbId)
-		clipToImgDB := dbOptions.InitMuClipToIndexDb(curDbId)
+		imgToClipDB := dbOptions.InitMuClipToIndexDB(curDbId)
+		clipToImgDB := dbOptions.InitMuClipToIndexDB(curDbId)
 
 		imgToIndexDB.DBPtr.CompactRange(util.Range{nil,nil})
 		indexToImgDB.DBPtr.CompactRange(util.Range{nil,nil})

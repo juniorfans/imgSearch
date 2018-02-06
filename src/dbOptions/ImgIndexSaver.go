@@ -127,6 +127,8 @@ func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCac
 		for _,imgIdentI := range imgIdents{
 			imgIdent = imgIdentI.([]byte)
 			ni += copy(newImgIdents[ni:], imgIdent)
+
+			imgToIndexBatch.Put(imgIdent, imgIndex)
 		}
 
 		if ni != realLen{
@@ -134,24 +136,23 @@ func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCac
 		}
 
 		indexToImgBatch.Put(imgIndex, newImgIdents[: ni])
-		imgToIndexBatch.Put(imgIdent, imgIndex)
 
 		if indexToImgBatch.Len() >= flushSize{
-			InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+			InitMuIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
 			indexToImgBatch.Reset()
 		}
 		if imgToIndexBatch.Len() >= flushSize{
-			ImgClipsToIndexBatchSaver(this.dbId, &imgToIndexBatch)
+			ImgToIndexBatchSaver(this.dbId, &imgToIndexBatch)
 			imgToIndexBatch.Reset()
 		}
 	}
 
 	if indexToImgBatch.Len() > 0{
-		InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+		InitMuIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
 		indexToImgBatch.Reset()
 	}
 	if imgToIndexBatch.Len() > 0{
-		ImgClipsToIndexBatchSaver(this.dbId, &imgToIndexBatch)
+		ImgToIndexBatchSaver(this.dbId, &imgToIndexBatch)
 		imgToIndexBatch.Reset()
 	}
 

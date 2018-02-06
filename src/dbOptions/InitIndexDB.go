@@ -146,7 +146,7 @@ func InitMuIndexToClipDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,2)
 }
 
-func InitMuClipToIndexDb(dbId uint8) *DBConfig {
+func InitMuClipToIndexDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,1)
 }
 

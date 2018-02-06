@@ -33,10 +33,12 @@ func (this *MultyDBIndexSeeker) Close ()  {
 	close(this.seekRes)
 }
 
-//返回值是 n 个 [][]byte, 每一个是某些 clipIdent
+//每一个 clipIndex 可能对应多个 clipIdent, 此函数用于返回一个 clipIndex 的分支索引对应的全部 clipIdent: n 个 [][]byte, 每一个是某些 clipIdent
 func (this *MultyDBIndexSeeker) SeekRegion (clipIndexBytes []byte) [][][]byte {
 	branchesIndexes := ImgIndex.ClipIndexBranch(clipIndexBytes)
 
+	//填坑: branchesIndexes 的长度有可能是 1: 当 clipIndexBytes 的分支字节值已经是最大时(>=250).
+	//此时要注意 minBranch 和 maxBranch 的取值
 	branchBitsArray := make([][]byte, len(branchesIndexes))
 	minBranch := []byte{255,255}
 	maxBranch := []byte{0,0}
@@ -46,14 +48,20 @@ func (this *MultyDBIndexSeeker) SeekRegion (clipIndexBytes []byte) [][][]byte {
 		branchBitsArray[i] = fileUtil.CopyBytesTo(branchIndex[ : ImgIndex.CLIP_INDEX_BRANCH_BITS])
 	}
 
-	for _,b:=range branchBitsArray {
-		if fileUtil.BytesCompare(minBranch, b) > 0 {
-			minBranch = b
+	if 1 < len(branchBitsArray){
+		for _,b:=range branchBitsArray {
+			if fileUtil.BytesCompare(minBranch, b) > 0 {
+				minBranch = b
+			}
+			if fileUtil.BytesCompare(maxBranch, b) < 0 {
+				maxBranch = b
+			}
 		}
-		if fileUtil.BytesCompare(maxBranch, b) < 0 {
-			maxBranch = b
-		}
+	}else{
+		minBranch = branchBitsArray[0]
+		maxBranch = []byte{255,255}	//在分支字节索引中, 最大的值是 250
 	}
+
 
 	region := util.Range{Start:minBranch, Limit:maxBranch}
 
@@ -144,7 +152,7 @@ func IsSameIndex(leftIndex, rightIndex[]byte) bool {
 		return false
 	}
 
-	fmt.Println("meanDiff: ", meanDiff,", sdDiff: ", sdDiff, ", eulDiff: ", eulDiff)
+//	fmt.Println("meanDiff: ", meanDiff,", sdDiff: ", sdDiff, ", eulDiff: ", eulDiff)
 
 	return true
 }

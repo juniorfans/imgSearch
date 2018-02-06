@@ -66,7 +66,7 @@ func SaveTheInputImg()  {
 
 func HowManyClipIdents(dbId uint8)  {
 	{
-		clipIndexDB := InitMuClipToIndexDb(dbId)
+		clipIndexDB := InitMuClipToIndexDB(dbId)
 		iter := clipIndexDB.DBPtr.NewIterator(nil, &clipIndexDB.ReadOptions)
 		iter.First()
 		count := 0
@@ -100,7 +100,7 @@ func PrintClipIdent(dbId uint8)  {
 		fmt.Print("input threadid, offset, count to read: ")
 		fmt.Fscan(stdin, &threadId, &offset, &count)
 
-		clipIndexDB := InitMuClipToIndexDb(dbId)
+		clipIndexDB := InitMuClipToIndexDB(dbId)
 
 		//region := util.Range{Start:[]byte{config.ThreadIdToByte[int(threadId)]}}
 
@@ -144,7 +144,7 @@ func CanFindIndexForClip()  {
 		fmt.Print("input dbId, imgKey, which to find: ")
 		fmt.Fscan(stdin, &dbId, &imgKey, &which)
 
-		clipIndexDB := InitMuClipToIndexDb(dbId)
+		clipIndexDB := InitMuClipToIndexDB(dbId)
 
 		clipIdent := ImgIndex.GetImgClipIdent(dbId,ImgIndex.FormatImgKey([]byte(imgKey)), which)
 		fmt.Println("----------------------")
