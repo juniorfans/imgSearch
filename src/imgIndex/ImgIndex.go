@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+var CLIP_INDEX_STAT_BYTES_LEN int = 2
+var CLIP_INDEX_BYTES_LEN int = 72
+var CLIP_INDEX_BRANCH_BITS int = 2
+var CLIP_INDEX_BRANCH_BOUND uint8 = 10
+
 /**
 	获得一个 jpg 图像的 index
 	内部实现的原理是，获得它里面每张切图的 index，将其拼接在一起

@@ -1,21 +1,24 @@
 package config
 
 type ClipConfig struct {
-	SmallPicWidth int
-	SmallPicHeight int
-	StartOffsetX int
-	StartOffsetY int
+	SmallPicWidth            int
+	SmallPicHeight           int
+	StartOffsetX             int
+	StartOffsetY             int
 	IntervalXBetweenSmallPic int
 	IntervalYBetweenSmallPic int
-	bigPicWidth int
-	bigPicHeight int
-	SmallPicCountInX int
-	SmallPicCountInY int
-	Id uint8
-	ImgConfigId uint8
+	BigPicWidth              int
+	BigPicHeight             int
+	SmallPicCountInX         int
+	SmallPicCountInY         int
+	Id                       uint8
+	ImgConfigId              uint8
 
-	ClipOffsets []int
-	ClipLengh int
+	ClipOffsets              []int
+	ClipLengh                int
+
+	//-----------------
+	cachedClipLeftTopPoints  []Point
 }
 
 /**
@@ -29,8 +32,8 @@ var normalClipConfig = ClipConfig{
 	StartOffsetY: 41,
 	IntervalXBetweenSmallPic:5,
 	IntervalYBetweenSmallPic:5,
-	bigPicWidth:293,
-	bigPicHeight:190,
+	BigPicWidth:293,
+	BigPicHeight:190,
 	SmallPicCountInX: 4,
 	SmallPicCountInY: 2,
 
@@ -44,6 +47,51 @@ var normalClipConfig = ClipConfig{
 	Id : 0,
 }
 
+type Point struct {
+	x, y int
+}
+
+/**
+	子图序列是
+	0	2	4	6
+	1	3	5	7
+ */
+func (this *ClipConfig) GetClipsLeftTop() []Point {
+	if 0 != len(this.cachedClipLeftTopPoints){
+		return this.cachedClipLeftTopPoints
+	}
+	ret := make([]Point, 8)
+	xStep := this.SmallPicWidth+this.IntervalXBetweenSmallPic
+	yStep := this.SmallPicHeight+this.IntervalYBetweenSmallPic
+
+	xLimit := this.BigPicWidth -this.IntervalXBetweenSmallPic-this.SmallPicWidth
+	yLimit := this.BigPicHeight -this.IntervalYBetweenSmallPic-this.SmallPicHeight
+	ci := 0
+	for i:=this.StartOffsetX;i<= xLimit; i+=xStep {
+		for j := this.StartOffsetY; j <= yLimit; j += yStep {
+			//i,j 为左上角
+			ret[ci] = Point{x:i,y:j}
+			ci ++
+		}
+	}
+	this.cachedClipLeftTopPoints = ret
+	return ret
+}
+
+/**
+	大图中的 x,y 位于哪个子图里面
+ */
+func (this *ClipConfig) WhichClip (x,y int) uint8 {
+	points := this.cachedClipLeftTopPoints
+//	y += this.StartOffsetY
+	for i, point := range points{
+		if x >= point.x && y >= point.y && x <= point.x+this.SmallPicWidth && y <= point.y+this.SmallPicHeight{
+			return uint8(i)
+		}
+	}
+	return 255
+}
+
 func GetClipConfigById(id uint8) *ClipConfig {
 	if id == 0{
 		return &normalClipConfig
@@ -52,7 +100,7 @@ func GetClipConfigById(id uint8) *ClipConfig {
 }
 
 func GetClipConfigBySize(height, width int) *ClipConfig {
-	if height==normalClipConfig.bigPicHeight && width == normalClipConfig.bigPicWidth {
+	if height==normalClipConfig.BigPicHeight && width == normalClipConfig.BigPicWidth {
 		return &normalClipConfig
 	}
 	return nil

@@ -53,6 +53,8 @@ func main(){
 		23	从 imgDB 中某处开始，导出多少个图
 		24	测试 imgdb 的划分: 总分核对
 		25	下载指定的 clip 子图
+		26	读取 result 库的统计信息
+		27	读取result 库中对某个库的的统计信息
 		 */
 		if(0 == testCase){
 			dbOptions.PrintAllStatInfo()
@@ -108,6 +110,12 @@ func main(){
 			dbOptions.TestSplitTotalCounts(imgDB, 25)
 		}else if(25 == testCase){
 			dbOptions.SaveSpecifiedClip()
+		}else if(26 == testCase){
+			dbOptions.PrintResultDBStat()
+		}else if (27 == testCase){
+			dbOptions.PrintResultDBStatOf(dbIndex)
+		}else if(28 == testCase){
+			dbOptions.PrintClipSameBytes()
 		}else{
 			fmt.Println("invalid options")
 		}

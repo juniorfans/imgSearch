@@ -26,7 +26,7 @@ type DBConfig struct {
 
 	Name	string
 	Id           uint8
-	dbType	uint8	//0:source_db 1:index_db
+	dbType	uint8	//0:source_db 1:index_db 2:result_db
 
 	initParams *DBInitParams
 }
@@ -407,5 +407,9 @@ func ReadValues(dbPtr *leveldb.DB, count int)  {
 func (this *DBConfig) CloseDB()  {
 	this.inited = false
 	this.DBPtr.Close()
-	removeClosed()
+
+	if 0 == this.dbType{
+		markImgDBClosed()
+	}
+
 }

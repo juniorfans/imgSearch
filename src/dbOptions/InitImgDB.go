@@ -75,7 +75,7 @@ func GetImgDBWhichPicked() *DBConfig {
 	}
 }
 
-func removeClosed()  {
+func markImgDBClosed()  {
 	var aliveDBs []*DBConfig
 	for _,db := range imgDBs{
 		if false != db.inited{

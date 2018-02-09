@@ -7,10 +7,7 @@ import (
 )
 
 
-var CLIP_INDEX_STAT_BYTES_LEN int = 2
-var CLIP_INDEX_BYTES_LEN int = 72
-var CLIP_INDEX_BRANCH_BITS int = 2
-var CLIP_INDEX_BRANCH_BOUND uint8 = 10
+
 
 //编辑 clip 的 index, 只保留 RGB 通道，删除 A 通道
 //输入要求是 4 通道索引值
@@ -57,7 +54,7 @@ func ClipIndexStatInfo(indexBytes []byte) (standardDeviation uint8, mean ,minVlu
 	return
 }
 
-//clip index 进行分支, branchBits 表示使用索引的前几位
+//clip index 进行分支, branchBits 表示使用索引的前几位进行分支
 // 输入的索引要求是 3 通道索引
 func ClipIndexBranch(clipIndexBytes []byte) [][] byte {
 	branchBits := CLIP_INDEX_BRANCH_BITS
@@ -158,6 +155,7 @@ func ClipIndexBranch(clipIndexBytes []byte) [][] byte {
 	*/
 	return branchIndexes
 }
+
 
 func formatBranchIndex(offset int, branchIndex []byte)  {
 	for i, c := range branchIndex{
