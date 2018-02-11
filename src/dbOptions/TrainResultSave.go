@@ -20,6 +20,7 @@ import (
 type TrainResultItem struct {
 	Whiches  []uint8
 	TagIndex []byte
+	TagName []byte
 }
 
 type bytesList [][]byte

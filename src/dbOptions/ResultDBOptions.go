@@ -9,6 +9,9 @@ import (
 	"config"
 	"util"
 	"github.com/syndtr/goleveldb/leveldb/util"
+	"bytes"
+	"imgCache"
+	"sort"
 )
 
 
@@ -391,12 +394,14 @@ var TAG_INDEX_LENGTH = 2
 var STAT_MAX_TAG_INDEX_PREFIX = []byte (string(config.STAT_KEY_PREX) + "_MAX_TAG_INDEX")
 func WriteATag(tag []byte) error {
 
+	tag = trimLRSpace(tag)
+
 	tagNameToIndexDB := InitTagNameToIndexDB()
 
 	exsistsIndex := tagNameToIndexDB.ReadFor(tag)
 	//has exsited
 	if nil != exsistsIndex{
-		return nil
+		return 	errors.New("tag has been exsited")
 	}
 
 	tagIndexToNameDB := InitTagIndexToNameDB()
@@ -469,17 +474,181 @@ func InitTagNameToIndexDB() *DBConfig {
 	return &retDB
 }
 
-type TagNameToIndex struct {
-	TagName []byte
-	TagIndex []byte
+type TagInfo struct {
+	TagName          []byte
+	TagIndex         []byte
+	tagPYList        []string
+	tagPYSr          []byte
+	tagPYFirstLetter []byte
 }
 
-func GetAllTagNameToIndex() []TagNameToIndex {
-	return QueryTagNameToIndex(nil)
+func (this *TagInfo) Print()  {
+	fmt.Println(string(this.TagName), " | ", string(this.TagIndex), " | ", this.tagPYList, " | ", string(this.tagPYSr), " | ", string(this.tagPYFirstLetter))
 }
 
-func QueryTagNameToIndex(tagName []byte) []TagNameToIndex  {
-	var ret []TagNameToIndex = nil
+type TagInfoList []TagInfo
+
+func (a TagInfoList) Len() int {
+	return len(a)
+}
+func (a TagInfoList) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+//先比较横坐标，再比较纵坐标
+func (a TagInfoList) Less(i, j int) bool {
+	return bytes.Compare(a[i].tagPYFirstLetter, a[j].tagPYFirstLetter) < 0
+}
+
+
+func (this *TagInfoList) Print(){
+	for _,tag := range *this{
+		tag.Print()
+	}
+}
+
+func (this *TagInfoList) SortByPinYinFirstLetter(){
+	sort.Sort(*this)
+}
+
+func (this *TagInfoList) IsTagExsits(tagName []byte) bool{
+	for _,tag := range *this{
+		if bytes.Equal(tag.TagName, tagName){
+			return true
+		}
+	}
+	return false
+}
+
+func (this *TagInfoList) MustOnlyOneByName(tagName []byte) *TagInfo{
+	for _,tag := range *this{
+		if bytes.Equal(tag.TagName, tagName){
+			return &tag
+		}
+	}
+	return nil
+
+}
+
+func (this *TagInfoList) FindByNameOrPinyin(input []byte) TagInfoList{
+	nres := this.findByName(input)
+	pres := this.findByPinYin(input)
+	totalRet := make([]TagInfo, len(nres) + len(pres))
+	ci := 0
+	if 0 != len(nres){
+		ci += copy(totalRet[ci:], nres)
+	}
+	if 0!= len(pres){
+		ci += copy(totalRet[ci:], pres)
+	}
+	ret := TagInfoList(totalRet)
+	return (&ret).removeDuplicate()
+
+}
+
+func (this *TagInfoList) findByName(name []byte) TagInfoList {
+	var ret []TagInfo
+	for _,tag := range *this{
+		if fileUtil.BytesStartWith(tag.TagName, name){
+			ret = append(ret, tag)
+		}
+	}
+	return ret
+}
+
+func (this *TagInfoList) removeDuplicate() TagInfoList {
+	var ret []TagInfo
+	resMap := imgCache.NewMyMap(false)
+
+	for _, tag := range *this{
+		resMap.Put(tag.TagIndex, tag)
+	}
+
+	keys := resMap.KeySet()
+	for _,key := range keys{
+		values := resMap.Get(key)
+		if len(values) == 1{
+			ret = append(ret, values[0].(TagInfo))
+		}
+	}
+
+	return TagInfoList(ret)
+}
+
+func (this *TagInfoList) findByPinYin(py []byte) TagInfoList{
+	var ret []TagInfo
+
+	for _,tag := range *this{
+		if fileUtil.BytesStartWith(tag.tagPYFirstLetter, py){
+			ret = append(ret, tag)
+		}else if fileUtil.BytesStartWith(tag.tagPYSr, py){
+			ret = append(ret, tag)
+		}else {}
+
+	}
+
+	retList := TagInfoList(ret)
+	return (&retList).removeDuplicate()
+}
+func (this *TagInfoList) FindByIndex (index []byte) TagInfoList {
+	var ret []TagInfo
+	for _,tag := range *this{
+		if bytes.Equal(tag.TagIndex, tag.TagIndex){
+			ret = append(ret, tag)
+		}
+	}
+	return TagInfoList(ret)
+}
+
+func GetAllTagInfos() TagInfoList {
+	ret := queryATagInfoByName(nil)
+	ret.SortByPinYinFirstLetter()
+	return ret
+}
+
+func trimLRSpace(input []byte) []byte {
+	start := 0
+	limit := len(input)
+	for i:=0;i<len(input);i++{
+		if ' ' == input[i]{
+			start = i+1
+		}else{
+			break
+		}
+	}
+
+	for j:=len(input)-1;j >= 0;j --{
+		if ' ' == input[j]{
+			limit = j
+		}else{
+			break
+		}
+	}
+	if start>=len(input){
+		return []byte{}
+	}else if limit <=0 {
+		return []byte{}
+	}
+	return input[start : limit]
+}
+
+/*
+func QueryTagInfosBy(tagNames [][]byte) []TagInfo {
+	var ret []TagInfo = nil
+	for _,tagName := range tagNames{
+		curIndexes := QueryATagInfo(tagName)
+		for _,index := range curIndexes{
+			ret = append(ret, index)
+		}
+	}
+	return ret
+}
+*/
+
+func queryATagInfoByName(tagName []byte) TagInfoList {
+
+	tagName = trimLRSpace(tagName)
+
+	var ret []TagInfo = nil
 
 	var start []byte = tagName
 	var limit []byte = nil
@@ -489,14 +658,40 @@ func QueryTagNameToIndex(tagName []byte) []TagNameToIndex  {
 	}
 
 	db := InitTagNameToIndexDB()
+	if 0 == len(start){
+		start = nil
+	}
+	if 0 == len(limit){
+		limit = nil
+	}
 	iter := db.DBPtr.NewIterator(&util.Range{Start:start, Limit:limit}, &db.ReadOptions)
+
+	fileUtil.PrintBytes(start)
+	fileUtil.PrintBytes(limit)
+	//py := pinyingo.NewPy(pinyingo.STYLE_NORMAL, pinyingo.NO_SEGMENT)
 	iter.First()
 	for iter.Valid(){
 		if len(iter.Value()) == TAG_INDEX_LENGTH{
-			ret = append(ret, TagNameToIndex{TagName: iter.Key(), TagIndex:iter.Value()})
+			pyList := []string{""}//py.Convert(string(iter.Key()))
+			pyStr := ""
+			pyFirstLetter := ""
+			for _,p := range pyList{
+				pyStr += p
+				if len(p) > 0{
+					pyFirstLetter += p[0:1]
+				}
+			}
+			ret = append(ret, TagInfo{
+				TagName: fileUtil.CopyBytesTo(iter.Key()),
+				TagIndex: fileUtil.CopyBytesTo(iter.Value()),
+				tagPYList: pyList,
+				tagPYSr: []byte(pyStr),
+				tagPYFirstLetter:[]byte(pyFirstLetter),
+			},
+			)
 		}
 		iter.Next()
 	}
 	iter.Release()
-	return ret
+	return TagInfoList(ret)
 }
