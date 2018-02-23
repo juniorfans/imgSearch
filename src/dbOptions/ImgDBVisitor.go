@@ -65,9 +65,12 @@ func (this *DefaultVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
 
 var visitFinished chan int
 
-func VisitBySeek(dbConfig *DBConfig, callBack VisitCallBack) int {
+func VisitBySeek(dbConfig *DBConfig, callBack VisitCallBack, threadCount int) int {
 
-	threadCount := config.MAX_THREAD_COUNT
+	//threadCount := config.MAX_THREAD_COUNT
+	if threadCount < 1 || threadCount > config.MAX_THREAD_COUNT{
+		threadCount = config.MAX_THREAD_COUNT
+	}
 	visitFinished = make(chan int, threadCount)
 
 	start := time.Now().Unix()

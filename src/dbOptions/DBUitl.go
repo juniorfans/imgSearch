@@ -171,7 +171,7 @@ func PrintImgIdent(dbId uint8)  {
 		fmt.Print("input offset, count to read: ")
 		fmt.Fscan(stdin, &offset, &count)
 
-		imgIndexDB := InitMuImgToIndexDb(dbId)
+		imgIndexDB := InitMuImgToIndexDB(dbId)
 		iter := imgIndexDB.DBPtr.NewIterator(nil , &imgIndexDB.ReadOptions)
 		iter.First()
 		ci := 0
@@ -181,7 +181,7 @@ func PrintImgIdent(dbId uint8)  {
 		for iter.Valid()  {
 			if ci >= offset{
 				if count > 0{
-					fmt.Println("key len: ", len(iter.Key()), ", dbId: ", int(iter.Key()[0]))
+					fmt.Println("key len: ", len(iter.Key()),", value len: ", len(iter.Value()), ", dbId: ", int(iter.Key()[0]))
 					fileUtil.PrintBytes(iter.Key())
 					fmt.Println(string(ImgIndex.ParseImgKeyToPlainTxt(iter.Key()[1:])))
 
@@ -211,7 +211,7 @@ func CanFindImgIdentInImgToIndexDB(dbId uint8)  {
 		fmt.Print("input imgKey to find : ")
 		fmt.Fscan(stdin, &imgKey)
 
-		imgIndexDB := InitMuImgToIndexDb(dbId)
+		imgIndexDB := InitMuImgToIndexDB(dbId)
 
 		findKey := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 		findKey[0] = byte(GetImgDBWhichPicked().Id)

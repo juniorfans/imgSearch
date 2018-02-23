@@ -38,7 +38,12 @@ func SaveAllClipsOfImgs()  {
 	}
 }
 
-
+func PrintClipIndexFromClipIndexToIndent(dbId uint8)  {
+	indexToClipDB := InitMuIndexToClipDB(dbId)
+	iter := indexToClipDB.DBPtr.NewIterator(nil, &indexToClipDB.ReadOptions)
+	iter.First()
+	fmt.Println("clip index length is: ",len(iter.Key()))
+}
 
 func PrintClipIndex()  {
 	stdin := bufio.NewReader(os.Stdin)
@@ -58,7 +63,6 @@ func PrintClipIndex()  {
 		t, _ = strconv.Atoi(inputs[2])
 		which = uint8(t)
 
-		//clip index 是 rgb 三个通道的字节. 所以是 3 的倍数
 		indexBytes := GetImgClipIndexFromClipIdent(dbId, ImgIndex.FormatImgKey([]byte(mainImgId)), which)
 		fmt.Print(input," -- ")
 		fileUtil.PrintBytes(indexBytes)
@@ -237,6 +241,24 @@ func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byt
 func SaveClipsAsJpg(dir string, indexData ImgIndex.SubImgIndex) {
 	mainImgName := ImgIndex.ParseImgKeyToPlainTxt(indexData.KeyOfMainImg)
 	clipName := strconv.Itoa(int(indexData.DBIdOfMainImg)) + "_" + string(mainImgName) + "_" +strconv.Itoa(int(indexData.Which))+".jpg"
+	clipConfig := config.GetClipConfigById(indexData.ConfigId)
+
+	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像
+	data := imgo.New3DSlice(clipConfig.SmallPicHeight, clipConfig.SmallPicWidth, 4)
+	indexes := indexData.IndexUnits
+	for _, index := range indexes{
+		//ImgIndex.IndexDataApplyIntoSubImg(data, clipConfig.SmallPicHeight, clipConfig.SmallPicWidth, index)
+		ImgIndex.IndexDataApplyIntoSubImg(data, index)
+	}
+
+	fmt.Println("gen name: " , dir + "/" + clipName)
+	imgo.SaveAsJPEG(dir + "/" + clipName,data,100)
+}
+
+
+func SaveClipsAsJpgWithName(dir, name string, indexData ImgIndex.SubImgIndex) {
+	mainImgName := ImgIndex.ParseImgKeyToPlainTxt(indexData.KeyOfMainImg)
+	clipName := strconv.Itoa(int(indexData.DBIdOfMainImg)) + "_" + string(mainImgName) + "_" +strconv.Itoa(int(indexData.Which))+"_"+name+".jpg"
 	clipConfig := config.GetClipConfigById(indexData.ConfigId)
 
 	//复原索引到图片数据中，若索引数据只是原图片数据的部分(理应如此)，则恢复出来的图片只有部分的图像

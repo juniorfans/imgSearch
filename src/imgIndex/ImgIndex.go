@@ -5,8 +5,14 @@ import (
 	"fmt"
 )
 
+
+/**
+	branch clip index 由2个字节的统计字节加上branch clip index组成。统计字节目前是方差和平均值
+*/
+var IMG_INDEX_BYTES_LEN_int = 288
 var CLIP_INDEX_STAT_BYTES_LEN int = 2
 var CLIP_INDEX_BYTES_LEN int = 72
+var CLIP_BRANCH_INDEX_BYTES_LEN int = CLIP_INDEX_BYTES_LEN + CLIP_INDEX_STAT_BYTES_LEN
 var CLIP_INDEX_BRANCH_BITS int = 2
 var CLIP_INDEX_BRANCH_BOUND uint8 = 10
 

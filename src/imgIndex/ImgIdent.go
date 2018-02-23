@@ -7,6 +7,10 @@ import (
 	"strconv"
 )
 
+var IMG_KEY_LENGTH = 4				//img key 的长度
+var IMG_IDENT_LENGTH = IMG_KEY_LENGTH+1	//img ident 的长度, 由 img key 加上 dbId 构成
+var IMG_CLIP_IDENT_LENGTH = IMG_KEY_LENGTH+2	//img clip ident 的长度, 由 img key 再加上 dbId, which 构成
+
 type ClipIdentInfo struct {
 	DbId   uint8
 	ImgKey []byte
@@ -32,11 +36,6 @@ func NewClipIdentInfo(clipIdentBytes []byte) *ClipIdentInfo {
 	return &ret
 
 }
-
-var IMG_KEY_LENGTH = 4				//img key 的长度
-var IMG_IDENT_LENGTH = IMG_KEY_LENGTH+1	//img ident 的长度, 由 img key 加上 dbId 构成
-var IMG_CLIP_IDENT_LENGTH = IMG_KEY_LENGTH+2	//img clip ident 的长度, 由 img key 再加上 dbId, which 构成
-
 
 func GetImgKey(threadId uint8, seqNo int) []byte {
 	ret := make([]byte, 4)	//3字节表达的 uint 范围是0 ~ 16777215
@@ -71,16 +70,16 @@ func GetImgIdent(dbId uint8, imgKey []byte) []byte {
 	编码格式：
 	dbid			1字节
 
-	<下面两个字节刚好就是 img key>
+	<下面4字节刚好就是 img key>
 	threadId		1字节
 	imgSeqNo		3字节(千万级别)
 
 	which			1字节
  */
-func GetImgClipIdent(dbId uint8, imgId []byte, which uint8) []byte {
+func GetImgClipIdent(dbId uint8, imgKey []byte, which uint8) []byte {
 	ret := make([]byte, IMG_CLIP_IDENT_LENGTH)
 	ret[0] = byte(dbId)
-	copy(ret[1:], imgId)
+	copy(ret[1:], imgKey)
 	ret[IMG_CLIP_IDENT_LENGTH-1] = byte(which)
 	return ret
 }
@@ -159,3 +158,7 @@ func ParseImgIden(ident string) (dbId uint8, imgId []byte) {
 	return ParseImgIdenBytes([]byte(ident))
 }
 
+func ParseClipIdentToString(clipIdent []byte, splitStr string) string {
+	dbId, imgKey, which := ParseAImgClipIdentBytes(clipIdent)
+	return strconv.Itoa(int(dbId)) + splitStr + string(ParseImgKeyToPlainTxt(imgKey)) + splitStr + strconv.Itoa(int(which))
+}

@@ -21,7 +21,7 @@ func main()  {
 		dbIdS,_ := strconv.Atoi(dbIdStr)
 		curDbId := uint8(dbIdS)
 
-		imgToIndexDB := dbOptions.InitMuImgToIndexDb(curDbId)
+		imgToIndexDB := dbOptions.InitMuImgToIndexDB(curDbId)
 		indexToImgDB := dbOptions.InitMuIndexToImgDB(curDbId)
 		imgToClipDB := dbOptions.InitMuClipToIndexDB(curDbId)
 		clipToImgDB := dbOptions.InitMuClipToIndexDB(curDbId)

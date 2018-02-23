@@ -120,32 +120,12 @@ func InitClipToIndexDB() *DBConfig {
 
 var initedIndexDb map[int] *DBConfig
 
-/*
-func GetTotalMuIndexToClipDB() *DBConfig {
-	return InitIndexDBByBaseDir(255,2)
-}
-
-func GetTotalMuClipToIndexDb() *DBConfig {
-	return InitIndexDBByBaseDir(255,1)
-}
-
-
-func GetTotalMuIndexToImgDB() *DBConfig {
-	return InitIndexDBByBaseDir(255,3)
-}
-
-
-func GetTotalMuImgToIndexDb() *DBConfig {
-	return InitIndexDBByBaseDir(255,4)
-}
-*/
-
-
 
 func InitMuIndexToClipDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,2)
 }
 
+//clip ident to source clip index. 不是分支索引，也不含统计字节
 func InitMuClipToIndexDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,1)
 }
@@ -156,8 +136,14 @@ func InitMuIndexToImgDB(dbId uint8) *DBConfig {
 }
 
 
-func InitMuImgToIndexDb(dbId uint8) *DBConfig {
+func InitMuImgToIndexDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,4)
+}
+
+func MultityInitClipIndexToIdentDBs(dbIds []uint8)  {
+	for _, dbId := range dbIds{
+		InitMuIndexToClipDB(dbId)
+	}
 }
 
 func GetInitedClipIndexToIdentDB() []*DBConfig {

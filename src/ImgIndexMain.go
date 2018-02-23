@@ -17,7 +17,7 @@ func SaveMainImgIndexes()  {
 		fmt.Fscan(stdin,&dbIndex)
 		imgDB := dbOptions.PickImgDB(dbIndex)
 		indexToImgDB := dbOptions.InitMuIndexToImgDB(dbIndex)
-		imgToIndexDB := dbOptions.InitMuImgToIndexDb(dbIndex)
+		imgToIndexDB := dbOptions.InitMuImgToIndexDB(dbIndex)
 		fmt.Println("input how many times each thread(16 in total) to deal: ")
 		fmt.Fscan(stdin,&input)
 		dbOptions.ImgIndexSaveRun(dbIndex, input)

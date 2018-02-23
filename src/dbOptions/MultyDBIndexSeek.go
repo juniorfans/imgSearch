@@ -12,30 +12,30 @@ import (
 
 
 //从多个表里面读取 key- value
-type MultyDBIndexSeeker struct {
+type MultyDBClipBranchIndexToIdentSeeker struct {
 	seekRes chan [][]byte
 	dbs []*DBConfig
 }
 
-func NewMultyDBIndexSeeker(dbs []*DBConfig) *MultyDBIndexSeeker {
+func NewMultyClipBIndexToIdentSeeker(dbs []*DBConfig) *MultyDBClipBranchIndexToIdentSeeker {
 
 	if 0 == len(dbs){
 		return nil
 	}
 
-	ret := MultyDBIndexSeeker{}
+	ret := MultyDBClipBranchIndexToIdentSeeker{}
 	ret.dbs = dbs
 	ret.seekRes = make(chan [][]byte, len(dbs))
 	return &ret
 }
 
-func (this *MultyDBIndexSeeker) Close ()  {
+func (this *MultyDBClipBranchIndexToIdentSeeker) Close ()  {
 	close(this.seekRes)
 }
 
+
 //每一个 clipIndex 可能对应多个 clipIdent, 此函数用于返回一个 clipIndex 的分支索引对应的全部 clipIdent: n 个 [][]byte, 每一个是某些 clipIdent
-func (this *MultyDBIndexSeeker) SeekRegion (clipIndexBytes []byte) [][][]byte {
-	branchesIndexes := ImgIndex.ClipIndexBranch(clipIndexBytes)
+func (this *MultyDBClipBranchIndexToIdentSeeker) SeekRegionForBranches (branchesIndexes [][]byte) [][][]byte {
 
 	//填坑: branchesIndexes 的长度有可能是 1: 当 clipIndexBytes 的分支字节值已经是最大时(>=250).
 	//此时要注意 minBranch 和 maxBranch 的取值
@@ -79,7 +79,13 @@ func (this *MultyDBIndexSeeker) SeekRegion (clipIndexBytes []byte) [][][]byte {
 
 }
 
-func (this *MultyDBIndexSeeker) seekRegion(db *DBConfig, region *util.Range, branchesIndexes [][]byte)  {
+//每一个 clipIndex 可能对应多个 clipIdent, 此函数用于返回一个 clipIndex 的分支索引对应的全部 clipIdent: n 个 [][]byte, 每一个是某些 clipIdent
+func (this *MultyDBClipBranchIndexToIdentSeeker) SeekRegion (clipIndexBytes []byte) [][][]byte {
+	branchesIndexes := ImgIndex.ClipIndexBranch(clipIndexBytes)
+	return this.SeekRegionForBranches(branchesIndexes)
+}
+
+func (this *MultyDBClipBranchIndexToIdentSeeker) seekRegion(db *DBConfig, region *util.Range, branchesIndexes [][]byte)  {
 	res := imgCache.NewMyMap(false)
 
 	iter := db.DBPtr.NewIterator(region, &db.ReadOptions)
@@ -87,11 +93,11 @@ func (this *MultyDBIndexSeeker) seekRegion(db *DBConfig, region *util.Range, bra
 	for iter.Valid(){
 		curIndex := iter.Key()
 
-		if len(curIndex) == ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN{
+		if len(curIndex) == ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN{
 			//		fmt.Print("curIndex: ")
 			//		fileUtil.PrintBytes(curIndex)
 			for _, branchIndex := range branchesIndexes{
-				if IsSameIndex(curIndex, branchIndex){
+				if IsSameClipBranchIndex(curIndex, branchIndex){
 					//	fmt.Println("find same: ----------------------------------")
 					//	fileUtil.PrintBytes(curIndex)
 					//	fileUtil.PrintBytes(branchIndex)
@@ -113,12 +119,12 @@ func (this *MultyDBIndexSeeker) seekRegion(db *DBConfig, region *util.Range, bra
 
 //-------------------------------------------------------------------------------------------
 
-func IsSameIndex(leftIndex, rightIndex[]byte) bool {
+func IsSameClipBranchIndex(leftIndex, rightIndex[]byte) bool {
 	if len(leftIndex) != len(rightIndex){
 		fmt.Println("error, left, right len not equal as the clip index")
 		return false
 	}
-	if len(leftIndex) != ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN{
+	if len(leftIndex) != ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN{
 		return false
 	}
 

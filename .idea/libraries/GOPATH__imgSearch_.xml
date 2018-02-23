@@ -1,0 +1,38 @@
+<component name="libraryTable">
+  <library name="GOPATH &lt;imgSearch&gt;">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/../EnvTest" />
+      <root url="file://$PROJECT_DIR$/../FileMonitor" />
+      <root url="file://$PROJECT_DIR$/../TestDir" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../ImageTestJava" />
+      <root url="file://$PROJECT_DIR$/../getPerfectWallPaper" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../weixin" />
+      <root url="file://$PROJECT_DIR$/../dirtest" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../sorter" />
+      <root url="file://$PROJECT_DIR$/../Go_Study" />
+      <root url="file://$PROJECT_DIR$/../imgTrain" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../EnvTest" />
+      <root url="file://$PROJECT_DIR$/../FileMonitor" />
+      <root url="file://$PROJECT_DIR$/../TestDir" />
+      <root url="file://$PROJECT_DIR$/../gopkg.in" />
+      <root url="file://$PROJECT_DIR$/../ImageTestJava" />
+      <root url="file://$PROJECT_DIR$/../getPerfectWallPaper" />
+      <root url="file://$PROJECT_DIR$/../golang.org" />
+      <root url="file://$PROJECT_DIR$/../weixin" />
+      <root url="file://$PROJECT_DIR$/../dirtest" />
+      <root url="file://$PROJECT_DIR$/../github.com" />
+      <root url="file://$PROJECT_DIR$/../sorter" />
+      <root url="file://$PROJECT_DIR$/../Go_Study" />
+      <root url="file://$PROJECT_DIR$/../imgTrain" />
+    </SOURCES>
+    <excluded>
+      <root url="file://$PROJECT_DIR$" />
+    </excluded>
+  </library>
+</component>

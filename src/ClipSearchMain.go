@@ -79,7 +79,7 @@ func TestSeek2()  {
 		for _,indexDBId := range indexDBIds{
 			dbId, _ := strconv.Atoi(indexDBId)
 			dbOptions.InitMuIndexToClipDB(uint8(dbId))
-			dbOptions.InitMuImgToIndexDb(uint8(dbId))
+			dbOptions.InitMuImgToIndexDB(uint8(dbId))
 		}
 
 		var dbId, which uint8

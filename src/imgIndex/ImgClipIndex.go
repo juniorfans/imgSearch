@@ -9,7 +9,16 @@ import (
 	"sort"
 )
 
+/**
+	branch clip index 格式: branch bits | stat bits | other index |
+ */
 
+/**
+	clip 顺序
+	0	2	4	6
+	1	3	5	7
+
+ */
 
 /**
 	获得 fileName 图片的 clips 切图数据

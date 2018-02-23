@@ -15,6 +15,63 @@ import (
 )
 
 
+/**
+	结果保存：
+	1. 相同主题子图有哪些 AClipIndexBytes | BClipIndexBytes --> tagIndex, 计算方法: 一张大图中同时被选择的多个子图及 tag
+	2. 子图的主题 clipBranchesIndexBytes --> tagId
+	3. 大图 imgIndexBytes --> which array, 计算方法: 一张大图中选择的哪些子图
+	4. tag 下有哪些子图 (tagId | branches clipindex) --> nil
+	5. tagId --> tagName 及 tagName --> tagId. 训练时会新加入
+ */
+//----------------------------------------------------------------------------------
+func DumpSameTagClip(dbId uint8, limit int)  {
+	ctDB := InitClipIndexToTagDB()
+	tagIdToNameDB := InitTagIndexToNameDB()
+	clipIndexToIdDB := InitMuIndexToClipDB(dbId)
+	var clipIdent, tagName []byte
+	iter := ctDB.DBPtr.NewIterator(nil, &ctDB.ReadOptions)
+	iter.First()
+	for iter.Valid(){
+		branch := iter.Key()
+
+		if len(branch) != ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN{
+			continue
+		}
+
+		tagId := iter.Value()
+
+		clipIdent = clipIndexToIdDB.ReadFor(branch)
+		if 0 == len(clipIdent){
+			continue
+		}
+
+		for i:=0;i < len(clipIdent);i += 6{
+			curIdent := clipIdent[i:i+6]
+			tagName = tagIdToNameDB.ReadFor(tagId)
+			if 0 == len(tagName){
+				continue
+			}
+
+			indexes := GetDBIndexOfClips(PickImgDB(dbId) , curIdent[1:len(curIdent)-1], []int{-1} ,-1)
+
+			SaveClipsAsJpgWithName("E:/gen/result_verify/", string(tagName), indexes[curIdent[len(curIdent)-1]])
+			if 0 == limit{
+				return
+			}
+			limit --
+
+		}
+		iter.Next()
+	}
+}
+
+
+
+
+//----------------------------------------------------------------------------------
+
+
+
 func GetClipIndexBytesOfWhich(dbId uint8, imgIdent []byte, whiches []uint8) map[uint8] []byte {
 	clipIdentToIndexDB := InitMuClipToIndexDB(dbId)
 
@@ -97,7 +154,7 @@ func WriteTheSameClips(dbId uint8, imgIdent []byte, clipIndexBytesOfWhich map[ui
 	copy(clipIdent, imgIdent)
 
 	sameBatch := leveldb.Batch{}
-	branchLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN
+	branchLen := ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN
 	toAddKey := make([]byte, 2*branchLen)
 	toDupKey := make([]byte, 2*branchLen)
 
@@ -130,7 +187,7 @@ func WriteTheSameClips(dbId uint8, imgIdent []byte, clipIndexBytesOfWhich map[ui
 
 //---------------------------------------------------------------------------
 /*img 被选择的子图
-	格式: (img source index bytes) --> which bytes
+	格式: (img source index bytes) --> which array
 */
 var initedImgWhichesDb map[int] *DBConfig
 func InitImgIndexToWhichDB() *DBConfig {
@@ -184,7 +241,7 @@ func WriteImgWhiches(dbId uint8, imgIdent []byte, whiches []uint8) error {
 	//写入 img index ---> whiches
 	resDB := InitImgIndexToWhichDB()
 
-	imgIndexDB := InitMuImgToIndexDb(dbId)
+	imgIndexDB := InitMuImgToIndexDB(dbId)
 
 	index := imgIndexDB.ReadFor(imgIdent)
 	if 0 == len(index){
@@ -312,7 +369,7 @@ func InitTagToClipIndexDB() *DBConfig {
 func WriteClipTagDB(clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, tagIndex []byte)  {
 	tagToBranchesIndexBatch := leveldb.Batch{}
 	branchesIndexToTagIdBatch := leveldb.Batch{}
-	branchLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN
+	branchLen := ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN
 	toAddKey := make([]byte, branchLen + TAG_INDEX_LENGTH)
 	copy(toAddKey[0:TAG_INDEX_LENGTH], tagIndex)
 
@@ -339,7 +396,7 @@ func WriteClipTagDB(clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, ta
 //--------------------------------------------------------------
 /**
 	tag 库
-	格式: tag id(2 字节长度) --> tag name
+	格式: tag id/index (2 字节长度) --> tag name
  */
 var initedTagIndexToNameDb map[int] *DBConfig
 
@@ -423,7 +480,7 @@ func WriteATag(tag []byte) error {
 //--------------------------------------------------------------
 /**
 	tag 库
-	格式: tag index --> tag name
+	格式: tag name --> tag id
  */
 var initedTagNameToIndexDb map[int] *DBConfig
 
@@ -462,7 +519,7 @@ func InitTagNameToIndexDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/tag_index_to_name/data.db"
+	retDB.Name = "result/tag_name_to_index/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
 	fmt.Println("has pick this tag_name_to_index db: ", retDB.Dir)

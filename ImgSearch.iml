@@ -5,6 +5,6 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="GOPATH &lt;ImgSearch&gt;" level="project" />
+    <orderEntry type="library" name="GOPATH &lt;imgSearch&gt;" level="project" />
   </component>
 </module>

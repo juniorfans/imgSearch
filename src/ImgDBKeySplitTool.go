@@ -8,6 +8,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"config"
 	"github.com/syndtr/goleveldb/leveldb"
+	"imgIndex"
 )
 
 /**
@@ -85,7 +86,7 @@ func splitCallBack(newThreadCount uint8,compactDB, srcDB *dbOptions.DBConfig, th
 	region := util.Range{Start:[]byte{config.ThreadIdToByte[threadId]}, Limit:[]byte{config.ThreadIdToByte[threadId+1]}}
 	iter := srcDB.DBPtr.NewIterator(&region,&srcDB.ReadOptions)
 	iter.First()
-	fmt.Println("thread: ", threadId, ", begin: ", string(dbOptions.FormatImgKey(iter.Key())))
+	fmt.Println("thread: ", threadId, ", begin: ", string(ImgIndex.FormatImgKey(iter.Key())))
 
 	eachThreadCount := total / int(newThreadCount)
 	fmt.Println("each thread new count: ", eachThreadCount)

@@ -1,6 +1,9 @@
 package fileUtil
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 //left starts with right
 func BytesStartWith(left, right []byte) bool {
@@ -100,4 +103,37 @@ func BytesCompare(left, right []byte) int8 {
 		}
 	}
 	return 0
+}
+
+
+type ByteArray []byte
+
+func (a ByteArray) Len() int {
+	return len(a)
+}
+func (a ByteArray) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+//先比较横坐标，再比较纵坐标
+func (a ByteArray) Less(i, j int) bool {
+	return a[i] < a[j]
+}
+
+func BytesSort(data []byte)  {
+	sort.Sort(ByteArray(data))
+}
+
+func RemoveDupplicatedBytes(set []byte) []byte {
+	mapper := make(map[uint8] byte)
+	for _, d := range set{
+		mapper[d] = d
+	}
+	ret := make([]byte, len(mapper))
+	ci := 0
+	for d,_ := range mapper{
+		ret[ci] = d
+		ci ++
+	}
+	mapper = nil
+	return ret
 }

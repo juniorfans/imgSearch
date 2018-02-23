@@ -80,7 +80,7 @@ func ImgRrainResultsBatchSave(dbId uint8, resultMap *imgCache.MyMap) error {
 	}
 //	defer resDB.CloseDB()
 
-	imgIndexDB := InitMuImgToIndexDb(dbId)
+	imgIndexDB := InitMuImgToIndexDB(dbId)
 	if nil == imgIndexDB{
 		return errors.New("open img index db error")
 	}
@@ -202,8 +202,8 @@ func PrintClipSameBytes()  {
 		}
 
 		curKey := iter.Key()
-		fileUtil.PrintBytes(curKey[:ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN])
-		fileUtil.PrintBytes(curKey[ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_STAT_BYTES_LEN : ])
+		fileUtil.PrintBytes(curKey[:ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN])
+		fileUtil.PrintBytes(curKey[ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN : ])
 		times --
 		iter.Next()
 	}

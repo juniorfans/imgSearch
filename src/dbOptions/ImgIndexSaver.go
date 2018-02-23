@@ -220,7 +220,7 @@ func BeginImgSaveEx(dbIndex uint8, count int)  {
 	var visitCallBack VisitCallBack = &ImgIndexSaverVisitCallBack{maxVisitCount:count,
 		params:ImgIndexSaverVisitParams{dbId:dbIndex, cacheList:imgIndexCacheList}}
 
-	VisitBySeek(PickImgDB(dbIndex), visitCallBack)
+	VisitBySeek(PickImgDB(dbIndex), visitCallBack, -1)
 
 	//flush 剩余的 cache
 	imgIndexCacheList.FlushRemainKVCaches()

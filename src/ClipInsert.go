@@ -31,7 +31,7 @@ func main()  {
 		copy(imgIdent[1:], imgKey)
 
 		//由指定的子图所在的大图, 复制出一个略微改动 index 的大图, 微调 imgIdent
-		imgToIndexDB := dbOptions.InitMuImgToIndexDb(dbId)
+		imgToIndexDB := dbOptions.InitMuImgToIndexDB(dbId)
 	 	imgIndex := imgToIndexDB.ReadFor(imgIdent)
 		imgIndex[0] = 4
 		imgIndex[34] = 3

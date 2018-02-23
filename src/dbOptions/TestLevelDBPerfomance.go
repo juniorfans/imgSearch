@@ -29,7 +29,7 @@ func DoReadLevelDBTest()  {
 
 	if option==0 || option==2{
 		fmt.Println("start to do read by seek test ------")
-		VisitBySeek(PickImgDB(dbId), callBack )
+		VisitBySeek(PickImgDB(dbId), callBack, -1)
 	}
 
 	if option==0 || option==1{

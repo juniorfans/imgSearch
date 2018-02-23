@@ -85,7 +85,7 @@ func BeginImgClipSaveEx(dbIndex uint8, count int, offsetOfClip []int, indexLengt
 		params:ClipSaverVisitParams{dbId:dbIndex, offsetOfClip:offsetOfClip,indexLength:indexLength,
 			cacheList:indexToClipCacheList}}
 
-	VisitBySeek(PickImgDB(dbIndex), visitCallBack)
+	VisitBySeek(PickImgDB(dbIndex), visitCallBack, -1)
 
 	indexToClipCacheList.FlushRemainKVCaches()
 
@@ -125,9 +125,7 @@ func SaveClipsToDB(cacheList *imgCache.KeyValueCacheList, threadId int, theIndex
 	//注意, cache 的 value 的类型是 *ImgIndex.SubImgIndex'
 
 	for _, branchIndex := range branchIndexes{
-	//	fmt.Println("threadId: ", threadId," begin iter: ", i, ", branchIndexLen: ", len(branchIndex))
 		cacheList.Add(threadId, branchIndex, dupIndexDataPtr)
-	//	fmt.Println("begin iter: ", i, ", branchIndexLen: ", len(branchIndex))
 	}
 }
 
@@ -322,7 +320,10 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 		if realLen != ni{
 			fmt.Println("error, flush error, ni: ", ni, ", realLen: ", realLen)
 		}
-		indexToClipBatch.Put(clipIndex, newClipIdents[:ni])
+
+		if ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN == len(clipIndex){
+			indexToClipBatch.Put(clipIndex, newClipIdents[:ni])
+		}
 
 		if indexToClipBatch.Len() >= flushSize{
 			InitMuIndexToClipDB(this.dbId).WriteBatchTo(&indexToClipBatch)

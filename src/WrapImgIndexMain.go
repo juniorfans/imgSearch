@@ -22,7 +22,7 @@ func main()  {
 
 		imgDB := dbOptions.PickImgDB(curDbId)
 		indexToIdentDB := dbOptions.InitMuIndexToImgDB(curDbId)
-		identToIndexDB := dbOptions.InitMuImgToIndexDb(curDbId)
+		identToIndexDB := dbOptions.InitMuImgToIndexDB(curDbId)
 
 		dbOptions.ImgIndexSaveRun(curDbId, -1)
 

@@ -43,8 +43,8 @@ func main(){
 		13	在 clip 子图中标记出 clip index
 		14	从 indexToClip 库中保存 clip 子图。这样可以将相似 index 的 clip 子图放在一起输出
 		15	指定大图，保存它的所有 clip 子图
-		16	从 indexToClip 表中取出 clip 的 index 字节,打印为 ycbcr 形式
-		17	从 indexToClip 表中直接打印 clip 的 index 字节
+		16	从 clipToIndex 表中取出 clip 的 index 字节,打印为 ycbcr 形式
+		17	从 clipToIndex 表中直接打印 clip 的 index 字节
 		18	从 imgdb 中读取 img key
 		19	从 clipToIndex 库中打印出 clip ident
 		20	是否能找到 clip 的 index
@@ -55,6 +55,7 @@ func main(){
 		25	下载指定的 clip 子图
 		26	读取 result 库的统计信息
 		27	读取result 库中对某个库的的统计信息
+		30	验证协同分析结果
 		 */
 		if(0 == testCase){
 			dbOptions.PrintAllStatInfo()
@@ -116,6 +117,12 @@ func main(){
 			dbOptions.PrintResultDBStatOf(dbIndex)
 		}else if(28 == testCase){
 			dbOptions.PrintClipSameBytes()
+		}else if(29 == testCase){
+			dbOptions.DumpSameTagClip(dbIndex, 100)
+		}else if(30 == testCase){
+			dbOptions.VerifyCoordinateResult([]uint8{2},1, -1)
+		}else if(31==testCase){
+			dbOptions.PrintClipIndexFromClipIndexToIndent(20)
 		}else{
 			fmt.Println("invalid options")
 		}
