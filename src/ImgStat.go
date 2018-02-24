@@ -120,7 +120,7 @@ func main(){
 		}else if(29 == testCase){
 			dbOptions.DumpSameTagClip(dbIndex, 100)
 		}else if(30 == testCase){
-			dbOptions.VerifyCoordinateResult([]uint8{2},1, -1)
+			dbOptions.VerifyCoordinateResult()
 		}else if(31==testCase){
 			dbOptions.PrintClipIndexFromClipIndexToIndent(20)
 		}else{

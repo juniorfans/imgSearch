@@ -11,8 +11,8 @@ import (
 	"strconv"
 )
 
-//第 cur 个 clip branches 是否与前面的重复
-func isDuplicateClipBefore(allBranches [][][]byte, cur int) bool {
+//allBranches 数组中，第 cur 个 clip branches 是否与前面的重复
+func hasDuplicateClipWithBefore(allBranches [][][]byte, cur int) bool {
 	if 0 == cur{
 		return false
 	}
@@ -38,7 +38,10 @@ func isDuplicateClipBranchesIndex(lefts, rights [][]byte) bool {
 }
 
 /**
-	查找 dbId 中的 imgKey 中的各个子图与哪些大图中的子图的重叠
+	计算哪些大图中联合出现了 imgKey 中的多个子图, imgKey 不包含在内
+	返回值: occedImgIndex 键为大图的 index, 值为子图编号 which 的数组
+	cachedImgIndexToIdent 缓存了 imgIndex 到 imgIdent 的对应关系，后面需要用到，缓存起来减少查询次数
+	allBranchesIndex 各个子图的分支索引, 三维数组
  */
 func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cachedImgIndexToIdent *imgCache.MyMap, allBranchesIndex[] [][]byte ){
 	curImgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
@@ -58,7 +61,7 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 		//与第 i 个子图相似的子图
 		branchesIndexes := ImgIndex.ClipIndexBranch(clipIndex.GetIndexBytesIn3Chanel())
 		allBranchesIndex[i] = branchesIndexes
-		if isDuplicateClipBefore(allBranchesIndex, i){
+		if hasDuplicateClipWithBefore(allBranchesIndex, i){
 			continue
 		}
 
@@ -81,7 +84,7 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 				imgIndexDBId := clipIdent[0]
 				imgIdent := clipIdent[0:5]
 
-				//当前子图(从 target img 计算而来)必然已经在 target img 中, 跳过
+				//当前图跳过
 				if bytes.Equal(curImgIdent, imgIdent){
 					continue
 				}
@@ -103,16 +106,36 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 	return
 }
 
-func SearchEx(dbId uint8, imgKey []byte) (resWhiches []uint8, allBranchesIndex [] [][]byte ) {
-	buff := ""
+
+/*
+	以 dbId 库中的 imgKey 为对象，找出 imgKey 中哪些子图共同出现在其它大图中. GetInitedClipIndexToIdentDB() 作为查找库(待参考的 clipIndexToIdent 库).
+	算法思路为: 对 imgKey 每个子图建立分支索引，在参考库中查找各个索引对应的 clipIdent, 由 clipIdent 可直接得到 imgIdent, 即是当前子图出现的大图，令为“母图”
+	计算第 i 个子图的母图集合，设为 occImgSet[i]
+	计算 occImgSet 各个元素的交集，same = occImgSet[i] ∩ occImgSet[j], 若集合 same 不为空则子图 i 和 j 共同出现在 same 集合中的大图里面
+*/
+func SearchCoordinateForClip(dbId uint8, imgKey []byte) (whichesGroupAndCount *imgCache.MyMap, allBranchesIndex [] [][]byte ) {
+//	buff := ""
 	imgName := strconv.Itoa(int(dbId)) + "-" + string(ImgIndex.ParseImgKeyToPlainTxt(imgKey))
-	buff += imgName + ": "
+//	buff += imgName + ": "
 
-	occedImgIndex, cachedImgIndexToIdent, allBranchesIndex := occInImgs(dbId, imgKey)
+	//计算哪些大图中联合出现了 imgKey 中的多个子图. 注意 imgKey 不包含在内
+	occedImgIndex, _, allBranchesIndex := occInImgs(dbId, imgKey)
 
-	imgIndexes := occedImgIndex.KeySet()
-	show := false
-	for _,imgIndex := range imgIndexes{
+	if 0 == occedImgIndex.KeyCount(){
+		return
+	}
+
+	resWhiches := make([][]uint8, occedImgIndex.KeyCount())
+	groupCount := 0
+
+	motherImgIndexes := occedImgIndex.KeySet()
+
+	//occedImgIndex 每一个键值对 key, value 表示: key 指示的大图中出现了 value指示的子图
+	//motherImgIndexes 一个元素即代表一个母图，imgKey 中有子图同时出现在这个母图中.
+	//汇总结果要注意将重复的计次, 如 i,j 这两个子图同时出现在母图 A 也出现在 B 中，则 i,j 联合出现次数应该为 2
+	//另外，由于 imgKey 在之前的计算中被忽略，它里面所有的子图的组合都出现在了 imgKey 中，所以各个 group 在计次时需要加上 1
+
+	for _,imgIndex := range motherImgIndexes {
 		interfaceWhiches := occedImgIndex.Get(imgIndex)
 		if 2 > len(interfaceWhiches){
 			continue
@@ -125,30 +148,106 @@ func SearchEx(dbId uint8, imgKey []byte) (resWhiches []uint8, allBranchesIndex [
 		if 2 > len(whiches){
 			continue
 		}
-		resWhiches = whiches
 
-		buff += "{"
-		interfaceOccedImgIdent := cachedImgIndexToIdent.Get(imgIndex)
-		if 1 != len(interfaceOccedImgIdent){
-			fmt.Println("oops, bug ------- ", imgName)
-		}
-		occedImgIdent := interfaceOccedImgIdent[0].([]byte)
-		occedImgName := strconv.Itoa(int(occedImgIdent[0])) + "-" + string(ImgIndex.ParseImgKeyToPlainTxt(occedImgIdent[1: ImgIndex.IMG_IDENT_LENGTH]))
-		buff += occedImgName + "-"
-		buff += "["
-		for _,which := range whiches{
-			buff += strconv.Itoa(int(which)) + ","
-		}
-		buff += "]"
+		fileUtil.BytesSort(whiches)
 
-		buff += "}, "
-		show = true
+		resWhiches[groupCount] = whiches
+		groupCount ++
+
+	//	buff += getPrintSearchResult(imgIndex, cachedImgIndexToIdent, whiches)
+
 	}
-	if show{
-		fmt.Println(buff)
+
+	//校准次数. 注意校验不能在 statCoordinateResult 中边统计边校准：只能最终校准.
+	//原因在于: 设 1,3,4 同时出现在 A, B 图中，3,4 同时出现在 A,B,C 中则
+	resWhiches = resWhiches[ : groupCount]
+	whichesGroupAndCount = statCoordinateResult(resWhiches)
+	whichesGroups := whichesGroupAndCount.KeySet()
+	for _,whiches := range whichesGroups{
+
+		interfaceCounts := whichesGroupAndCount.Get(whiches)
+		if 1 == len(interfaceCounts){
+			countExclusiceCurrentImg := interfaceCounts[0].(int)
+			whichesGroupAndCount.Put(whiches, countExclusiceCurrentImg + 1)
+		}
+	}
+
+
+	//打印
+	if len(whichesGroups) > 0{
+		showStr := imgName + " : "
+		for _,whiches := range whichesGroups{
+			showStr += "["
+			for _,which := range whiches{
+				showStr += strconv.Itoa(int(which)) + ","
+			}
+			showStr += "]"
+			interfaceCounts := whichesGroupAndCount.Get(whiches)
+			if 1 == len(interfaceCounts){
+				showStr += "-" + strconv.Itoa(interfaceCounts[0].(int)) + " | "
+			}
+		}
+		fmt.Println(showStr)
 	}
 
 	return
+}
+
+/**
+	考虑到 occInImgs 的计算方式, 设计算得到：
+	A --> 1,3,4
+	B --> 1,3,4
+	C --> 3,4
+	D --> 3,4
+	举例说明: 3,4 出现在了 ABCD 四个母图中, 支持度应该为 4.
+	所以我们应该得到最终的结果(以 whiches 为键)
+	3,4 	--> 4(A,B,C,D)
+	1,3,4	--> 2(A,B,)
+ */
+func statCoordinateResult(whichesGroups[] []byte) *imgCache.MyMap {
+	resMap := imgCache.NewMyMap(false)
+	for _,whiches := range whichesGroups{
+		if 0 == resMap.KeyCount(){
+			resMap.Put(whiches, 1)
+		}else{
+			curGroupCount := 0
+			exsitsKeys := resMap.KeySet()
+			for _,key := range exsitsKeys{
+				if -1 != bytes.Index(key, whiches){
+					curGroupCount ++
+				}
+			}
+			curGroupCount ++
+			resMap.Put(whiches, curGroupCount)
+		}
+	}
+
+
+
+	return resMap
+}
+
+
+
+func getPrintSearchResult(imgIndex []byte, cachedImgIndexToIdent *imgCache.MyMap, whiches []uint8 ) string {
+	buff := ""
+	buff += "{"
+	interfaceOccedImgIdent := cachedImgIndexToIdent.Get(imgIndex)
+	if 1 != len(interfaceOccedImgIdent){
+		fmt.Println("oops, cache not contain imgIndex ------- ")
+		return ""
+	}
+	occedImgIdent := interfaceOccedImgIdent[0].([]byte)
+	occedImgName := strconv.Itoa(int(occedImgIdent[0])) + "-" + string(ImgIndex.ParseImgKeyToPlainTxt(occedImgIdent[1: ImgIndex.IMG_IDENT_LENGTH]))
+	buff += occedImgName + "-"
+	buff += "["
+	for _,which := range whiches{
+		buff += strconv.Itoa(int(which)) + ","
+	}
+	buff += "], "
+
+	buff += "}, "
+	return buff
 }
 
 //分析 dbId 库中的 imgKey 指示的图片: 其子图有没有共同出现在其它的图中

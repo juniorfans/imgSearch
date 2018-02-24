@@ -12,10 +12,11 @@ import (
 )
 
 func main()  {
-	TestSeek3()
+	//TestSeek3()
 }
 
 func TestSeek3()  {
+
 	for{
 		config.MustReReadSearchConf("clip_search_conf.txt")
 

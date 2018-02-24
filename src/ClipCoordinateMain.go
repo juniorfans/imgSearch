@@ -36,6 +36,6 @@ func main()  {
 	}
 
 	for _, dbId := range dbIds {
-		dbOptions.CalCoordinateForDB(dbId, -1)
+		dbOptions.CalCoordinateForDB(dbId, 100)
 	}
 }

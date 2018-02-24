@@ -137,3 +137,50 @@ func RemoveDupplicatedBytes(set []byte) []byte {
 	mapper = nil
 	return ret
 }
+
+//取组合数 C2
+func Combine2(data []byte) [] [2]byte {
+	if len(data) < 2{
+		return nil
+	}
+	nsize := len(data)
+	ret := make([][2]byte, nsize * (nsize-1) / 2)
+	ci := 0
+
+	for i,_ := range data{
+		for j:=i+1;j<nsize;j ++{
+			ret[ci] = [2]byte{data[i], data[j]}
+			ci ++
+		}
+	}
+	if ci*2 != nsize*(nsize-1){
+		fmt.Println("cal C2 error")
+		return nil
+	}
+	return ret
+}
+
+//取排列数 A2
+func Arrange2(data []byte) [] [2]byte {
+	if len(data) < 2{
+		return nil
+	}
+	nsize := len(data)
+	ret := make([][2]byte, nsize * (nsize-1) )
+	ci := 0
+
+	for i,_ := range data{
+		for j:=i+1;j<nsize;j ++{
+			ret[ci] = [2]byte{data[i], data[j]}
+			ci ++
+
+			ret[ci] = [2]byte{data[j], data[i]}
+			ci ++
+		}
+	}
+	if ci != nsize*(nsize-1){
+		fmt.Println("cal A2 error")
+		return nil
+	}
+	return ret
+}
