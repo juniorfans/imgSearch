@@ -23,18 +23,18 @@ func main()  {
 
 		imgToIndexDB := dbOptions.InitMuImgToIndexDB(curDbId)
 		indexToImgDB := dbOptions.InitMuIndexToImgDB(curDbId)
-		imgToClipDB := dbOptions.InitMuClipToIndexDB(curDbId)
-		clipToImgDB := dbOptions.InitMuClipToIndexDB(curDbId)
+		indexToClipDB := dbOptions.InitMuIndexToClipDB(curDbId)
+		clipToIndexDB := dbOptions.InitMuClipToIndexDB(curDbId)
 
 		imgToIndexDB.DBPtr.CompactRange(util.Range{nil,nil})
 		indexToImgDB.DBPtr.CompactRange(util.Range{nil,nil})
-		imgToClipDB.DBPtr.CompactRange(util.Range{nil,nil})
-		clipToImgDB.DBPtr.CompactRange(util.Range{nil,nil})
+		indexToClipDB.DBPtr.CompactRange(util.Range{nil,nil})
+		clipToIndexDB.DBPtr.CompactRange(util.Range{nil,nil})
 
 		imgToIndexDB.CloseDB()
 		indexToImgDB.CloseDB()
-		imgToClipDB.CloseDB()
-		clipToImgDB.CloseDB()
+		indexToClipDB.CloseDB()
+		clipToIndexDB.CloseDB()
 	}
 
 }

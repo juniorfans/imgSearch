@@ -1,5 +1,9 @@
 package config
 
+
+//注意当子图数量发生变化时此处要变
+var CLIP_COUNTS_OF_IMG = uint8(8)
+
 type ClipConfig struct {
 	SmallPicWidth            int
 	SmallPicHeight           int

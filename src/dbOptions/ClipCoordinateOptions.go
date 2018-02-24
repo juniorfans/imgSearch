@@ -13,9 +13,12 @@ import (
 	"bufio"
 	"os"
 	"strings"
+	"github.com/syndtr/goleveldb/leveldb/util"
+	"bytes"
 )
 
 var CLIP_VIRTUAL_TAGID_LEN = 10
+var MAX_CLIP_VIRTUAL_TAGID = []byte{255,255,255,255,255,255,255,255,255,255}
 
 /*
 	同时出现在多张大图中的子图. 由于同一个子图可以和不同的子图联合出现，所以计算时它将先后有不同的 virtual id
@@ -170,7 +173,7 @@ func CalCoordinateForDB(dbId uint8, dealCounts int)  {
 	//初始化线程缓存及总体缓存. 线程缓存满了之后即加入总体缓存，则总体缓存统一写入内存
 	coordinateCacheList := imgCache.KeyValueCacheList{}
 	var callBack imgCache.CacheFlushCallBack = &ClipCoordinateCacheFlushCallBack{}
-	coordinateCacheList.Init(true, &callBack,true, 32000)
+	coordinateCacheList.Init(true, &callBack,true, 100)
 
 	threadToVirtualTagIds := make(map[uint8] []byte)
 	for i:=0;i < config.MAX_THREAD_COUNT;i ++{
@@ -211,9 +214,8 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 	branchIndexToVTag := leveldb.Batch{}
 	vTagToBranchIndex := leveldb.Batch{}
 
-	biToVTagBuff := make([]byte,  2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN)
 	vTagToBiBuff := make([]byte,  2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN)
-	//key 是 branch index | virtual tag ids , value 是 nil
+	//key 是 branch index1 | branch index2 | virtual tag ids , value 是 support
 	for _,key := range keys{
 		if len(key) != 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN{
 			fmt.Println("error, in coordinate flush cache, key length is not equal to expect: ", len(key))
@@ -224,32 +226,25 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 		if len(interfaceSupport) == 0{
 			continue
 		}
-		support := interfaceSupport[0].(int)
-		supportBytes := ImgIndex.Int32ToBytes(support)
 
-		vtagId := key[2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN :]
-		branchIndex1 := key[ : ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
-		branchIndex2 := key[ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN : 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
-
+		//vtagId := key[2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN :]
+		//branchIndex1 := key[ : ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
+		//branchIndex2 := key[ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN : 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
+		var supportBytes []byte
 		{
-			ci := 0
-			ci += copy(biToVTagBuff[ci:], branchIndex1)
-			ci += copy(biToVTagBuff[ci:], branchIndex2)
-			ci += copy(biToVTagBuff[ci:], vtagId)
-		//	fmt.Print("index_tag: ")
-		//	fileUtil.PrintBytes(biToVTagBuff)
-			branchIndexToVTag.Put(biToVTagBuff, supportBytes)
+			support := interfaceSupport[0].(int)
+			exsitsSupport := getOldSupportFor(key[: 2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN])
+			if exsitsSupport > support{
+				support = exsitsSupport
+			}
+			supportBytes = ImgIndex.Int32ToBytes(support)
 		}
 
-		{
-			ci := 0
-			ci += copy(vTagToBiBuff[ci:], vtagId)
-			ci += copy(vTagToBiBuff[ci:], branchIndex1)
-			ci += copy(vTagToBiBuff[ci:], branchIndex2)
-		//	fmt.Print("tag_index: ")
-		//	fileUtil.PrintBytes(vTagToBiBuff)
-			vTagToBranchIndex.Put(vTagToBiBuff, supportBytes)
-		}
+		branchIndexToVTag.Put(key, supportBytes)
+
+		transformBiVtagToVtagBi(key, vTagToBiBuff)
+		vTagToBranchIndex.Put(vTagToBiBuff, supportBytes)
+
 	}
 
 	fmt.Println("write to branchIndexToVTag: ", branchIndexToVTag.Len())
@@ -258,6 +253,77 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 	tagToBiDB.WriteBatchTo(&vTagToBranchIndex)
 
 	return true
+}
+
+func transformBiVtagToVtagBi(bitoTagBytes []byte, buff []byte) {
+	vtagId := bitoTagBytes[2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN :]
+	branchIndex1 := bitoTagBytes[ : ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
+	branchIndex2 := bitoTagBytes[ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN : 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
+
+	ci := 0
+	ci += copy(buff[ci:], vtagId)
+	ci += copy(buff[ci:], branchIndex1)
+	ci += copy(buff[ci:], branchIndex2)
+
+}
+
+/**
+	在 branch index to virtual tag 库中查找已有的 branchIndex1 | branchIndex2 的记录
+ */
+func getOldSupportFor(branchIndexCombine []byte) (support int){
+	biToTagDB := InitClipCoordinateBranchIndexToVTagIdDB()
+
+	limit := make([]byte, len(branchIndexCombine) + CLIP_VIRTUAL_TAGID_LEN)
+	copy(limit, branchIndexCombine)
+	copy(limit[len(branchIndexCombine) :], MAX_CLIP_VIRTUAL_TAGID)
+
+	fndRange := util.Range{Start:branchIndexCombine, Limit:limit}
+	iter := biToTagDB.DBPtr.NewIterator(&fndRange, &biToTagDB.ReadOptions)
+	iter.First()
+
+	maxSupport := 0
+
+	toDeleteInBiTagBatch := leveldb.Batch{}
+	toDeleteInTagBiBatch := leveldb.Batch{}
+
+	buff := fileUtil.CopyBytesTo(limit)
+
+	fndCount := 0
+
+	for iter.Valid(){
+
+		if len(iter.Key()) != len(branchIndexCombine)+CLIP_VIRTUAL_TAGID_LEN || !bytes.Equal(iter.Key()[:len(branchIndexCombine)], branchIndexCombine) {
+			break
+		}
+
+		supportBytes := iter.Value()
+		curSupport := ImgIndex.BytesToInt32(supportBytes)
+		if maxSupport < curSupport{
+			maxSupport = curSupport
+		}
+		toDeleteInBiTagBatch.Delete(iter.Key())
+		transformBiVtagToVtagBi(iter.Key(), buff)
+		toDeleteInTagBiBatch.Delete(buff)
+
+		fndCount ++
+
+		iter.Next()
+	}
+
+	if fndCount > 1{
+		fmt.Println("warning, fndCount > 1: ", fndCount)
+	}
+
+	if toDeleteInBiTagBatch.Len() != 0{
+		biToTagDB := InitClipCoordinateBranchIndexToVTagIdDB()
+		biToTagDB.WriteBatchTo(&toDeleteInBiTagBatch)
+
+		tagToBiDB := InitClipCoordinatevTagIdToBranchIndexDB()
+		tagToBiDB.WriteBatchTo(&toDeleteInTagBiBatch)
+	}
+
+	support = maxSupport
+	return
 }
 
 //-------------------------------------------------------------------------------------
@@ -400,6 +466,7 @@ func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)
 	}
 
 	seeker := NewMultyDBReader(GetInitedClipIndexToIdentDB())
+	defer seeker.Close()
 
 	tiDB := InitClipCoordinatevTagIdToBranchIndexDB()
 	iter := tiDB.DBPtr.NewIterator(nil, &tiDB.ReadOptions)

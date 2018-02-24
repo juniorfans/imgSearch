@@ -114,7 +114,7 @@ func (a ByteArray) Len() int {
 func (a ByteArray) Swap(i, j int) {
 	a[i], a[j] = a[j], a[i]
 }
-//先比较横坐标，再比较纵坐标
+
 func (a ByteArray) Less(i, j int) bool {
 	return a[i] < a[j]
 }
@@ -183,4 +183,25 @@ func Arrange2(data []byte) [] [2]byte {
 		return nil
 	}
 	return ret
+}
+
+
+
+
+type BytesArrayList [][]byte
+
+func (a BytesArrayList) Len() int {
+	return len(a)
+}
+func (a BytesArrayList) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+
+//根据各元素的长度比较排序，逆序
+func (a BytesArrayList) Less(i, j int) bool {
+	return len(a[i]) > len(a[j])
+}
+
+func BytesArraySortByLengthDesc(data [][]byte)  {
+	sort.Sort(BytesArrayList(data))
 }

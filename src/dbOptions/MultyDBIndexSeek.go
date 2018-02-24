@@ -94,13 +94,8 @@ func (this *MultyDBClipBranchIndexToIdentSeeker) seekRegion(db *DBConfig, region
 		curIndex := iter.Key()
 
 		if len(curIndex) == ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN{
-			//		fmt.Print("curIndex: ")
-			//		fileUtil.PrintBytes(curIndex)
 			for _, branchIndex := range branchesIndexes{
 				if IsSameClipBranchIndex(curIndex, branchIndex){
-					//	fmt.Println("find same: ----------------------------------")
-					//	fileUtil.PrintBytes(curIndex)
-					//	fileUtil.PrintBytes(branchIndex)
 					clipIdents := fileUtil.CopyBytesTo(iter.Value())
 					clen := len(clipIdents)
 					for i:=0;i < clen;i += ImgIndex.IMG_CLIP_IDENT_LENGTH{
@@ -112,6 +107,8 @@ func (this *MultyDBClipBranchIndexToIdentSeeker) seekRegion(db *DBConfig, region
 
 		iter.Next()
 	}
+
+	iter.Release()
 
 	this.seekRes <- res.KeySet()
 }
