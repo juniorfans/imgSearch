@@ -8,9 +8,17 @@ import (
 	"strconv"
 	"dbOptions"
 	"config"
+	"log"
+	"runtime/pprof"
 )
 
 func main()  {
+
+	f, err := os.Create("clipMain.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
 
 	clipConfig := config.GetClipConfigById(0)
 
@@ -35,5 +43,7 @@ func main()  {
 		clipIndexToIdentMiddleDB.CloseDB()
 		imgDB.CloseDB()
 	}
+
+	pprof.StopCPUProfile()
 
 }

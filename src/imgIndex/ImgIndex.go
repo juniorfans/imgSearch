@@ -24,8 +24,8 @@ var CLIP_STAT_INDEX_BYTES_LEN int =
 	CLIP_STAT_INDEX_SOURCE_INDEX_BRANCH_BITS + CLIP_STAT_INDEX_MEAN_BRANCH_BITS + CLIP_STAT_INDEX_SD_BRANCH_BITS
 
 var TheclipSearchConf = &config.ClipSearchConf{
-	Delta_sd:5.0,
-	Delta_mean:5.0,
+	Delta_sd:6.0,
+	Delta_mean:2.0,
 	Delta_Eul_square:25.0,
 	Delta_Eul:5.0,
 }

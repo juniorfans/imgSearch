@@ -44,6 +44,9 @@ func PrintBytesLimit(data []byte, limit int)  {
 }
 
 func CopyBytesTo(src []byte) []byte {
+	if nil == src || 0 == len(src){
+		return src
+	}
 	ret := make([]byte, len(src))
 	copy(ret, src)
 	return ret

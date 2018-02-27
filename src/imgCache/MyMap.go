@@ -120,6 +120,42 @@ func (this *MyMap)Put(key []byte, value interface{})  {
 	}
 }
 
+func (this *MyMap) Contains(key []byte) bool {
+	whichMapValue, _ := this.findKey(key)
+	return nil != whichMapValue
+}
+
+func (this *MyMap) ContainsAnyOneOf(keys [][]byte) bool {
+	for _,key := range keys{
+		if this.Contains(key){
+			return true
+		}
+	}
+	return false
+}
+
+func (this *MyMap) QueryUnion(keys [][]byte) []interface{} {
+	cachedCount := 16
+	ret := make([]interface{}, cachedCount)
+	ci := 0
+	for _,key := range keys{
+		curValues := this.Get(key)
+		if len(curValues) == 0 {
+			continue
+		}
+		if ci + len(curValues) > cachedCount{
+			for ci + len(curValues) > cachedCount{
+				cachedCount *= 2
+			}
+			newRet := make([]interface{}, cachedCount)
+			copy(newRet, ret[:ci])
+			ret = newRet
+		}
+		ci += copy(ret[ci:],curValues)
+	}
+	return ret
+}
+
 func (this *MyMap) Get(key []byte) []interface{} {
 	whichMapValue, _ := this.findKey(key)
 	if nil == whichMapValue{

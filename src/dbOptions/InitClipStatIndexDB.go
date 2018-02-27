@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/syndtr/goleveldb/leveldb"
 	"strconv"
+	"util"
 )
 
 
@@ -16,6 +17,39 @@ func InitClipStatIndexToIdentsMiddleDB(dbId uint8) *DBConfig {
 	return innerInitClipStatIndexDB(dbId, true)
 }
 
+func GetInitedClipStatIndexToIdentDB() []*DBConfig {
+
+	var ret []*DBConfig
+	for hash,db :=range initedClipStatIndexDB{
+		if 0 == hash >> 8{
+			ret = append(ret, db)
+		}
+	}
+	return ret
+}
+
+func ReadClipStatIndexKeyValues(dbId uint8, offset, limit int)  {
+	statIndexDB := InitClipStatIndexToIdentsDB(dbId)
+	iter := statIndexDB.DBPtr.NewIterator(nil, &statIndexDB.ReadOptions)
+	iter.First()
+	ci := 0
+	for iter.Valid(){
+		if ci >= offset{
+			fmt.Println("-------------------------------")
+			fmt.Print("key: ")
+			fileUtil.PrintBytes(iter.Key())
+			fmt.Print("value: ")
+			fileUtil.PrintBytes(iter.Value())
+			fmt.Println("-------------------------------")
+			limit--
+			if limit<=0{
+				break
+			}
+		}
+		iter.Next()
+	}
+	iter.Release()
+}
 
 var initedClipStatIndexDB map[int] *DBConfig
 func innerInitClipStatIndexDB(dbId uint8, isMiddle bool) *DBConfig {
@@ -23,6 +57,7 @@ func innerInitClipStatIndexDB(dbId uint8, isMiddle bool) *DBConfig {
 		initedClipStatIndexDB = make(map[int] *DBConfig)
 	}
 
+	//middle 库的 hash=dbId << 8 + 1
 	hash := int(dbId)
 	if isMiddle{
 		hash = hash << 8 + 1

@@ -186,7 +186,7 @@ func CalCoordinateForDB(dbId uint8, dealCounts int)  {
 		visitParams:ClipCoordinateVisitParams{dbId:dbId,
 			cacheList: coordinateCacheList, threadVirtualTagIds: threadToVirtualTagIds}}
 
-	VisitBySeek(PickImgDB(dbId), visitCallBack, -1)
+	VisitBySeek(PickImgDB(dbId), visitCallBack, 1)
 
 	coordinateCacheList.FlushRemainKVCaches()
 }
@@ -213,10 +213,10 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 	branchIndexToVTag := leveldb.Batch{}
 	vTagToBranchIndex := leveldb.Batch{}
 
-	vTagToBiBuff := make([]byte,  2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN)
-	//key 是 branch index1 | branch index2 | virtual tag ids , value 是 support
+	vTagToBiBuff := make([]byte,  2*ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN)
+	//key 是 stat branch index1 | stat branch index2 | virtual tag ids , value 是 support
 	for _,key := range keys{
-		if len(key) != 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN{
+		if len(key) != 2*ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN{
 			fmt.Println("error, in coordinate flush cache, key length is not equal to expect: ", len(key))
 			continue
 		}
@@ -226,13 +226,10 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 			continue
 		}
 
-		//vtagId := key[2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN :]
-		//branchIndex1 := key[ : ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
-		//branchIndex2 := key[ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN : 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
 		var supportBytes []byte
 		{
 			support := interfaceSupport[0].(int)
-			exsitsSupport := getOldSupportFor(key[: 2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN])
+			exsitsSupport := getOldSupportFor(key[: 2 * ImgIndex.CLIP_STAT_INDEX_BYTES_LEN])
 			if exsitsSupport > support{
 				support = exsitsSupport
 			}
@@ -255,15 +252,14 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 }
 
 func transformBiVtagToVtagBi(bitoTagBytes []byte, buff []byte) {
-	vtagId := bitoTagBytes[2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN :]
-	branchIndex1 := bitoTagBytes[ : ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
-	branchIndex2 := bitoTagBytes[ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN : 2*ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
+	vtagId := bitoTagBytes[2 * ImgIndex.CLIP_STAT_INDEX_BYTES_LEN :]
+	branchIndex1 := bitoTagBytes[ : ImgIndex.CLIP_STAT_INDEX_BYTES_LEN]
+	branchIndex2 := bitoTagBytes[ImgIndex.CLIP_STAT_INDEX_BYTES_LEN : 2*ImgIndex.CLIP_STAT_INDEX_BYTES_LEN]
 
 	ci := 0
 	ci += copy(buff[ci:], vtagId)
 	ci += copy(buff[ci:], branchIndex1)
 	ci += copy(buff[ci:], branchIndex2)
-
 }
 
 /**
@@ -345,7 +341,7 @@ func (this* ClipCoordinateVisitCallBack) Visit(visitInfo *VisitIngInfo) bool{
 
 	imgKey := visitInfo.key
 
-	whichesGroupAndCount, allBranchesIndex := SearchCoordinateForClip(this.visitParams.dbId, imgKey)
+	whichesGroupAndCount, allstatBranchesIndex := SearchCoordinateForClipEx(this.visitParams.dbId, imgKey)
 	var vTagId []byte
 	if nil != whichesGroupAndCount && whichesGroupAndCount.KeyCount() != 0{
 		//每个组中的 whiches 即是同时出现在某些大图中的
@@ -366,8 +362,8 @@ func (this* ClipCoordinateVisitCallBack) Visit(visitInfo *VisitIngInfo) bool{
 			for _,combineWhiches := range combineWhichList{
 				left := combineWhiches[0]
 				right := combineWhiches[1]
-				leftBranches := allBranchesIndex[int(left)]
-				rightBranches := allBranchesIndex[int(right)]
+				leftBranches := allstatBranchesIndex[int(left)]
+				rightBranches := allstatBranchesIndex[int(right)]
 
 				for _,lb := range leftBranches{
 					for _, rb := range rightBranches{
@@ -393,21 +389,6 @@ func (this* ClipCoordinateVisitCallBack) Visit(visitInfo *VisitIngInfo) bool{
 					}
 				}
 			}
-
-			//for _, which := range whiches{
-			//	branches := allBranchesIndex[int(which)]
-			//	for _, branch := range branches{
-			//
-			//		resKey := make([]byte, len(branch) + len(vTagId))
-			//		ci := copy(resKey, branch)
-			//		copy(resKey[ci:], vTagId)
-			//
-			//		clipIdent := ImgIndex.GetImgClipIdent(this.visitParams.dbId,imgKey, which)
-			//
-			//		this.visitParams.cacheList.Add(visitInfo.threadId, resKey, clipIdent)
-			//	}
-			//}
-
 			fileUtil.BytesIncrement(vTagId)
 		}
 	}
@@ -475,15 +456,15 @@ func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)
 	var curBranchIndex1,curBranchIndex2 []byte
 	for iter.Valid(){
 		if offset <= ci{
-			if len(iter.Key()) != 2 * ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN{
+			if len(iter.Key()) != 2 * ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + CLIP_VIRTUAL_TAGID_LEN{
 				continue
 			}else{
 				vTagAndBranch := fileUtil.CopyBytesTo(iter.Key())
 				fmt.Print("tag_index: ")
 				fileUtil.PrintBytes(vTagAndBranch)
 				curVTagId = vTagAndBranch[ :CLIP_VIRTUAL_TAGID_LEN]
-				curBranchIndex1 = vTagAndBranch[CLIP_VIRTUAL_TAGID_LEN : CLIP_VIRTUAL_TAGID_LEN+ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN]
-				curBranchIndex2 = vTagAndBranch[CLIP_VIRTUAL_TAGID_LEN+ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN :]
+				curBranchIndex1 = vTagAndBranch[CLIP_VIRTUAL_TAGID_LEN : CLIP_VIRTUAL_TAGID_LEN+ImgIndex.CLIP_STAT_INDEX_BYTES_LEN]
+				curBranchIndex2 = vTagAndBranch[CLIP_VIRTUAL_TAGID_LEN+ImgIndex.CLIP_STAT_INDEX_BYTES_LEN :]
 
 				statMap.Put(curVTagId, curBranchIndex1)
 				statMap.Put(curVTagId, curBranchIndex2)
@@ -528,8 +509,6 @@ func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)
 		for _,cident := range cidents{
 			fmt.Print(ImgIndex.ParseClipIdentToString(cident, "-"), " | ")
 		}
-
 		fmt.Println()
 	}
-
 }

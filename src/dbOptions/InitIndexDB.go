@@ -144,24 +144,6 @@ func InitMuImgToIndexDB(dbId uint8) *DBConfig {
 	return InitIndexDBByBaseDir(dbId,4, false)
 }
 
-func MultityInitClipIndexToIdentDBs(dbIds []uint8)  {
-	for _, dbId := range dbIds{
-		InitMuIndexToClipDB(dbId)
-	}
-}
-
-func GetInitedClipStatIndexToIdentDB() []*DBConfig {
-
-	var ret []*DBConfig
-	for hash,db :=range initedIndexDb{
-		whichDB := hash >> 16
-		if 2 == whichDB{
-			ret = append(ret, db)
-		}
-	}
-	return ret
-}
-
 func GetInitedClipIdentToIndexDB() []*DBConfig {
 
 	var ret []*DBConfig

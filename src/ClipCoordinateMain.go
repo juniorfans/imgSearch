@@ -10,7 +10,6 @@ import (
 	"imgIndex"
 	"log"
 	"runtime/pprof"
-	"config"
 	"util"
 )
 
@@ -78,7 +77,7 @@ func TestCoordinate()  {
 
 	for _,dbIdStr := range dbIdStrList{
 		dbId,_ := strconv.Atoi(dbIdStr)
-		dbOptions.InitMuIndexToClipDB(uint8(dbId))	//用于根据输入大图的子图的各个分支索引去查找 clipIdent, 再得到出现的母图
+		dbOptions.InitClipStatIndexToIdentsDB(uint8(dbId))
 		dbOptions.InitMuImgToIndexDB(uint8(dbId))	//用于：计算得到子图出现在的母图后，需要得到母图的 index 作为键去计算子图出现的相同母图
 	}
 

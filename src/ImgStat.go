@@ -123,6 +123,12 @@ func main(){
 			dbOptions.VerifyCoordinateResult()
 		}else if(31==testCase){
 			dbOptions.PrintClipIndexFromClipIndexToIndent(20)
+		}else if(32 == testCase){
+			dbOptions.ReadClipStatIndexKeyValues(2,0, 30)
+		}else if(33 == testCase){
+			dbOptions.TestClipStatBranchIndeses()
+		}else if(34 == testCase){
+			dbOptions.TestStatIndexValue()
 		}else{
 			fmt.Println("invalid options")
 		}

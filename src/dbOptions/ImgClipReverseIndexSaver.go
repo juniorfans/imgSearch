@@ -142,13 +142,6 @@ func SaveClipsToDB(cacheList *imgCache.KeyValueCacheList, threadId int, theIndex
 	*/
 }
 
-func CalcClipCombineIndexFor(clipSourceIndex []byte) []byte {
-	ret := make([]byte, ImgIndex.CLIP_STAT_INDEX_BYTES_LEN)
-
-
-	return ret
-}
-
 
 /**
 	获得 fileName 图像中的小图
@@ -351,13 +344,6 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 			csb += copy(statBranchIndexBuffer[csb:], clipIdent)
 		}
 
-		//if 0 != cib % ImgIndex.IMG_CLIP_IDENT_LENGTH{
-		//	fmt.Println("cib is not multipy of ",ImgIndex.IMG_CLIP_IDENT_LENGTH, " : " , cib)
-		//}
-		//
-		//if 0 != csb % ImgIndex.IMG_CLIP_IDENT_LENGTH{
-		//	fmt.Println("csb is not multipy of ",ImgIndex.IMG_CLIP_IDENT_LENGTH, " : ", csb)
-		//}
 
 		//计算分支索引
 		branchIndexes := ImgIndex.ClipIndexBranch(clipIndex)
@@ -379,6 +365,8 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 			InitMuIndexToClipMiddleDB(this.dbId).WriteBatchTo(&indexToClipBatch)
 			indexToClipBatch.Reset()
 		}
+
+
 		if clipToIndexBatch.Len() >= flushSize{
 			ImgClipsToIndexBatchSaver(this.dbId, &clipToIndexBatch)
 			clipToIndexBatch.Reset()
@@ -389,10 +377,13 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 		}
 	}
 
+
 	if indexToClipBatch.Len() > 0{
 		InitMuIndexToClipMiddleDB(this.dbId).WriteBatchTo(&indexToClipBatch)
 		indexToClipBatch.Reset()
 	}
+
+
 	if clipToIndexBatch.Len() > 0{
 		ImgClipsToIndexBatchSaver(this.dbId, &clipToIndexBatch)
 		clipToIndexBatch.Reset()

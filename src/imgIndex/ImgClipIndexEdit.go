@@ -79,6 +79,7 @@ func stickTo(data [][]byte, eachLen, offset int, sticks []byte) [][]byte{
 	return ret
 }
 
+
 /**
 	计算 stat index 分支索引
 	注意: 计算分支时，由于 GetByteBound(c, n) 计算了 up 和 down, 这样会导致误差上最大为 2*n
@@ -87,8 +88,6 @@ func stickTo(data [][]byte, eachLen, offset int, sticks []byte) [][]byte{
 func ClipStatIndexBranch(srouceIndexBytes []byte) [][]byte {
 
 	standardDeviation , mean ,_, _ := ClipIndexStatInfo(srouceIndexBytes)
-//	fmt.Println("mean: ", mean, ", sd: ", standardDeviation)
-
 	var result [][]byte
 
 	offset := 0

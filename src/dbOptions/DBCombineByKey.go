@@ -72,7 +72,9 @@ func writeMapToDB(targetDB *DBConfig, cmap *imgCache.MyMap) {
 				continue
 			}
 			if ci + len(value) > cacheLen {
-				cacheLen = cacheLen * 2
+				for ci + len(value) > cacheLen{
+					cacheLen = cacheLen * 2
+				}
 				newCached := make([]byte, cacheLen)
 				copy(newCached,valueFlatBytes[:ci])
 				valueFlatBytes = newCached
