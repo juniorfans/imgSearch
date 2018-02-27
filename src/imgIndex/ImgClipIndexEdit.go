@@ -54,6 +54,90 @@ func ClipIndexStatInfo(indexBytes []byte) (standardDeviation uint8, mean ,minVlu
 	return
 }
 
+/**
+	将 sticks 中的每个元素追加到 data 指示的每个 byte 数组后面
+ */
+func stickTo(data [][]byte, eachLen, offset int, sticks []byte) [][]byte{
+	if 0 == len(data){
+		data = make([][]byte, len(sticks))
+		for i,stick := range sticks{
+			data[i] = make([]byte, eachLen)
+			data[i][offset] = stick
+		}
+		return data
+	}
+	ret := make([][]byte, len(sticks) * len(data))
+	ci := 0
+	for _,curData := range data{
+		for _,stick := range sticks{
+			ret[ci] = make([]byte, eachLen)
+			copy(ret[ci], curData[: offset])
+			ret[ci][offset] = stick
+			ci ++
+		}
+	}
+	return ret
+}
+
+/**
+	计算 stat index 分支索引
+	注意: 计算分支时，由于 GetByteBound(c, n) 计算了 up 和 down, 这样会导致误差上最大为 2*n
+	所以我们要注意传入的 n
+ */
+func ClipStatIndexBranch(srouceIndexBytes []byte) [][]byte {
+
+	standardDeviation , mean ,_, _ := ClipIndexStatInfo(srouceIndexBytes)
+//	fmt.Println("mean: ", mean, ", sd: ", standardDeviation)
+
+	var result [][]byte
+
+	offset := 0
+	{
+		if 0 != CLIP_STAT_INDEX_SOURCE_INDEX_BRANCH_BITS{
+			indexBranchBits := CLIP_STAT_INDEX_SOURCE_INDEX_BRANCH_BITS
+			//indexBranchBytes := make([]*ByteBound, indexBranchBits)
+			bound := CLIP_INDEX_BRANCH_BOUND
+			for i:=0;i < indexBranchBits;i ++{
+				c := srouceIndexBytes[i]
+				curBytes := GetByteBound(c, uint8(bound))
+				result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,curBytes.GetAll())
+				offset ++
+			}
+		}
+	}
+
+	{
+		if 0 != CLIP_STAT_INDEX_MEAN_BRANCH_BITS{
+			meanBranchBits := CLIP_STAT_INDEX_MEAN_BRANCH_BITS
+			meanBranchBytes := make([]*ByteBound, meanBranchBits)
+			bound := uint8(TheclipSearchConf.Delta_mean)
+			bound = bound/2 + bound%2
+
+			//meanBranchBits 必是 1. 所以下面直接赋值下标为 0
+			meanBranchBytes[0] = GetByteBound(mean, bound)
+			result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,meanBranchBytes[0].GetAll())
+			offset ++
+		}
+	}
+
+	{
+		if 0 != CLIP_STAT_INDEX_SD_BRANCH_BITS{
+			sdBranchBits := CLIP_STAT_INDEX_SD_BRANCH_BITS
+			sdBranchBytes := make([]*ByteBound, sdBranchBits)
+
+			bound := uint8(TheclipSearchConf.Delta_sd)
+			bound = bound/2 + bound%2
+
+			//sdBranchBits 必是 1. 所以下面直接赋值下标为 0
+			sdBranchBytes[0] = GetByteBound(standardDeviation, bound)
+			result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,sdBranchBytes[0].GetAll())
+			offset ++
+		}
+	}
+
+	return result
+}
+
 //clip index 进行分支, branchBits 表示使用索引的前几位进行分支
 // 输入的索引要求是 3 通道索引
 func ClipIndexBranch(clipIndexBytes []byte) [][] byte {
@@ -72,7 +156,7 @@ func ClipIndexBranch(clipIndexBytes []byte) [][] byte {
 	clipIndexIn3Chanel[branchBits + 1] = sd
 
 	//拷贝固定的部分
-	copy(clipIndexIn3Chanel[CLIP_INDEX_STAT_BYTES_LEN+branchBits:], clipIndexBytes)
+	copy(clipIndexIn3Chanel[CLIP_INDEX_STAT_BYTES_LEN+branchBits:], clipIndexBytes[branchBits:])
 
 	indexLen := len(clipIndexBytes)
 
@@ -85,7 +169,7 @@ func ClipIndexBranch(clipIndexBytes []byte) [][] byte {
 	branchBytes := make([]*ByteBound, branchBits)
 	for i:=0;i < branchBits;i ++{
 		c := clipIndexBytes[i]
-		branchBytes[i] = GetBound(c, bound)
+		branchBytes[i] = GetByteBound(c, bound)
 		totalCount *= branchBytes[i].getValidSize()
 	}
 
@@ -208,6 +292,24 @@ func (this *ByteBound) setThird(third uint8)  {
 	this.third = third
 	this.thirdValid = true
 }
+func (this* ByteBound) GetAll() []uint8 {
+	nsize := this.getValidSize()
+	ret := make([]uint8, nsize)
+	ci := 0
+	if this.upValid{
+		ret[ci] = this.up
+		ci ++
+	}
+	if this.downValid{
+		ret[ci] = this.down
+		ci ++
+	}
+	if this.thirdValid{
+		ret[ci] = this.third
+		ci ++
+	}
+	return ret
+}
 
 //获得某个数字以 bound 为基的上下限
 //13 的以10为基上限是 20，下限是10，没有 third
@@ -216,7 +318,7 @@ func (this *ByteBound) setThird(third uint8)  {
 //250 以10为基上限是250, 下限是 240
 //251 以10为基没有上限, 下限是 250
 //总之, 保证输入值最大向下或者向上，最多跨越 10
-func GetBound(c uint8, bound uint8) *ByteBound {
+func GetByteBound(c uint8, bound uint8) *ByteBound {
 	ret := ByteBound{}
 	ret.setAllInvalid()
 

@@ -23,15 +23,16 @@ func main()  {
 		dbIdS,_ := strconv.Atoi(dbIdStr)
 		curDbId := uint8(dbIdS)
 
-		clipIdentToIndexDB := dbOptions.InitIndexDBByBaseDir(curDbId, 1)
-		clipIndexToIdentDB := dbOptions.InitIndexDBByBaseDir(curDbId, 2)
+		clipIdentToIndexDB := dbOptions.InitMuClipToIndexDB(curDbId)
+		clipIndexToIdentMiddleDB := dbOptions.InitMuIndexToClipMiddleDB(curDbId)
 		imgDB := dbOptions.PickImgDB(curDbId)
 
 		fmt.Println("begin to deal imgdb: ", strconv.Itoa(int(curDbId)))
 		dbOptions.BeginImgClipSaveEx(curDbId,-1, clipConfig.ClipOffsets , clipConfig.ClipLengh)
 		fmt.Println("end of deal imgdb: ", strconv.Itoa(int(curDbId)))
+
 		clipIdentToIndexDB.CloseDB()
-		clipIndexToIdentDB.CloseDB()
+		clipIndexToIdentMiddleDB.CloseDB()
 		imgDB.CloseDB()
 	}
 

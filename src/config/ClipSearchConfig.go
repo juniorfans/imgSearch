@@ -1,40 +1,38 @@
 package config
 
 import (
-	"strings"
-	"strconv"
-	"io"
-	"util"
-	"fmt"
-	"os"
-	"bufio"
+
 )
+
 
 type ClipSearchConf struct {
 	Delta_sd float64
 	Delta_mean float64
+	Delta_Eul_square float64
 	Delta_Eul float64
 }
 
+/*
+
 func (this* ClipSearchConf) Print()  {
-	fmt.Println("Delta_sd: ", this.Delta_sd, ", Delta_mean: ", this.Delta_mean, ", Delta_Eul: ", this.Delta_Eul)
+	fmt.Println("Delta_sd: ", this.Delta_sd, ", Delta_mean: ", this.Delta_mean, ", Delta_Eul_square: ", this.Delta_Eul_square)
 }
 
-var clipSearchConf *ClipSearchConf = nil
+var TheclipSearchConf *ClipSearchConf = nil
 
 func MustReReadSearchConf(confpath string)  {
-	clipSearchConf = nil
+	TheclipSearchConf = nil
 	ReadClipSearchConf(confpath)
 }
 
 func ReadClipSearchConf(confPath string) *ClipSearchConf{
 
-	if nil != clipSearchConf{
-		return clipSearchConf
+	if nil != TheclipSearchConf {
+		return TheclipSearchConf
 	}
 
 	ret := ClipSearchConf{}
-	clipSearchConf = &ret
+	TheclipSearchConf = &ret
 
 	exedir,err := fileUtil.GetCurrentMoudlePath()
 	if nil != err{
@@ -71,8 +69,8 @@ func ReadClipSearchConf(confPath string) *ClipSearchConf{
 				ret.Delta_sd, _ = strconv.ParseFloat(strings.TrimSpace(kv[1]), 64)
 			}else if 0 == strings.Compare("Delta_mean", kv[0]){
 				ret.Delta_mean,_ = strconv.ParseFloat(strings.TrimSpace(kv[1]), 64)
-			}else if 0 == strings.Compare("Delta_Eul", kv[0]){
-				ret.Delta_Eul,_ = strconv.ParseFloat(strings.TrimSpace(kv[1]), 64)
+			}else if 0 == strings.Compare("Delta_Eul_square", kv[0]){
+				ret.Delta_Eul_square,_ = strconv.ParseFloat(strings.TrimSpace(kv[1]), 64)
 			}else{
 				fmt.Println("unknow db config key: ", line)
 			}
@@ -81,3 +79,5 @@ func ReadClipSearchConf(confPath string) *ClipSearchConf{
 	ret.Print()
 	return &ret
 }
+
+*/

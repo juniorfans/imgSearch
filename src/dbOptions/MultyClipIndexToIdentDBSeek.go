@@ -7,7 +7,6 @@ import (
 	"math"
 	"fmt"
 	"util"
-	"config"
 )
 
 
@@ -42,6 +41,7 @@ func (this *MultyDBClipBranchIndexToIdentSeeker) SeekRegionForBranches (branches
 	branchBitsArray := make([][]byte, len(branchesIndexes))
 	minBranch := []byte{255,255}
 	maxBranch := []byte{0,0}
+
 	for i, branchIndex := range branchesIndexes{
 		//	fmt.Print("branchIndex: ")
 		//	fileUtil.PrintBytes(branchIndex)
@@ -131,7 +131,7 @@ func IsSameClipBranchIndex(leftIndex, rightIndex[]byte) bool {
 	leftMean := leftIndex[3]
 	rightMean := rightIndex[3]
 
-	searchConf := config.ReadClipSearchConf("clip_search_conf.txt")
+	searchConf := ImgIndex.TheclipSearchConf
 
 	meanDiff := math.Abs(float64(leftMean-rightMean))
 	if searchConf.Delta_mean < meanDiff{
@@ -143,19 +143,14 @@ func IsSameClipBranchIndex(leftIndex, rightIndex[]byte) bool {
 		return false
 	}
 
+
 	//欧式距离
-	sim := float64(0)
-	for i:=0;i < len(leftIndex);i++{
-		sim += math.Pow(float64(leftIndex[i]-rightIndex[i]), 2)
-	}
+	eulSquareDiff := fileUtil.CalEulSquare(leftIndex, rightIndex)
 
-	eulDiff := math.Pow(sim / float64(len(leftIndex)), 0.5)
-
-	if searchConf.Delta_Eul < eulDiff{
+	if searchConf.Delta_Eul_square < eulSquareDiff{
 		return false
 	}
 
-//	fmt.Println("meanDiff: ", meanDiff,", sdDiff: ", sdDiff, ", eulDiff: ", eulDiff)
 
 	return true
 }

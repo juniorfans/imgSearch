@@ -3,6 +3,7 @@ package fileUtil
 import (
 	"fmt"
 	"sort"
+	"bytes"
 )
 
 //left starts with right
@@ -46,6 +47,50 @@ func CopyBytesTo(src []byte) []byte {
 	ret := make([]byte, len(src))
 	copy(ret, src)
 	return ret
+}
+
+func CopyBytesPrefixTo(src []byte, limit int) []byte {
+	if len(src) < limit{
+		limit = len(src)
+	}
+	ret := make([]byte, limit)
+	copy(ret, src[:limit])
+	return ret
+}
+
+func CopyBytesSuffixTo(src []byte, offset int) []byte {
+	if len(src) <= offset{
+		return nil
+	}
+	return CopyBytesTo(src[offset:])
+}
+
+func BytesLessthan(left, right []byte) bool {
+	nsize := len(left)
+	if nsize > len(right){
+		nsize = len(right)
+	}
+	for i:=0;i < nsize;i ++{
+		if left[i] == right[i]{
+
+		}else{
+			return left[i] < right[i]
+		}
+	}
+
+	return len(left) < len(right)
+}
+
+//比较 left 和 right 的前 limit 个字节是否相等.
+//异常情况: 两者长度都小于 limit 则直接比较两者是否全等. 否则一个小于 limit 一个大小 limit 则不相等
+func BytesEqualPrefix(left, right []byte, limit int) bool {
+	if len(left) >= limit && len(right) >= limit{
+		return bytes.Equal(left[: limit], right[: limit])
+	}else if len(left) < limit && len(right) < limit{
+		return bytes.Equal(left, right)
+	}else{
+		return false
+	}
 }
 
 func MergeBytesTo(target, given *[]byte) {
@@ -204,4 +249,36 @@ func (a BytesArrayList) Less(i, j int) bool {
 
 func BytesArraySortByLengthDesc(data [][]byte)  {
 	sort.Sort(BytesArrayList(data))
+}
+
+var squareMap [256]int
+var squareMapInited = false
+func InitByteSquareMap()  {
+	if squareMapInited{
+		return
+	}
+	for b:=0; b < 256; b ++{
+		squareMap[b] = int(b) * int(b)
+	}
+	squareMapInited = true
+}
+
+
+func ByteSquare(b byte) int {
+	return squareMap[int(b)]
+}
+
+//计算欧式距离的平方, 即最后一步不开方
+func CalEulSquare(left, right []byte) float64 {
+	//欧式距离
+	sim := 0
+	for i:=0;i < len(left);i++{
+		if left[i]>right[i]{
+			sim += ByteSquare(left[i] - right[i])
+		}else if left[i] < right[i]{
+			sim += ByteSquare(right[i] - left[i])
+		}
+	}
+
+	return float64(sim) / float64(len(left))//math.Pow(sim / float64(len(leftIndex)), 0.5)
 }

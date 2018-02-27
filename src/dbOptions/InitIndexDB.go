@@ -120,24 +120,28 @@ func InitClipToIndexDB() *DBConfig {
 
 var initedIndexDb map[int] *DBConfig
 
-
+//clip index to ident. 键是分支索引
 func InitMuIndexToClipDB(dbId uint8) *DBConfig {
-	return InitIndexDBByBaseDir(dbId,2)
+	return InitIndexDBByBaseDir(dbId,2, false)
+}
+//中间表
+func InitMuIndexToClipMiddleDB(dbId uint8) *DBConfig {
+	return InitIndexDBByBaseDir(dbId,2, true)
 }
 
 //clip ident to source clip index. 不是分支索引，也不含统计字节
 func InitMuClipToIndexDB(dbId uint8) *DBConfig {
-	return InitIndexDBByBaseDir(dbId,1)
+	return InitIndexDBByBaseDir(dbId,1, false)
 }
 
 
 func InitMuIndexToImgDB(dbId uint8) *DBConfig {
-	return InitIndexDBByBaseDir(dbId,3)
+	return InitIndexDBByBaseDir(dbId,3, false)
 }
 
 
 func InitMuImgToIndexDB(dbId uint8) *DBConfig {
-	return InitIndexDBByBaseDir(dbId,4)
+	return InitIndexDBByBaseDir(dbId,4, false)
 }
 
 func MultityInitClipIndexToIdentDBs(dbIds []uint8)  {
@@ -146,11 +150,11 @@ func MultityInitClipIndexToIdentDBs(dbIds []uint8)  {
 	}
 }
 
-func GetInitedClipIndexToIdentDB() []*DBConfig {
+func GetInitedClipStatIndexToIdentDB() []*DBConfig {
 
 	var ret []*DBConfig
 	for hash,db :=range initedIndexDb{
-		whichDB := hash >> 8
+		whichDB := hash >> 16
 		if 2 == whichDB{
 			ret = append(ret, db)
 		}
@@ -194,13 +198,16 @@ func GetInitedImgIdentToIndexDB() []*DBConfig {
 	return ret
 }
 
-func InitIndexDBByBaseDir(dbId uint8, whichDB int) *DBConfig{
+func InitIndexDBByBaseDir(dbId uint8, whichDB int, isMiddle bool) *DBConfig{
 
 	if nil == initedIndexDb{
 		initedIndexDb = make(map[int] *DBConfig)
 	}
 
 	hash := (whichDB << 8) + int(dbId)
+	if isMiddle{
+		hash = hash << 8 + 1
+	}
 	if exsitsDB, ok := initedIndexDb[hash];ok && true == exsitsDB.inited{
 		return exsitsDB
 	}
@@ -229,19 +236,19 @@ func InitIndexDBByBaseDir(dbId uint8, whichDB int) *DBConfig{
 	}
 
 	indexDB.inited = true
-
+	var dbName string
 	switch whichDB {
 	case 1:
-		indexDB.Name = "clip_ident_to_index/data.db"
+		dbName = "clip_ident_to_index"
 		break
 	case 2:
-		indexDB.Name = "clip_index_to_ident/data.db"
+		dbName = "clip_index_to_ident"
 		break
 	case 3:
-		indexDB.Name = "img_index_to_ident/data.db"
+		dbName = "img_index_to_ident"
 		break
 	case 4:
-		indexDB.Name = "img_ident_to_index/data.db"
+		dbName = "img_ident_to_index"
 		break
 	default:
 		fmt.Println("whichDB must be 1,2,3,4")
@@ -249,6 +256,10 @@ func InitIndexDBByBaseDir(dbId uint8, whichDB int) *DBConfig{
 		break
 	}
 
+	if isMiddle{
+		dbName += "_middle"
+	}
+	indexDB.Name = dbName + "/data.db"
 	indexDB.Dir = indexDB.initParams.DirBase + "/" + strconv.Itoa(int(dbId)) + "/" + indexDB.Name
 	fmt.Println("has pick this index db: ", indexDB.Dir)
 	indexDB.DBPtr,_ = leveldb.OpenFile(indexDB.Dir, &indexDB.OpenOptions)

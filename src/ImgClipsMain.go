@@ -20,6 +20,7 @@ func main()  {
 		fmt.Fscan(stdin, &dbIndex)
 		indexToClipDB := dbOptions.InitMuIndexToClipDB(dbIndex)
 		clipToIndexDB := dbOptions.InitMuClipToIndexDB(dbIndex)
+		statIndexToIdentDB := dbOptions.InitClipStatIndexToIdentsDB(dbIndex)
 		imgDB := dbOptions.PickImgDB(dbIndex)
 		if nil == imgDB{
 			fmt.Println("open img db failed: ", dbIndex)
@@ -32,6 +33,7 @@ func main()  {
 
 		indexToClipDB.CloseDB()	//刷新数据
 		clipToIndexDB.CloseDB()	//刷新数据
+		statIndexToIdentDB.CloseDB()
 		imgDB.CloseDB()
 	}
 }

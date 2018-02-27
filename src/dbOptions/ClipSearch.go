@@ -50,8 +50,9 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 	copy(curImgIdent[1:], imgKey)
 	curImgIndex := InitMuImgToIndexDB(uint8(dbId)).ReadFor(curImgIdent)
 
-	clipConfig := config.GetClipConfigById(0)
-	clipIndexes := GetDBIndexOfClips(PickImgDB(dbId) , imgKey, clipConfig.ClipOffsets, clipConfig.ClipLengh)
+	//clipConfig := config.GetClipConfigById(0)
+	//clipIndexes := GetDBIndexOfClips(PickImgDB(dbId) , imgKey, clipConfig.ClipOffsets, clipConfig.ClipLengh)
+	clipIndexes := QueryClipIndexesFor(dbId, imgKey)
 	if nil == clipIndexes{
 		fmt.Println("can't find clip indexes: ", string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)))
 		return
@@ -70,7 +71,7 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 
 	for i, clipIndex := range clipIndexes{
 		//与第 i 个子图相似的子图
-		branchesIndexes := ImgIndex.ClipIndexBranch(clipIndex.GetIndexBytesIn3Chanel())
+		branchesIndexes := ImgIndex.ClipIndexBranch(clipIndex)
 		allBranchesIndex[i] = branchesIndexes
 		if hasDuplicateClipWithBefore(allBranchesIndex, i){
 			continue

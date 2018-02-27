@@ -14,7 +14,6 @@ import (
 	"os"
 	"strings"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"bytes"
 )
 
 var CLIP_VIRTUAL_TAGID_LEN = 10
@@ -292,10 +291,6 @@ func getOldSupportFor(branchIndexCombine []byte) (support int){
 
 	for iter.Valid(){
 
-		if len(iter.Key()) != len(branchIndexCombine)+CLIP_VIRTUAL_TAGID_LEN || !bytes.Equal(iter.Key()[:len(branchIndexCombine)], branchIndexCombine) {
-			break
-		}
-
 		supportBytes := iter.Value()
 		curSupport := ImgIndex.BytesToInt32(supportBytes)
 		if maxSupport < curSupport{
@@ -462,10 +457,10 @@ func VerifyCoordinateResult()  {
 func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)  {
 
 	for _,dbId := range indexBbIdReferenced{
-		InitMuIndexToClipDB(dbId)
+		InitClipStatIndexToIdentsDB(dbId)
 	}
 
-	seeker := NewMultyDBReader(GetInitedClipIndexToIdentDB())
+	seeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB())
 	defer seeker.Close()
 
 	tiDB := InitClipCoordinatevTagIdToBranchIndexDB()

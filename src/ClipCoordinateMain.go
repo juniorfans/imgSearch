@@ -8,14 +8,31 @@ import (
 	"strconv"
 	"dbOptions"
 	"imgIndex"
+	"log"
+	"runtime/pprof"
+	"config"
+	"util"
 )
+
+
 
 func main()  {
 	//TestCoordinate()
+
+	f, err := os.Create("monitor.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+
 	RealRun()
+
+	pprof.StopCPUProfile()
 }
 
 func RealRun()  {
+	fileUtil.InitByteSquareMap()
+
 	stdin := bufio.NewReader(os.Stdin)
 	var dbIdStrs string
 	/*
@@ -40,7 +57,9 @@ func RealRun()  {
 		dbIds[i] = uint8(dbId)
 		dbOptions.PickImgDB(uint8(dbId))
 
-		dbOptions.InitMuIndexToClipDB(uint8(dbId))	//用于根据输入大图的子图的各个分支索引去查找 clipIdent, 再得到出现的母图
+		dbOptions.InitMuClipToIndexDB(uint8(dbId))
+		//dbOptions.InitMuIndexToClipDB(uint8(dbId))	//用于根据输入大图的子图的各个分支索引去查找 clipIdent, 再得到出现的母图
+		dbOptions.InitClipStatIndexToIdentsDB(uint8(dbId)) 	//用于根据输入大图的子图的 stat 数据去查找 clipIdent, 再得到出现的母图
 		dbOptions.InitMuImgToIndexDB(uint8(dbId))	//用于：计算得到子图出现在的母图后，需要得到母图的 index 作为键去计算子图出现的相同母图
 
 	}
@@ -66,7 +85,6 @@ func TestCoordinate()  {
 	fmt.Print("input img dbId to deal: ")
 	var dbId uint8
 	fmt.Fscan(stdin, &dbId)
-
 	fmt.Print("input imgNames, split by - : ")
 	var imgNameList string
 	fmt.Fscan(stdin, &imgNameList)

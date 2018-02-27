@@ -23,12 +23,14 @@ func main()  {
 		imgDB := dbOptions.PickImgDB(curDbId)
 		indexToIdentDB := dbOptions.InitMuIndexToImgDB(curDbId)
 		identToIndexDB := dbOptions.InitMuImgToIndexDB(curDbId)
+		statIndexToIdentDB := dbOptions.InitClipStatIndexToIdentsDB(curDbId)
 
 		dbOptions.ImgIndexSaveRun(curDbId, -1)
 
 		imgDB.CloseDB()
 		indexToIdentDB.CloseDB()
 		identToIndexDB.CloseDB()
+		statIndexToIdentDB.CloseDB()
 	}
 }
 

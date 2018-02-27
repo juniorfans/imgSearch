@@ -34,6 +34,8 @@ type SubImgIndex struct {
 	IsSourceIndex   bool        //当前索引是否是原始索引, 即非分支索引. 一个原始索引对应多个分支索引
 
 	ConfigId        uint8       //使用的切图配置/Letter 配置 id
+
+	ClipIdent       []byte
 }
 
 func (this *SubImgIndex) Clone() *SubImgIndex {
@@ -53,6 +55,7 @@ func (this *SubImgIndex) Clone() *SubImgIndex {
 	}
 */
 	ret.IsSourceIndex = this.IsSourceIndex
+	ret.ClipIdent = this.ClipIdent
 	return &ret
 }
 
@@ -64,6 +67,7 @@ func (this *SubImgIndex) Init(dbId uint8, mainImgKey[]byte, which uint8, unitLen
 	this.UnitLength = unitLength
 	this.cachedFlatBytes = nil
 	this.IsSourceIndex = false
+	this.ClipIdent = GetImgClipIdent(dbId,mainImgKey,which)
 }
 
 func (this *SubImgIndex) AddIndex(offset int, index IndexData)  {
@@ -109,6 +113,10 @@ func (this *SubImgIndex)getFlatInfo () []byte {
 			fmt.Println("getFlatInfo error: ", totalSize, ", ", ci)
 			return nil
 		}
+
+		//todo 拿不准 优化
+		this.IndexUnits = nil
+
 		this.cachedFlatBytes = ClipIndexSave3Chanel(res)
 		return this.cachedFlatBytes
 	}
