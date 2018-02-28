@@ -26,10 +26,10 @@ func ImgClipsToIndexBatchSaver(dbId uint8,batch *leveldb.Batch)  {
 }
 
 /**
-	指定大图中的某个小图，读取其属于哪些大图
+	指定大图中的某个小图，读取它的 clip index
  */
 func GetImgClipIndexFromClipIdent(dbId uint8, mainImgId []byte, which uint8) []byte {
-	imgIdent := ImgIndex.GetImgClipIdent(dbId, mainImgId, which)
-	fileUtil.PrintBytes(imgIdent)
-	return InitMuClipToIndexDB(dbId).ReadFor([]byte(imgIdent))
+	clipIdent := ImgIndex.GetImgClipIdent(dbId, mainImgId, which)
+	fileUtil.PrintBytes(clipIdent)
+	return InitMuClipToIndexDB(dbId).ReadFor([]byte(clipIdent))
 }

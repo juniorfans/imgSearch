@@ -180,6 +180,30 @@ func QueryClipIndexesFor(dbId uint8, imgKey []byte) [] []byte {
 	return ret
 }
 
+
+func QueryClipIndexesAttachIdentFor(dbId uint8, imgKey []byte) [] []byte {
+	clipToIndexDB := InitMuClipToIndexDB(dbId)
+
+	ret := make([] []byte, config.CLIP_COUNTS_OF_IMG)
+	clipIdent := ImgIndex.GetImgClipIdent(dbId, imgKey, 0)
+
+	for i:=0;i < int(config.CLIP_COUNTS_OF_IMG);i ++{
+		curIndex := clipToIndexDB.ReadFor(clipIdent)
+		if ImgIndex.CLIP_INDEX_BYTES_LEN != len(curIndex){
+			fmt.Println("query clip index not exsits: ", dbId, string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)))
+			return nil
+		}
+		curRes := make([]byte, len(curIndex) + len(clipIdent))
+		copy(curRes, curIndex)
+		copy(curRes[len(curIndex) : ], clipIdent)
+		ret[i] = curRes
+
+		fileUtil.BytesIncrement(clipIdent)
+	}
+
+	return ret
+}
+
 /**
 	获得 fileName 图像中的小图
 	根据此图大小对应的切割配置去切割此图像为多个小图

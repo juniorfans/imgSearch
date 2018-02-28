@@ -5,10 +5,11 @@ import (
 	"os"
 	"fmt"
 	"dbOptions"
+	"log"
+	"runtime/pprof"
 )
 
-
-func main(){
+func doTest()  {
 	stdin := bufio.NewReader(os.Stdin)
 	var testCase int
 	var dbIndex uint8
@@ -25,7 +26,7 @@ func main(){
 			continue
 		}
 
-	//	newBase, lastCores, lastEachTimes, lastCostSecs, lastRemark := dbOptions.GetStatInfo()
+		//	newBase, lastCores, lastEachTimes, lastCostSecs, lastRemark := dbOptions.GetStatInfo()
 		/**
 		0	打印所有库的统计信息
 		1	有多少小图
@@ -129,10 +130,32 @@ func main(){
 			dbOptions.TestClipStatBranchIndeses()
 		}else if(34 == testCase){
 			dbOptions.TestStatIndexValue()
+		}else if(35 == testCase){
+			//dbOptions.TestCoordinateIndexDBFix()
+			dbOptions.CoordinateIndexDBKeyCount()
+		}else if(36 == testCase){
+			dbOptions.TestCoordinateSupportEx()
+		}else if(37 == testCase){
+			dbOptions.TestMarkNotClipCoordinate()
 		}else{
 			fmt.Println("invalid options")
 		}
-	//	imgDB.CloseDB()
+		//	imgDB.CloseDB()
 	}
+}
+
+func main(){
+
+	f, err := os.Create("statTest.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+
+	doTest()
+
+	pprof.StopCPUProfile()
+
+
 
 }

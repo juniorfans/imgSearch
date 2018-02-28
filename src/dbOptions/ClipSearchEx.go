@@ -13,7 +13,7 @@ import (
 /**
 	计算哪些大图中联合出现了 imgKey 中的多个子图, imgKey 不包含在内
  */
-func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, allStatBranchesIndex[] [][]byte ){
+func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clipIndexAndIdents[][]byte, allStatBranchesIndex[] [][]byte ){
 	curImgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 	curImgIdent[0] = byte(dbId)
 	copy(curImgIdent[1:], imgKey)
@@ -21,8 +21,9 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, allS
 
 	seeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB())
 
-	clipIndexes := QueryClipIndexesFor(dbId, imgKey)
-	if nil == clipIndexes{
+	clipIndexAndIdents = QueryClipIndexesAttachIdentFor(dbId, imgKey)
+
+	if nil == clipIndexAndIdents {
 		fmt.Println("can't find clip indexes: ", string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)))
 		return
 	}
@@ -30,14 +31,15 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, allS
 	//各个子图的 imgIndexContainer 容器: 每个容器表示某些 img index 与相应的子图有关系(即子图也出现在这些 img 中)
 	occedImgIndex = imgCache.NewMyMap(true)
 
-	allStatBranchesIndex = make([] [][]byte, len(clipIndexes))
+	allStatBranchesIndex = make([] [][]byte, len(clipIndexAndIdents))
 
 	//cmap := imgCache.NewMyMap(false)
 	//var exsitsIndexes []interface{}
 
 	curClipOccIn := imgCache.NewMyMap(false)
 
-	for i, clipIndex := range clipIndexes{
+	for i, clipIndexAndIdent := range clipIndexAndIdents {
+		clipIndex := clipIndexAndIdent[: ImgIndex.CLIP_INDEX_BYTES_LEN]
 		curStatBranches := ImgIndex.ClipStatIndexBranch(clipIndex)
 		allStatBranchesIndex[i] = curStatBranches
 
@@ -121,7 +123,8 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, allS
 			if len(sameClipIndex) != ImgIndex.CLIP_INDEX_BYTES_LEN{
 				continue
 			}
-			if isSameClip(sameClipIndex, clipIndex){
+
+			if !isSameClip(sameClipIndex, clipIndex){
 				continue
 			}
 
@@ -129,15 +132,13 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, allS
 
 			occedImgIndex.Put(imgIndex, uint8(i))	//第 i 个子图出现在 imgIndex 所指示的大图中
 		}
-		fmt.Println()
-
 		curClipOccIn.Clear()
 	}
 	return
 }
 
 func isSameClip(left, right []byte) bool {
-	return ImgIndex.TheclipSearchConf.Delta_Eul_square < fileUtil.CalEulSquare(left, right)
+	return ImgIndex.TheclipSearchConf.Delta_Eul_square > fileUtil.CalEulSquare(left, right)
 }
 
 func getImgIndex(clipIdents [] []byte) *imgCache.MyMap {
@@ -159,10 +160,10 @@ func getImgIndex(clipIdents [] []byte) *imgCache.MyMap {
 /*
 	以 dbId 库中的 imgKey 为对象，找出 imgKey 中哪些子图共同出现在其它大图中
 */
-func SearchCoordinateForClipEx(dbId uint8, imgKey []byte) (whichesGroupAndCount *imgCache.MyMap, allStatIndex [] [][]byte ) {
+func SearchCoordinateForClipEx(dbId uint8, imgKey []byte) (whichesGroupAndCount *imgCache.MyMap, clipIndexAndIdents [][]byte, allStatIndex [] [][]byte ) {
 	imgName := strconv.Itoa(int(dbId)) + "-" + string(ImgIndex.ParseImgKeyToPlainTxt(imgKey))
 	//计算哪些大图中联合出现了 imgKey 中的多个子图. 注意 imgKey 不包含在内
-	occedImgIndex, allStatIndex := occInImgsEx(dbId, imgKey)
+	occedImgIndex, clipIndexAndIdents, allStatIndex := occInImgsEx(dbId, imgKey)
 
 	if nil == occedImgIndex || 0 == occedImgIndex.KeyCount(){
 		return

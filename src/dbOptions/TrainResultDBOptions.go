@@ -17,10 +17,10 @@ import (
 
 /**
 	结果保存：
-	1. 相同主题子图有哪些 AClipIndexBytes | BClipIndexBytes --> tagIndex, 计算方法: 一张大图中同时被选择的多个子图及 tag
-	2. 子图的主题 clipBranchesIndexBytes --> tagId
-	3. 大图 imgIndexBytes --> which array, 计算方法: 一张大图中选择的哪些子图
-	4. tag 下有哪些子图 (tagId | branches clipindex) --> nil
+	[更改]1. 子图的主题 clipStatIndex -> {clipIndex | clipIdent | tagId} 重复结构
+	     2.
+	[原样]3. 大图 imgIndexBytes --> which array, 计算方法: 一张大图中选择的哪些子图
+	[更改]4. 主题相同的子图有哪些 tagId -> {statInex|clipIndex|clipIdent} 重复结构
 	5. tagId --> tagName 及 tagName --> tagId. 训练时会新加入
  */
 //----------------------------------------------------------------------------------
@@ -77,6 +77,13 @@ func GetClipIndexBytesOfWhich(dbId uint8, imgIdent []byte, whiches []uint8) map[
 
 	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
 	copy(clipIdent, imgIdent)
+
+	if 0 == len(whiches){
+		whiches = make([]uint8, config.CLIP_COUNTS_OF_IMG)
+		for i:=0;i < int(config.CLIP_COUNTS_OF_IMG);i ++{
+			whiches[i] = uint8(i)
+		}
+	}
 
 	clipIndexes := make(map[uint8] []byte)
 	for _,which := range whiches{

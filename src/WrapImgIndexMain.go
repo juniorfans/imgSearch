@@ -7,9 +7,17 @@ import (
 	"strings"
 	"strconv"
 	"dbOptions"
+	"log"
+	"runtime/pprof"
 )
 
 func main()  {
+
+	f, err := os.Create("imgIndexMain.prof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
 
 	stdin := bufio.NewReader(os.Stdin)
 	var dbIdStrs string
@@ -32,5 +40,7 @@ func main()  {
 		identToIndexDB.CloseDB()
 		statIndexToIdentDB.CloseDB()
 	}
+
+	pprof.StopCPUProfile()
 }
 

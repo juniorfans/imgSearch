@@ -4,6 +4,7 @@ import (
 	"util"
 	"imgCache"
 	"github.com/syndtr/goleveldb/leveldb"
+	"fmt"
 )
 
 var COMBINE_CACHED_KEY_COUNT = 3000
@@ -15,7 +16,7 @@ var COMBINE_CACHED_KEY_COUNT = 3000
 
 	若键的长度不足 prefixLen 则直接写入
  */
-func CombineDBByKeyPrefix(srcDB, targetDB *DBConfig, prefixLen int, valueFromKeySuffix bool)  {
+func CombineDBByKeyPrefix(srcDB, targetDB *DBConfig, prefixLen int, valueCombineMode int, exclusivePrefi []byte)  {
 	iter := srcDB.DBPtr.NewIterator(nil, &srcDB.ReadOptions)
 	iter.First()
 
@@ -32,13 +33,22 @@ func CombineDBByKeyPrefix(srcDB, targetDB *DBConfig, prefixLen int, valueFromKey
 			}
 		}
 
-		if valueFromKeySuffix{
-			nkey = fileUtil.CopyBytesPrefixTo(iter.Key(), prefixLen)
-			nvalue = fileUtil.CopyBytesSuffixTo(iter.Key(), prefixLen)
-		}else{
-			nkey = fileUtil.CopyBytesPrefixTo(iter.Key(), prefixLen)
+		if false || len(exclusivePrefi)!=0 && fileUtil.BytesStartWith(iter.Key(), exclusivePrefi){
+			nkey = fileUtil.CopyBytesTo(iter.Key())
 			nvalue = fileUtil.CopyBytesTo(iter.Value())
+		}else{
+			if 0 == valueCombineMode{	//叠加原有值
+				nkey = fileUtil.CopyBytesPrefixTo(iter.Key(), prefixLen)
+				nvalue = fileUtil.CopyBytesTo(iter.Value())
+			}else if 1 == valueCombineMode{	//叠加 key 从 prefixLen 开始的字节作为值
+				nkey = fileUtil.CopyBytesPrefixTo(iter.Key(), prefixLen)
+				nvalue = fileUtil.CopyBytesSuffixTo(iter.Key(), prefixLen)
+			}else {
+				fmt.Println("not support value mode")
+				return
+			}
 		}
+
 
 		cmap.Put(nkey, nvalue)
 

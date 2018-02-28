@@ -270,6 +270,7 @@ func (this *DBConfig)WriteTo(key , value[]byte) error {
 	return this.DBPtr.Put(key, value, &this.WriteOptions)
 }
 
+
 func (this *DBConfig)WriteBatchTo (batch *leveldb.Batch) {
 	this.DBPtr.Write(batch, &this.WriteOptions)
 }
