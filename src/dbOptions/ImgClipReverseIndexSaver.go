@@ -334,7 +334,7 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 
 	cacheCount := 10
 	branchIndexBuffer := make([]byte, ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + cacheCount * ImgIndex.IMG_CLIP_IDENT_LENGTH)
-	statBranchIndexBuffer := make([]byte, ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + cacheCount * ImgIndex.IMG_CLIP_IDENT_LENGTH)
+	statBranchIndexBuffer := make([]byte, ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + cacheCount * (ImgIndex.IMG_CLIP_IDENT_LENGTH + ImgIndex.CLIP_INDEX_BYTES_LEN))
 	var clipIdentRealCount int
 
 	for _,clipIndex := range clipIndexes{
@@ -351,7 +351,7 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 		clipIdentRealCount = len(interfaceClipIdents)
 		if  clipIdentRealCount > cacheCount{
 			branchIndexBuffer = make([]byte, ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN + clipIdentRealCount * ImgIndex.IMG_CLIP_IDENT_LENGTH)
-			statBranchIndexBuffer = make([]byte, ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + clipIdentRealCount * ImgIndex.IMG_CLIP_IDENT_LENGTH)
+			statBranchIndexBuffer = make([]byte, ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + clipIdentRealCount * (ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH))
 
 			cacheCount = clipIdentRealCount
 		}
@@ -365,6 +365,9 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 
 			//加入 clipIdent
 			cib += copy(branchIndexBuffer[cib:], clipIdent)
+
+			//加入 clipIndex 和 clipIndex
+			csb += copy(statBranchIndexBuffer[csb:], clipIndex)
 			csb += copy(statBranchIndexBuffer[csb:], clipIdent)
 		}
 

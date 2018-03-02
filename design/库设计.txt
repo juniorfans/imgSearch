@@ -39,18 +39,18 @@
 
 -----------------------------
 库名称:	clip 统计信息索引到 ident 库
-库名:	clip_stat_index_to_ident
+库名:	clip_stat_index_to_indexident
 初始化:	InitStatIndexToClipDB
-格式:	clipStatIndex --> clipIdents
+格式:	clipStatIndex --> clip index | clip ident
 说明:	值可重复
 用途:	协同分析时, 使用目标子图的 stat index 查找该库, 得出相同 stat index 的有哪些 clipIdent 集合, 再得出 imgIdent 集合, 即是目标子图出现的母图. 之后再计算多个目标子图的重合.
 		注意计算重合时不可用 imgIdent 为键, 而应使用 imgIndex 为鍵
 
 -----------------------------
 库名称:	clip 统计信息索引到 ident 库中间库
-库名:	clip_stat_index_to_ident_middle
+库名:	clip_stat_index_to_indexident_middle
 初始化:	InitStatIndexToClipMiddleDB
-格式:	clipStatIndex | clipIdent --> nil
+格式:	clipStatIndex | clipIndex | clipIdent --> nil
 用途:	分裂键得到的键值插入 clip_stat_index_to_ident
 
 -----------------------------
@@ -97,38 +97,38 @@
 ---------------------------------------------------- 训练库---------------------------
 训练库的格式:
 库名称:	子图-标签库
-库名:	clip_to_tag
-初始化:	InitClipToTagDB
+库名:	train_clip_to_tag
+初始化:	InitTrainClipToTagDB
 格式:	clipStatIndex -> clipIndex | clipIdent | tagId
 说明:	值可重复
 用途:	用于接收训练时给子图打的标签; 识别图片时找出大图中哪些子图具有相同的标签
 
 -----------------------------
 库名称:	标签-子图库
-库名:	tag_to_clip
-初始化:	InitTagToClipDB
+库名:	train_tag_to_clip
+初始化:	InitTrainTagToClipDB
 格式:	tagId -> statInex|clipIndex|clipIdent
 说明:	值可重复
 用途:	目前只用于测试; 以后规划: 识别出图片中的文字与标签比对直接得出大图中有哪些子图是此标签
 
 -----------------------------
 库名称:	大图-答案库
-库名:	img_answer
-初始化:	InitImgAnswerDB
+库名:	train_img_answer
+初始化:	InitTrainImgAnswerDB
 格式:	imgIndexBytes --> which array
 说明:	库的值直接就是多个字节, 表示此大图的这些子图是答案
 用途:	用于立即定位大图的答案
 
 -----------------------------
 库名称:	标签id 到名称的映射
-库名:	tag_id_to_name
-初始化:	InitTagIdToNameDB
+库名:	train_tag_id_to_name
+初始化:	InitTrainTagIdToNameDB
 格式:	tagId --> tagName
 用途:	训练时保存录入的主题
 
 -----------------------------
 库名称:	标签名称到 id 的映射
-库名:	tag_name_to_id
-初始化:	InitTagNameToIdDB
+库名:	train_tag_name_to_id
+初始化:	InitTrainTagNameToIdDB
 格式:	tagName --> tagId
 用途:	训练时保存录入的主题

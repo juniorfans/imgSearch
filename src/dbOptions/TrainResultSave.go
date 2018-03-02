@@ -74,7 +74,7 @@ func GetToTrainIterator(dbId uint8) *iterator.Iterator {
 
 func ImgRrainResultsBatchSave(dbId uint8, resultMap *imgCache.MyMap) error {
 
-	resDB := InitImgAnswerDB()
+	resDB := InitTrainImgAnswerDB()
 	if nil == resDB{
 		return errors.New("open result db error")
 	}
@@ -93,7 +93,7 @@ func ImgRrainResultsBatchSave(dbId uint8, resultMap *imgCache.MyMap) error {
 	}
 //	defer clipIdentToIndexDB.CloseDB()
 
-	clipSameDB := InitClipToTagDB()
+	clipSameDB := InitTrainClipToTagDB()
 	if nil == clipSameDB{
 		return errors.New("open clip same db error")
 	}
@@ -162,7 +162,7 @@ func setLastTrainImgIdentOf(dbId uint8, lastDealed []byte)  {
 	markKey := make([]byte, len(lastTrainedKeyPrefix) + 1, len(lastTrainedKeyPrefix) + 1)
 	copy(markKey, lastTrainedKeyPrefix)
 	markKey[len(lastTrainedKeyPrefix)] = byte(dbId)
-	InitImgAnswerDB().WriteTo([]byte(markKey), lastDealed)
+	InitTrainImgAnswerDB().WriteTo([]byte(markKey), lastDealed)
 }
 
 func PrintResultDBStat()  {
@@ -183,7 +183,7 @@ func PrintResultDBStatOf(dbId uint8)  {
 }
 
 func PrintClipSameBytes()  {
-	sameDB := InitClipToTagDB()
+	sameDB := InitTrainClipToTagDB()
 	iter := sameDB.DBPtr.NewIterator(nil, &sameDB.ReadOptions)
 	iter.First()
 
@@ -207,7 +207,7 @@ func PrintClipSameBytes()  {
 }
 
 func getLastTrainImgIdents() [][]byte {
-	resDB := InitImgAnswerDB()
+	resDB := InitTrainImgAnswerDB()
 	r := util.Range{Start: []byte(lastTrainedKeyPrefix), Limit: lastTrainedKeyPrefixLimit}
 	iter := resDB.DBPtr.NewIterator(&r, &resDB.ReadOptions)
 	iter.First()
@@ -221,7 +221,7 @@ func getLastTrainImgIdents() [][]byte {
 }
 
 func getLastTrainImgIdentOf(dbId uint8) []byte {
-	resDB := InitImgAnswerDB()
+	resDB := InitTrainImgAnswerDB()
 	r := util.Range{Start: lastTrainedKeyPrefix, Limit: lastTrainedKeyPrefixLimit}
 	iter := resDB.DBPtr.NewIterator(&r, &resDB.ReadOptions)
 	iter.First()

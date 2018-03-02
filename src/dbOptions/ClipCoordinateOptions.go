@@ -326,25 +326,32 @@ func testQueryAnyOneClipIdentByIndexAndIdent(dbId uint8, sourceIndexAndIdent []b
 	theClipIdent := sourceIndexAndIdent[ImgIndex.CLIP_INDEX_BYTES_LEN:]
 
 	statBranchIndexes := ImgIndex.ClipStatIndexBranch(clipIndex)
-	var clipIdentList []byte
-	var clipIdents [][]byte
+	var clipIndexAndIdentList []byte
+	var clipIndexAndIdents [][]byte
 	var curIndex []byte
 	fnd := false
 
-	for _, statIndex := range statBranchIndexes{
-		clipIdentList = InitStatIndexToClipDB(dbId).ReadFor(statIndex)
+	uintLen := (ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH)
 
-		clipIdents = make([][]byte, len(clipIdentList) / ImgIndex.IMG_CLIP_IDENT_LENGTH)
+	for _, statIndex := range statBranchIndexes{
+		clipIndexAndIdentList = InitStatIndexToClipDB(dbId).ReadFor(statIndex)
+		if len(clipIndexAndIdentList) == 0{
+			continue
+		}
+
+		clipIndexAndIdents = make([][]byte, len(clipIndexAndIdentList) / uintLen)
 		ci := 0
-		for i:=0;i < len(clipIdentList); i += ImgIndex.IMG_CLIP_IDENT_LENGTH{
-			clipIdents[ci] = fileUtil.CopyBytesTo(clipIdentList[i: i + ImgIndex.IMG_CLIP_IDENT_LENGTH])
+		for i:=0;i < len(clipIndexAndIdentList); i += uintLen{
+			clipIndexAndIdents[ci] = fileUtil.CopyBytesTo(clipIndexAndIdentList[i: i + uintLen])
 			ci ++
 		}
 
-		for _,clipIdent := range clipIdents{
-			if len(clipIdent) != ImgIndex.IMG_CLIP_IDENT_LENGTH{
+		for _, clipIndexAndIdent := range clipIndexAndIdents {
+			if len(clipIndexAndIdent) != uintLen{
 				continue
 			}
+
+			clipIdent := clipIndexAndIdent[ImgIndex.CLIP_INDEX_BYTES_LEN:]
 
 			if bytes.Equal(theClipIdent, clipIdent){
 				curIndex = InitClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
@@ -371,23 +378,27 @@ func testQueryAnyOneClipIdentByIndexAndIdent(dbId uint8, sourceIndexAndIdent []b
 
 func QueryAnyOneClipIdentByIndex(dbId uint8,sourceIndex []byte) []byte {
 	statBranchIndexes := ImgIndex.ClipStatIndexBranch(sourceIndex)
-	var clipIdentList []byte
-	var clipIdents [][]byte
+	var clipIndexAndIdentList []byte
+	var clipIndexAndIdents [][]byte
 	var curIndex []byte
-	for _, statIndex := range statBranchIndexes{
-		clipIdentList = InitStatIndexToClipDB(dbId).ReadFor(statIndex)
 
-		clipIdents = make([][]byte, len(clipIdentList) / ImgIndex.IMG_CLIP_IDENT_LENGTH)
+	uintLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
+
+	for _, statIndex := range statBranchIndexes{
+		clipIndexAndIdentList = InitStatIndexToClipDB(dbId).ReadFor(statIndex)
+
+		clipIndexAndIdents = make([][]byte, len(clipIndexAndIdentList) / uintLen)
 		ci := 0
-		for i:=0;i < len(clipIdentList); i += ImgIndex.IMG_CLIP_IDENT_LENGTH{
-			clipIdents[ci] = fileUtil.CopyBytesTo(clipIdentList[i: i + ImgIndex.IMG_CLIP_IDENT_LENGTH])
+		for i:=0;i < len(clipIndexAndIdentList); i += uintLen{
+			clipIndexAndIdents[ci] = fileUtil.CopyBytesTo(clipIndexAndIdentList[i: i + uintLen])
 			ci ++
 		}
 
-		for _,clipIdent := range clipIdents{
-			if len(clipIdent) != ImgIndex.IMG_CLIP_IDENT_LENGTH{
+		for _, clipIndexAndIdent := range clipIndexAndIdents {
+			if len(clipIndexAndIdent) != uintLen{
 				continue
 			}
+			clipIdent := clipIndexAndIdent[ImgIndex.CLIP_INDEX_BYTES_LEN:]
 			curIndex = InitClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
 
 			if isSameClip(sourceIndex, curIndex){
@@ -407,9 +418,6 @@ func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)
 	for _,dbId := range indexBbIdReferenced{
 		InitStatIndexToClipDB(dbId)
 	}
-
-	seeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB())
-	defer seeker.Close()
 
 	tiDB := InitCoordinatevTagToClipDB()
 	iter := tiDB.DBPtr.NewIterator(nil, &tiDB.ReadOptions)

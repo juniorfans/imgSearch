@@ -37,7 +37,7 @@ import (
 	合并旧值的写入方式
 */
 var initedClipTagDb map[int] *DBConfig
-func InitClipToTagDB() *DBConfig {
+func InitTrainClipToTagDB() *DBConfig {
 	if nil == initedClipTagDb {
 		initedClipTagDb = make(map[int] *DBConfig)
 	}
@@ -75,10 +75,10 @@ func InitClipToTagDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/clip_to_tag/data.db"
+	retDB.Name = "result/train_clip_to_tag/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this clip_to_tag db: ", retDB.Dir)
+	fmt.Println("has pick this train_clip_to_tag db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -97,7 +97,7 @@ func WriteTheClipToTag(imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte,
 	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
 	copy(clipIdent, imgIdent)
 
-	clipTagDB := InitClipToTagDB()
+	clipTagDB := InitTrainClipToTagDB()
 
 	exsitsClipIndexes := imgCache.NewMyMap(false)
 
@@ -146,7 +146,7 @@ func WriteTheClipToTag(imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte,
 }
 
 func hasClipIndexExsitsInClipTagValue(clipIndex []byte) (exsits bool, statIndexes [][]byte, values [][]byte) {
-	clipTagDB := InitClipToTagDB()
+	clipTagDB := InitTrainClipToTagDB()
 
 	exsits = false
 	statIndexes = ImgIndex.ClipStatIndexBranch(clipIndex)
@@ -193,7 +193,7 @@ func hasClipIndexExsitsInClipTagValue(clipIndex []byte) (exsits bool, statIndexe
  */
 var initedTagToClipDb map[int] *DBConfig
 
-func InitTagToClipDB() *DBConfig {
+func InitTrainTagToClipDB() *DBConfig {
 	if nil == initedTagToClipDb {
 		initedTagToClipDb = make(map[int] *DBConfig)
 	}
@@ -228,10 +228,10 @@ func InitTagToClipDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/tag_to_clip/data.db"
+	retDB.Name = "result/train_tag_to_clip/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this tag_to_clip db: ", retDB.Dir)
+	fmt.Println("has pick this train_tag_to_clip db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -245,7 +245,7 @@ func WriteTheTagToClip(imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte,
 	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
 	copy(clipIdent, imgIdent)
 
-	tagToClipDB := InitTagToClipDB()
+	tagToClipDB := InitTrainTagToClipDB()
 
 	exsitsClipIndexes := imgCache.NewMyMap(false)
 
@@ -304,7 +304,7 @@ func WriteTheTagToClip(imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte,
 }
 
 func hasClipIndexExsitsInTagValue(tagId []byte, clipIndex []byte) (exsits bool, statIndexes [][]byte, value []byte) {
-	tagToClipDB := InitTagToClipDB()
+	tagToClipDB := InitTrainTagToClipDB()
 
 	exsits = false
 	statIndexes = ImgIndex.ClipStatIndexBranch(clipIndex)
@@ -312,7 +312,7 @@ func hasClipIndexExsitsInTagValue(tagId []byte, clipIndex []byte) (exsits bool, 
 	value = tagToClipDB.ReadFor(tagId)
 
 	if 0 != len(value) % TAG_CLIP_DB_VALUE_UINT_BYTES_LEN{
-		tagName := InitTagIdToNameDB().ReadFor(tagId)
+		tagName := InitTrainTagIdToNameDB().ReadFor(tagId)
 		fmt.Println("error, tag db value length is not multple of ", TAG_CLIP_DB_VALUE_UINT_BYTES_LEN, ": ", len(value), ", ", string(tagName))
 		return
 	}
@@ -356,7 +356,7 @@ func hasClipIndexExsitsInTagValue(tagId []byte, clipIndex []byte) (exsits bool, 
 	格式: (img source index bytes) --> which array
 */
 var initedImgWhichesDb map[int] *DBConfig
-func InitImgAnswerDB() *DBConfig {
+func InitTrainImgAnswerDB() *DBConfig {
 	if nil == initedImgWhichesDb {
 		initedImgWhichesDb = make(map[int] *DBConfig)
 	}
@@ -391,10 +391,10 @@ func InitImgAnswerDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/img_answer/data.db"
+	retDB.Name = "result/train_img_answer/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this img_answer db: ", retDB.Dir)
+	fmt.Println("has pick this train_img_answer db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -405,7 +405,7 @@ func InitImgAnswerDB() *DBConfig {
 
 func WriteImgWhiches(dbId uint8, imgIdent []byte, whiches []uint8) error {
 	//写入 img index ---> whiches
-	resDB := InitImgAnswerDB()
+	resDB := InitTrainImgAnswerDB()
 
 	imgIndexDB := InitImgToIndexDB(dbId)
 
@@ -427,7 +427,7 @@ func WriteImgWhiches(dbId uint8, imgIdent []byte, whiches []uint8) error {
  */
 var initedTagIndexToNameDb map[int] *DBConfig
 
-func InitTagIdToNameDB() *DBConfig {
+func InitTrainTagIdToNameDB() *DBConfig {
 	if nil == initedTagIndexToNameDb {
 		initedTagIndexToNameDb = make(map[int] *DBConfig)
 	}
@@ -462,10 +462,10 @@ func InitTagIdToNameDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/tag_id_to_name/data.db"
+	retDB.Name = "result/train_tag_id_to_name/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this tag_id_to_name db: ", retDB.Dir)
+	fmt.Println("has pick this train_tag_id_to_name db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -480,7 +480,7 @@ func WriteATag(tag []byte) error {
 
 	tag = trimLRSpace(tag)
 
-	tagNameToIndexDB := InitTagNameToIdDB()
+	tagNameToIndexDB := InitTrainTagNameToIdDB()
 
 	exsistsIndex := tagNameToIndexDB.ReadFor(tag)
 	//has exsited
@@ -488,7 +488,7 @@ func WriteATag(tag []byte) error {
 		return 	errors.New("tag has been exsited")
 	}
 
-	tagIndexToNameDB := InitTagIdToNameDB()
+	tagIndexToNameDB := InitTrainTagIdToNameDB()
 
 	maxTagIndex := tagIndexToNameDB.ReadFor(STAT_MAX_TAG_INDEX_PREFIX)
 	if 0 == len(maxTagIndex){
@@ -511,7 +511,7 @@ func WriteATag(tag []byte) error {
  */
 var initedTagNameToIndexDb map[int] *DBConfig
 
-func InitTagNameToIdDB() *DBConfig {
+func InitTrainTagNameToIdDB() *DBConfig {
 	if nil == initedTagNameToIndexDb {
 		initedTagNameToIndexDb = make(map[int] *DBConfig)
 	}
@@ -546,10 +546,10 @@ func InitTagNameToIdDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/tag_name_to_id/data.db"
+	retDB.Name = "result/train_tag_name_to_id/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this tag_name_to_id db: ", retDB.Dir)
+	fmt.Println("has pick this train_tag_name_to_id db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -741,7 +741,7 @@ func queryATagInfoByName(tagName []byte) TagInfoList {
 		fileUtil.BytesIncrement(limit)
 	}
 
-	db := InitTagNameToIdDB()
+	db := InitTrainTagNameToIdDB()
 	if 0 == len(start){
 		start = nil
 	}
@@ -784,8 +784,8 @@ func queryATagInfoByName(tagName []byte) TagInfoList {
 
 //----------------------------------------------------------------------------------
 func DupmClipsFromTagToClipDB(limit int)  {
-	tagToClipDB := InitTagToClipDB()
-	tagIdToNameDB := InitTagIdToNameDB()
+	tagToClipDB := InitTrainTagToClipDB()
+	tagIdToNameDB := InitTrainTagIdToNameDB()
 
 	statIndexStart := 0
 	statIndexLimit := statIndexStart + ImgIndex.CLIP_STAT_INDEX_BYTES_LEN
@@ -844,7 +844,7 @@ func TestQueryClipTag()  {
 		if len(tagId) == 0{
 			fmt.Println("can't find tag for: ", input)
 		}else{
-			tagName := string(InitTagIdToNameDB().ReadFor(tagId))
+			tagName := string(InitTrainTagIdToNameDB().ReadFor(tagId))
 			fmt.Println("tag for ", input, " is: ", tagName)
 		}
 	}
@@ -858,7 +858,7 @@ func QueryTagByClipIdent(clipIdent []byte) []byte {
 
 
 func QueryTagByClipIndex(clipIndex []byte) []byte {
-	clipTagDB := InitClipToTagDB()
+	clipTagDB := InitTrainClipToTagDB()
 	statIndexes := ImgIndex.ClipStatIndexBranch(clipIndex)
 
 	notSame := imgCache.NewMyMap(false)

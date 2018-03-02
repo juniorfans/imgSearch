@@ -85,19 +85,30 @@ func stickTo(data [][]byte, eachLen, offset int, sticks []byte) [][]byte{
 	注意: 计算分支时，由于 GetByteBound(c, n) 计算了 up 和 down, 这样会导致误差上最大为 2*n
 	所以我们要注意传入的 n
  */
-func ClipStatIndexBranch(srouceIndexBytes []byte) [][]byte {
+func ClipStatIndexBranch(sourceIndexBytes []byte) [][]byte {
+	groupsCount := CLIP_STAT_INDEX_EACH_OF_MEAN_AND_SD_BRANCH_BITS
+	uintLen := len(sourceIndexBytes) / groupsCount
 
-	standardDeviation , mean ,_, _ := ClipIndexStatInfo(srouceIndexBytes)
+	means := make([]uint8, groupsCount)
+	sds   := make([]uint8, groupsCount)
+
+	for i:=0;i < groupsCount;i ++{
+		start := i*uintLen
+		end := start + uintLen
+		sd , mean ,_, _ := ClipIndexStatInfo(sourceIndexBytes[start : end])
+		means[i] = mean
+		sds[i] = sd
+	}
+
 	var result [][]byte
 
 	offset := 0
 	{
 		if 0 != CLIP_STAT_INDEX_SOURCE_INDEX_BRANCH_BITS{
 			indexBranchBits := CLIP_STAT_INDEX_SOURCE_INDEX_BRANCH_BITS
-			//indexBranchBytes := make([]*ByteBound, indexBranchBits)
 			bound := CLIP_INDEX_BRANCH_BOUND
 			for i:=0;i < indexBranchBits;i ++{
-				c := srouceIndexBytes[i]
+				c := sourceIndexBytes[i]
 				curBytes := GetByteBound(c, uint8(bound))
 				result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,curBytes.GetAll())
 				offset ++
@@ -106,31 +117,28 @@ func ClipStatIndexBranch(srouceIndexBytes []byte) [][]byte {
 	}
 
 	{
-		if 0 != CLIP_STAT_INDEX_MEAN_BRANCH_BITS{
-			meanBranchBits := CLIP_STAT_INDEX_MEAN_BRANCH_BITS
-			meanBranchBytes := make([]*ByteBound, meanBranchBits)
-			bound := uint8(TheclipSearchConf.Delta_mean)
-			bound = bound/2 + bound%2
+		if 0 != CLIP_STAT_INDEX_EACH_OF_MEAN_AND_SD_BRANCH_BITS {
+			{
+				meanBranchBytes := make([]*ByteBound, CLIP_STAT_INDEX_EACH_OF_MEAN_AND_SD_BRANCH_BITS)
+				bound := uint8(TheclipSearchConf.Delta_mean)
+				bound = bound/2 + bound%2
+				for i,mean := range means{
+					meanBranchBytes[i] = GetByteBound(mean, bound)
+					result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,meanBranchBytes[i].GetAll())
+					offset ++
+				}
+			}
 
-			//meanBranchBits 必是 1. 所以下面直接赋值下标为 0
-			meanBranchBytes[0] = GetByteBound(mean, bound)
-			result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,meanBranchBytes[0].GetAll())
-			offset ++
-		}
-	}
-
-	{
-		if 0 != CLIP_STAT_INDEX_SD_BRANCH_BITS{
-			sdBranchBits := CLIP_STAT_INDEX_SD_BRANCH_BITS
-			sdBranchBytes := make([]*ByteBound, sdBranchBits)
-
-			bound := uint8(TheclipSearchConf.Delta_sd)
-			bound = bound/2 + bound%2
-
-			//sdBranchBits 必是 1. 所以下面直接赋值下标为 0
-			sdBranchBytes[0] = GetByteBound(standardDeviation, bound)
-			result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,sdBranchBytes[0].GetAll())
-			offset ++
+			{
+				sdBranchBytes := make([]*ByteBound, CLIP_STAT_INDEX_EACH_OF_MEAN_AND_SD_BRANCH_BITS)
+				bound := uint8(TheclipSearchConf.Delta_sd)
+				bound = bound/2 + bound%2
+				for i,sd := range sds{
+					sdBranchBytes[i] = GetByteBound(sd, bound)
+					result = stickTo(result,CLIP_STAT_INDEX_BYTES_LEN, offset ,sdBranchBytes[i].GetAll())
+					offset ++
+				}
+			}
 		}
 	}
 

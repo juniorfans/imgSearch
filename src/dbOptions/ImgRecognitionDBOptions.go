@@ -91,7 +91,7 @@ func ImgRecognitionByImgData(imgSrcData []byte) *RecognitionResult{
 	ret := RecognitionResult{}
 
 	//查找答案库
-	directAns := InitImgAnswerDB().ReadFor(imgIndex)
+	directAns := InitTrainImgAnswerDB().ReadFor(imgIndex)
 	if 0 != len(directAns){
 		ret.directAnsFnd = true
 		ret.directAns = directAns

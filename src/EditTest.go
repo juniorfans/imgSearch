@@ -10,7 +10,7 @@ import (
 
 func main()  {
 	fileUtil.InitByteSquareMap()
-	newTest()
+	statIndexEditTest()
 }
 
 func oldTest()  {
@@ -24,6 +24,20 @@ func oldTest()  {
 
 func newTest()  {
 	index := []byte{15, 16, 40, 36, 98, 24, 75, 80}
+
+	startT := time.Now().UnixNano()
+	ret := ImgIndex.ClipStatIndexBranch(index)
+	for _, br := range ret{
+		fileUtil.PrintBytes(br)
+	}
+	endT := time.Now().UnixNano()
+
+	fmt.Println("cost : ", (endT-startT)/1000000, " ms")
+}
+
+func statIndexEditTest()  {
+
+	index := []byte{15, 16, 40, 36, 9, 5, 3, 4}
 
 	startT := time.Now().UnixNano()
 	ret := ImgIndex.ClipStatIndexBranch(index)

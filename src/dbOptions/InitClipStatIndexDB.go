@@ -93,14 +93,14 @@ func innerInitClipStatIndexDB(dbId uint8, isMiddle bool) *DBConfig {
 	}
 
 	if isMiddle{
-		retDB.Name = "clip_stat_index_to_ident_middle/data.db"
+		retDB.Name = "clip_stat_index_to_indexident_middle/data.db"
 	}else{
-		retDB.Name = "clip_stat_index_to_ident/data.db"
+		retDB.Name = "clip_stat_index_to_indexident/data.db"
 	}
 
 
 	retDB.Dir = retDB.initParams.DirBase + "/" + strconv.Itoa(int(dbId)) + "/" + retDB.Name
-	fmt.Println("has pick this index db: ", retDB.Dir)
+	fmt.Println("has pick this ", retDB.Name," db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 

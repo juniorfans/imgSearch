@@ -40,6 +40,8 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 
 	notSame := imgCache.NewMyMap(false)
 
+	uintLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
+
 	for i, clipIndexAndIdent := range clipIndexAndIdents {
 
 		notSame.Clear()
@@ -48,47 +50,27 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 		curStatBranches := ImgIndex.ClipStatIndexBranch(clipIndex)
 		allStatBranchesIndex[i] = curStatBranches
 
-		/*
-		//当前子图可能已经处理过. 注意这里会有一个反噬的作用: 设置的 search_conf 越宽松, 越有可能认为
-		//clipIndex 已经处理过. 这会丢失一些匹配.
-		//实际上不需要做这个判断, 一是同一张大图中有两张相同的子图的情况很少, 二是即使有重复的子图也能正确地处理
-		if cmap.ContainsAnyOneOf(curStatBranches){
-			//再次确认
-			skip := false
-			exsitsIndexes = cmap.QueryUnion(curStatBranches)
-			for _, interfaceIndex := range exsitsIndexes{
-				curIndex := interfaceIndex.([]byte)
-				if isSameClip(curIndex, clipIndex){
-					fmt.Print("clip index has dealed: ")
-					fileUtil.PrintBytes(clipIndex)
-					fmt.Print("as like: ")
-					fileUtil.PrintBytes(curIndex)
-					skip = true
-					break
-				}
-			}
-			if skip{
-				continue
-			}
-		}
-		*/
-
-
 		//计算所有与当前子图相似的子图出现在哪此大图中
 		for _,branch := range curStatBranches{
 		//	cmap.Put(branch, clipIndex)
-			clipIdentsSet := seeker.ReadFor(branch)
-			if 0 == len(clipIdentsSet){
+			clipIndexAndIdentsSet := seeker.ReadFor(branch)
+			if 0 == len(clipIndexAndIdentsSet){
 				continue
 			}
-			for _,clipIdents := range clipIdentsSet{
-				if 0 != len(clipIdents)%ImgIndex.IMG_CLIP_IDENT_LENGTH{
-					fmt.Println("value length for stat index db is not multple of ", ImgIndex.IMG_CLIP_IDENT_LENGTH)
+
+			for _, clipIndexAndIdents := range clipIndexAndIdentsSet {
+				if 0 != len(clipIndexAndIdents)%uintLen{
+					fmt.Println("value length for stat index db is not multple of ", uintLen, " : ", len(clipIndexAndIdents))
 					continue
 				}
-				for l:=0;l < len(clipIdents);l += ImgIndex.IMG_CLIP_IDENT_LENGTH{
-					sameClip := clipIdents[l:l+ImgIndex.IMG_CLIP_IDENT_LENGTH]
-					curClipOccIn.Put(sameClip, nil)
+
+				for l:=0;l < len(clipIndexAndIdents);l += uintLen{
+					curIndexAndIdent := clipIndexAndIdents[l:l + uintLen]
+					curIndex := curIndexAndIdent[:ImgIndex.CLIP_INDEX_BYTES_LEN]
+					curIdent := curIndexAndIdent[ImgIndex.CLIP_INDEX_BYTES_LEN:]
+					if isSameClip(clipIndex, curIndex){
+						curClipOccIn.Put(curIdent, nil)
+					}
 				}
 			}
 		}

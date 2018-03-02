@@ -8,7 +8,7 @@ import (
 func main()  {
 
 
-	resDB := dbOptions.InitImgAnswerDB()
+	resDB := dbOptions.InitTrainImgAnswerDB()
 	clipSameDB := dbOptions.InitCoordinateClipToVTagDB()
 
 
