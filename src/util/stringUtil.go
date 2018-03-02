@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"bytes"
+	"strconv"
 )
 
 //left starts with right
@@ -284,4 +285,27 @@ func CalEulSquare(left, right []byte) float64 {
 	}
 
 	return float64(sim) / float64(len(left))//math.Pow(sim / float64(len(leftIndex)), 0.5)
+}
+
+func UintsToString(data []uint8) string {
+	ret := ""
+	for _, d := range data{
+		ret += strconv.Itoa(int(d)) + ","
+	}
+	if len(ret) > 0{
+		ret = ret[:len(ret)-1]
+	}
+	return ret
+}
+
+func UintsListToString(datas [][]uint8) string {
+	ret := ""
+	for _,data := range datas{
+		ret += UintsToString(data) + " | "
+	}
+
+	if len(ret) > 0{
+		ret = ret[:len(ret)-1]
+	}
+	return ret
 }

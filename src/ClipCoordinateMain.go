@@ -41,10 +41,10 @@ func RealRun()  {
 
 	for _,dbIdStr := range dbIdStrList{
 		dbId,_ := strconv.Atoi(dbIdStr)
-		dbOptions.InitClipStatIndexToIdentsDB(uint8(dbId))
-		dbOptions.InitMuClipToIndexDB(uint8(dbId))
+		dbOptions.InitStatIndexToClipDB(uint8(dbId))
+		dbOptions.InitClipToIndexDB(uint8(dbId))
 		//dbOptions.InitClipStatIndexToIdentsDB(uint8(dbId)) 	//用于根据输入大图的子图的 stat 数据去查找 clipIdent, 再得到出现的母图
-		dbOptions.InitMuImgToIndexDB(uint8(dbId))	//用于：计算得到子图出现在的母图后，需要得到母图的 index 作为键去计算子图出现的相同母图
+		dbOptions.InitImgToIndexDB(uint8(dbId))//用于：计算得到子图出现在的母图后，需要得到母图的 index 作为键去计算子图出现的相同母图
 
 	}
 
@@ -73,8 +73,8 @@ func TestCoordinate()  {
 
 	for _,dbIdStr := range dbIdStrList{
 		dbId,_ := strconv.Atoi(dbIdStr)
-		dbOptions.InitClipStatIndexToIdentsDB(uint8(dbId))
-		dbOptions.InitMuImgToIndexDB(uint8(dbId))	//用于：计算得到子图出现在的母图后，需要得到母图的 index 作为键去计算子图出现的相同母图
+		dbOptions.InitStatIndexToClipDB(uint8(dbId))
+		dbOptions.InitImgToIndexDB(uint8(dbId))//用于：计算得到子图出现在的母图后，需要得到母图的 index 作为键去计算子图出现的相同母图
 	}
 
 	fmt.Print("input img dbId to deal: ")

@@ -29,9 +29,9 @@ func main()  {
 		curDbId := uint8(dbIdS)
 
 		imgDB := dbOptions.PickImgDB(curDbId)
-		indexToIdentDB := dbOptions.InitMuIndexToImgDB(curDbId)
-		identToIndexDB := dbOptions.InitMuImgToIndexDB(curDbId)
-		statIndexToIdentDB := dbOptions.InitClipStatIndexToIdentsDB(curDbId)
+		indexToIdentDB := dbOptions.InitIndexToImgDB(curDbId)
+		identToIndexDB := dbOptions.InitImgToIndexDB(curDbId)
+		statIndexToIdentDB := dbOptions.InitStatIndexToClipDB(curDbId)
 
 		dbOptions.ImgIndexSaveRun(curDbId, -1)
 

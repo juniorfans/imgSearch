@@ -71,7 +71,7 @@ func HowManyImages() int  {
 }
 
 func HowManyImageClipIndexes(dbId uint8) int  {
-	return RepairTotalSize(InitMuIndexToClipDB(dbId))
+	return RepairTotalSize(InitIndexToClipDB(dbId))
 }
 
 

@@ -27,7 +27,7 @@ func (this *ImgIndexSaverVisitCallBack) GetMaxVisitCount() int{
 }
 
 func (this *ImgIndexSaverVisitCallBack) GetLastVisitPos(dbId uint8, threadId int) []byte{
-	lastVisitedKey, _ := GetThreadLastDealedKey(InitMuIndexToImgDB(dbId), dbId, threadId)
+	lastVisitedKey, _ := GetThreadLastDealedKey(InitIndexToImgDB(dbId), dbId, threadId)
 	return lastVisitedKey
 }
 
@@ -52,7 +52,7 @@ func (this *ImgIndexSaverVisitCallBack) Visit(visitInfo *VisitIngInfo) bool {
 }
 
 func (this *ImgIndexSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
-	SetThreadLastDealedKey(InitMuIndexToImgDB(finishInfo.dbId),
+	SetThreadLastDealedKey(InitIndexToImgDB(finishInfo.dbId),
 		finishInfo.dbId, finishInfo.threadId,
 		finishInfo.lastSuccessDealedKey,
 		finishInfo.totalCount)
@@ -93,7 +93,7 @@ func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCac
 	indexToImgBatch := leveldb.Batch{}
 	imgToIndexBatch := leveldb.Batch{}
 
-	indexToImgDB := InitMuIndexToImgDB(this.dbId)
+	indexToImgDB := InitIndexToImgDB(this.dbId)
 	imgIndexes := kvCache.KeySet()
 	dbIsEmpty := indexToImgDB.IsEmpty()
 
@@ -138,7 +138,7 @@ func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCac
 		indexToImgBatch.Put(imgIndex, newImgIdents[: ni])
 
 		if indexToImgBatch.Len() >= flushSize{
-			InitMuIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+			InitIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
 			indexToImgBatch.Reset()
 		}
 		if imgToIndexBatch.Len() >= flushSize{
@@ -148,7 +148,7 @@ func (this *ImgIndexCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValueCac
 	}
 
 	if indexToImgBatch.Len() > 0{
-		InitMuIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
+		InitIndexToImgDB(this.dbId).WriteBatchTo(&indexToImgBatch)
 		indexToImgBatch.Reset()
 	}
 	if imgToIndexBatch.Len() > 0{
@@ -178,7 +178,7 @@ func (this *ImgIndexCacheVisitor) Visit(imgIndexBytes []byte, imgIdents []interf
 	indexToImgBatch := otherParams[0].(*leveldb.Batch)
 	imgToIndexBatch := otherParams[1].(*leveldb.Batch)
 
-	exsitsImgIdents := InitMuIndexToImgDB(this.dbId).ReadFor(imgIndexBytes)
+	exsitsImgIdents := InitIndexToImgDB(this.dbId).ReadFor(imgIndexBytes)
 
 	if len(exsitsImgIdents) % ImgIndex.IMG_IDENT_LENGTH != 0{
 		fmt.Println("exsits img ident len is not multiple of ", ImgIndex.IMG_IDENT_LENGTH)
@@ -224,7 +224,7 @@ func BeginImgSaveEx(dbIndex uint8, count int)  {
 
 	//flush 剩余的 cache
 	imgIndexCacheList.FlushRemainKVCaches()
-	RepairTotalSize(InitMuIndexToImgDB(dbIndex))
+	RepairTotalSize(InitIndexToImgDB(dbIndex))
 }
 
 
@@ -255,7 +255,7 @@ func GetImgIndexBySrcBytes(srcData []byte) []byte {
 		fmt.Println("get image struct data error")
 		return nil
 	}
-	indexBytes := ImgIndex.GetIndexFor(data)
+	indexBytes := ImgIndex.GetImgIndexByRGBAData(data)
 
 	return indexBytes
 }
@@ -301,7 +301,7 @@ func (this IndexInfoList) Less(i, j int) bool {
 	现在将拥有最多图像的 key 按逆序放入到 STAT_KEY_SORT_BY_VALUE_SIZE_PREX 字段中
  */
 func SetIndexSortInfo(dbId uint8)  {
-	imgIndexDB := InitMuIndexToImgDB(dbId)
+	imgIndexDB := InitIndexToImgDB(dbId)
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return
@@ -356,13 +356,13 @@ func SetIndexSortInfo(dbId uint8)  {
 		return
 	}
 
-	SetSortedStatInfo(InitMuIndexToImgDB(dbId), res[0: keyTotalSize-len(splitBytes)])//去掉最后一个分隔序列
+	SetSortedStatInfo(InitIndexToImgDB(dbId), res[0: keyTotalSize-len(splitBytes)])//去掉最后一个分隔序列
 }
 
 
 
 func ReadIndexSortInfo(dbId uint8, count int){
-	res := GetSortedStatInfo(InitMuIndexToImgDB(dbId))
+	res := GetSortedStatInfo(InitIndexToImgDB(dbId))
 	if nil == res{
 		fmt.Println("no sorted stat info")
 		return
@@ -381,7 +381,7 @@ func ReadIndexSortInfo(dbId uint8, count int){
 }
 
 func DumpImagesWithImgIndex(dbId uint8, dirName string, index []byte)  {
-	indexDB := InitMuIndexToImgDB(dbId)
+	indexDB := InitIndexToImgDB(dbId)
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return
@@ -396,7 +396,7 @@ func DumpImagesWithImgIndex(dbId uint8, dirName string, index []byte)  {
 }
 
 func DumpImageLettersWithImgIndex(dbId uint8, dirName string, index []byte)  {
-	indexDB := InitMuIndexToImgDB(dbId)
+	indexDB := InitIndexToImgDB(dbId)
 	if nil == indexDB{
 		fmt.Println("open index db error")
 		return

@@ -17,7 +17,7 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 	curImgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 	curImgIdent[0] = byte(dbId)
 	copy(curImgIdent[1:], imgKey)
-	curImgIndex := InitMuImgToIndexDB(uint8(dbId)).ReadFor(curImgIdent)
+	curImgIndex := InitImgToIndexDB(uint8(dbId)).ReadFor(curImgIdent)
 
 	seeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB())
 
@@ -38,7 +38,12 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 
 	curClipOccIn := imgCache.NewMyMap(false)
 
+	notSame := imgCache.NewMyMap(false)
+
 	for i, clipIndexAndIdent := range clipIndexAndIdents {
+
+		notSame.Clear()
+
 		clipIndex := clipIndexAndIdent[: ImgIndex.CLIP_INDEX_BYTES_LEN]
 		curStatBranches := ImgIndex.ClipStatIndexBranch(clipIndex)
 		allStatBranchesIndex[i] = curStatBranches
@@ -68,6 +73,7 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 		}
 		*/
 
+
 		//计算所有与当前子图相似的子图出现在哪此大图中
 		for _,branch := range curStatBranches{
 		//	cmap.Put(branch, clipIndex)
@@ -92,7 +98,7 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 			continue
 		}
 
-		curClipOccedImgIndexes := getImgIndex(clipIdents)
+		curClipOccedImgIndexes := getImgIndexFromClipIdents(clipIdents)
 		imgIndexes := curClipOccedImgIndexes.KeySet()
 		if len(clipIdents) > 100{
 	//		fmt.Println("OOPS, more than 100 same clip, is right????")
@@ -119,14 +125,20 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 			}
 
 			//最后再使用欧拉距离验证到底是否是相似的子图
-			sameClipIndex := InitMuClipToIndexDB(imgIndexDBId).ReadFor(clipIdent)
+			sameClipIndex := InitClipToIndexDB(imgIndexDBId).ReadFor(clipIdent)
 			if len(sameClipIndex) != ImgIndex.CLIP_INDEX_BYTES_LEN{
 				continue
 			}
 
-			if !isSameClip(sameClipIndex, clipIndex){
+			if notSame.Contains(sameClipIndex){
 				continue
 			}
+
+			if !isSameClip(sameClipIndex, clipIndex){
+				notSame.Put(sameClipIndex, nil)
+				continue
+			}
+
 
 		//	fmt.Print(imgIndexDBId,"-", string(ImgIndex.ParseImgKeyToPlainTxt(imgIdent[1:])), "-", clipIdent[5]," | ")
 
@@ -134,6 +146,8 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 		}
 		curClipOccIn.Clear()
 	}
+
+	notSame.Clear()
 	return
 }
 
@@ -141,12 +155,12 @@ func isSameClip(left, right []byte) bool {
 	return ImgIndex.TheclipSearchConf.Delta_Eul_square > fileUtil.CalEulSquare(left, right)
 }
 
-func getImgIndex(clipIdents [] []byte) *imgCache.MyMap {
+func getImgIndexFromClipIdents(clipIdents [] []byte) *imgCache.MyMap {
 	cmap := imgCache.NewMyMap(false)
 	for _,clipIdent := range clipIdents{
 		imgIndexDBId := clipIdent[0]
 		imgIdent := clipIdent[0:5]
-		imgIndex := InitMuImgToIndexDB(uint8(imgIndexDBId)).ReadFor(imgIdent)
+		imgIndex := InitImgToIndexDB(uint8(imgIndexDBId)).ReadFor(imgIdent)
 		if len(imgIndex) == 0{
 			continue
 		}
@@ -236,7 +250,7 @@ func SearchCoordinateForClipEx(dbId uint8, imgKey []byte) (whichesGroupAndCount 
 
 func CalClipStatBranchIndexes(clipIdent []byte) [][]byte {
 	dbId ,_,_:= ImgIndex.ParseAImgClipIdentBytes(clipIdent)
-	clipIndex := InitMuClipToIndexDB(dbId).ReadFor(clipIdent)
+	clipIndex := InitClipToIndexDB(dbId).ReadFor(clipIdent)
 	return ImgIndex.ClipStatIndexBranch(clipIndex)
 }
 
@@ -300,7 +314,7 @@ func TestStatIndexValue()  {
 
 */
 
-	InitClipStatIndexToIdentsDB(2)
+	InitStatIndexToClipDB(2)
 	occInImgsEx(2, []byte{65,0,0,0})
 
 }

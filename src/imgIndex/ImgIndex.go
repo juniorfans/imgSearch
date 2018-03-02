@@ -9,7 +9,7 @@ import (
 /**
 	branch clip index 由2个字节的统计字节加上branch clip index组成。统计字节目前是方差和平均值
 */
-var IMG_INDEX_BYTES_LEN_int = 288
+var IMG_INDEX_BYTES_LEN_int = CLIP_INDEX_BYTES_LEN*int(config.CLIP_COUNTS_OF_IMG)
 var CLIP_INDEX_STAT_BYTES_LEN int = 2
 var CLIP_INDEX_BYTES_LEN int = 72
 var CLIP_BRANCH_INDEX_BYTES_LEN int = CLIP_INDEX_BYTES_LEN + CLIP_INDEX_STAT_BYTES_LEN
@@ -31,9 +31,9 @@ var TheclipSearchConf = &config.ClipSearchConf{
 }
 /**
 	获得一个 jpg 图像的 index
-	内部实现的原理是，获得它里面每张切图的 index，将其拼接在一起
+	内部实现的原理是，获得它里面每张切图的 index, 取长度为: imgConfig.OverrideClipLength, 将其拼接在一起
  */
-func GetIndexFor(data [][][]uint8) [] byte {
+func GetImgIndexByRGBAData(data [][][]uint8) [] byte {
 	height := len(data)
 	width := len(data[0])
 	imgConfig := config.GetImgConfigBySize(height, width)
@@ -45,7 +45,8 @@ func GetIndexFor(data [][][]uint8) [] byte {
 	}
 
 	//自身就是大图，它不属于任何大图，所以 mainImgKey 为 nil
+	//注意下面是 imgConfig.OverrideClipLength 此参数必小于 imgConfig.TheClipConfig.ClipLen
 	clipsIndexes := GetClipsIndexOfImgEx(data,imgConfig.Id, nil,imgConfig.TheClipConfig.ClipOffsets, imgConfig.OverrideClipLength)
 
-	return GetFlatIndexBytesFrom(clipsIndexes)
+	return GetImgIndexBySubIndexes(clipsIndexes)
 }

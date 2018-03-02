@@ -119,7 +119,7 @@ func doTest()  {
 		}else if(28 == testCase){
 			dbOptions.PrintClipSameBytes()
 		}else if(29 == testCase){
-			dbOptions.DumpSameTagClip(dbIndex, 100)
+			dbOptions.DupmClipsFromTagToClipDB(10)
 		}else if(30 == testCase){
 			dbOptions.VerifyCoordinateResult()
 		}else if(31==testCase){
@@ -136,7 +136,9 @@ func doTest()  {
 		}else if(36 == testCase){
 			dbOptions.TestCoordinateSupportEx()
 		}else if(37 == testCase){
-			dbOptions.TestMarkNotClipCoordinate()
+			dbOptions.TestMarkNotSameTopic()
+		}else if(38 == testCase){
+			dbOptions.TestQueryClipTag()
 		}else{
 			fmt.Println("invalid options")
 		}

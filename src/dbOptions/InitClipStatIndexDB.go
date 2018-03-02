@@ -9,11 +9,11 @@ import (
 )
 
 
-func InitClipStatIndexToIdentsDB(dbId uint8) *DBConfig {
+func InitStatIndexToClipDB(dbId uint8) *DBConfig {
 	return innerInitClipStatIndexDB(dbId, false)
 }
 
-func InitClipStatIndexToIdentsMiddleDB(dbId uint8) *DBConfig {
+func InitStatIndexToClipMiddleDB(dbId uint8) *DBConfig {
 	return innerInitClipStatIndexDB(dbId, true)
 }
 
@@ -29,7 +29,7 @@ func GetInitedClipStatIndexToIdentDB() []*DBConfig {
 }
 
 func ReadClipStatIndexKeyValues(dbId uint8, offset, limit int)  {
-	statIndexDB := InitClipStatIndexToIdentsDB(dbId)
+	statIndexDB := InitStatIndexToClipDB(dbId)
 	iter := statIndexDB.DBPtr.NewIterator(nil, &statIndexDB.ReadOptions)
 	iter.First()
 	ci := 0

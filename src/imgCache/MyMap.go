@@ -87,6 +87,37 @@ func (this *MyMap) findKey(key []byte) (ret *myMapValue, hash int ){
 	return
 }
 
+//从 MyMap 中删除一个键, 注意不能直接删除 hash 所在的那个槽, 因为不同的 key 可能算得同样的 hash
+func (this *MyMap) removeKey(key []byte, hash int)  {
+	values := this.data[hash]
+	if 0 == len(values){
+		delete(this.data, hash)
+		return
+	}
+
+	fnd := -1
+	for i,value := range values{
+		if bytes.Equal(value.key, key){
+			fnd = i
+			break
+		}
+	}
+
+	if -1 != fnd{
+		newValues := make([]myMapValue, len(values) - 1)
+		ci := 0
+		if fnd != 0{
+			ci += copy(newValues[ci:], values[:fnd])
+		}
+
+		if fnd != len(values)-1{
+			ci += copy(newValues[ci:], values[fnd+1:])
+		}
+
+		this.data[hash] = newValues
+	}
+}
+
 /**
 	put key-value into the map. will not copy memory, only hold reference. so if change the slice outside,
 	everything goes wrong: hashcode won't calc again
@@ -161,13 +192,14 @@ func (this *MyMap) Get(key []byte) []interface{} {
 	if nil == whichMapValue{
 		return nil
 	}else{
-		return whichMapValue.values	//若为 nil 则说明当前 key 已经 remove 了
+		return whichMapValue.values	//若为 nil 则说明当前 key 已经 remove 了, 或者不存在
 	}
 }
 
-//目前的实现并未将这个条目从 slot 中删除，只是清空了 key 所在的那个 mapvalue
+//目前的实现并未将这个条目从 slot 中删除，只是清空了 key 所在的那个 mapvalue //这一点已经优化掉了, 真正的删除了键
+//
 func (this *MyMap) Remove(key []byte) []interface{}{
-	whichMapValue, _ := this.findKey(key)
+	whichMapValue, hash := this.findKey(key)
 	if nil == whichMapValue{
 		return nil
 	}else{
@@ -178,7 +210,10 @@ func (this *MyMap) Remove(key []byte) []interface{}{
 		this.valueCount -= len(whichMapValue.values)
 
 		//执行 remove
-		whichMapValue.values = nil	//标记当前值为 nil 即可. 后面的遍历, 或者 Get 时会知道这一点
+		whichMapValue.values = nil	//标记当前值为 nil 即可. 后面的遍历, 或者 Get 时会知道这一点 //这点已经优化, 见下面
+
+		//注意: 不能直接删除 hash 所在的那个槽, 因为不同的 key 可能会计算得到相同的 hash
+		this.removeKey(key, hash)
 		return ret
 	}
 }

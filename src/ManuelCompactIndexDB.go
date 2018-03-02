@@ -21,10 +21,10 @@ func main()  {
 		dbIdS,_ := strconv.Atoi(dbIdStr)
 		curDbId := uint8(dbIdS)
 
-		imgToIndexDB := dbOptions.InitMuImgToIndexDB(curDbId)
-		indexToImgDB := dbOptions.InitMuIndexToImgDB(curDbId)
-		indexToClipDB := dbOptions.InitMuIndexToClipDB(curDbId)
-		clipToIndexDB := dbOptions.InitMuClipToIndexDB(curDbId)
+		imgToIndexDB := dbOptions.InitImgToIndexDB(curDbId)
+		indexToImgDB := dbOptions.InitIndexToImgDB(curDbId)
+		indexToClipDB := dbOptions.InitIndexToClipMiddleDB(curDbId)
+		clipToIndexDB := dbOptions.InitClipToIndexDB(curDbId)
 
 		imgToIndexDB.DBPtr.CompactRange(util.Range{nil,nil})
 		indexToImgDB.DBPtr.CompactRange(util.Range{nil,nil})

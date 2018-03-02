@@ -28,7 +28,7 @@ func (this *ClipSaverVisitCallBack) GetMaxVisitCount() int{
 
 func (this *ClipSaverVisitCallBack) GetLastVisitPos(dbId uint8, threadId int) []byte{
 	//计算 clip index 后填入 middle 表
-	lastVisitedKey, _ := GetThreadLastDealedKey(InitMuIndexToClipMiddleDB(dbId), dbId, threadId)
+	lastVisitedKey, _ := GetThreadLastDealedKey(InitIndexToClipMiddleDB(dbId), dbId, threadId)
 	return lastVisitedKey
 }
 
@@ -64,7 +64,7 @@ func (this *ClipSaverVisitCallBack) Visit(visitInfo *VisitIngInfo) bool {
 
 func (this *ClipSaverVisitCallBack) VisitFinish(finishInfo *VisitFinishedInfo) {
 
-	SetThreadLastDealedKey(InitMuIndexToClipMiddleDB(finishInfo.dbId),
+	SetThreadLastDealedKey(InitIndexToClipMiddleDB(finishInfo.dbId),
 		finishInfo.dbId, finishInfo.threadId,
 		finishInfo.lastSuccessDealedKey,
 		finishInfo.totalCount)
@@ -92,7 +92,7 @@ func BeginImgClipSaveEx(dbIndex uint8, count int, offsetOfClip []int, indexLengt
 
 	indexToClipCacheList.FlushRemainKVCaches()
 
-	RepairTotalSize(InitMuIndexToClipMiddleDB(dbIndex))
+	RepairTotalSize(InitIndexToClipMiddleDB(dbIndex))
 
 	//由中间表写最终结果表
 	fmt.Println("start to gather result from clip_index_to_idents_middle")
@@ -161,7 +161,7 @@ func GetDBIndexOfClips(dbConfig *DBConfig,mainImgkey []byte, offsetOfClip []int,
 }
 
 func QueryClipIndexesFor(dbId uint8, imgKey []byte) [] []byte {
-	clipToIndexDB := InitMuClipToIndexDB(dbId)
+	clipToIndexDB := InitClipToIndexDB(dbId)
 
 	ret := make([] []byte, config.CLIP_COUNTS_OF_IMG)
 	clipIdent := ImgIndex.GetImgClipIdent(dbId, imgKey, 0)
@@ -182,7 +182,7 @@ func QueryClipIndexesFor(dbId uint8, imgKey []byte) [] []byte {
 
 
 func QueryClipIndexesAttachIdentFor(dbId uint8, imgKey []byte) [] []byte {
-	clipToIndexDB := InitMuClipToIndexDB(dbId)
+	clipToIndexDB := InitClipToIndexDB(dbId)
 
 	ret := make([] []byte, config.CLIP_COUNTS_OF_IMG)
 	clipIdent := ImgIndex.GetImgClipIdent(dbId, imgKey, 0)
@@ -243,7 +243,7 @@ func (this *ClipIndexCacheVisitor) Visit(clipIndexBytes []byte, subImgIndexs []i
 	clipToIndexBatch := otherParams[1].(*leveldb.Batch)
 
 	//这里的查询非常费时间
-	var exsitsClipIdents []byte = InitMuIndexToClipDB(this.dbId).ReadFor(clipIndexBytes)
+	var exsitsClipIdents []byte = InitIndexToClipDB(this.dbId).ReadFor(clipIndexBytes)
 
 	//注意 vlist 的类型是 interface{} 数组，每一个 interface{} 实际上是 *ImgIndex.SubImgInde
 	for _,v := range subImgIndexs{
@@ -386,7 +386,7 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 
 
 		if indexToClipBatch.Len() >= flushSize{
-			InitMuIndexToClipMiddleDB(this.dbId).WriteBatchTo(&indexToClipBatch)
+			InitIndexToClipMiddleDB(this.dbId).WriteBatchTo(&indexToClipBatch)
 			indexToClipBatch.Reset()
 		}
 
@@ -396,14 +396,14 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 			clipToIndexBatch.Reset()
 		}
 		if statIndexToClipIdentBatch.Len() >= flushSize{
-			InitClipStatIndexToIdentsMiddleDB(this.dbId).WriteBatchTo(&statIndexToClipIdentBatch)
+			InitStatIndexToClipMiddleDB(this.dbId).WriteBatchTo(&statIndexToClipIdentBatch)
 			statIndexToClipIdentBatch.Reset()
 		}
 	}
 
 
 	if indexToClipBatch.Len() > 0{
-		InitMuIndexToClipMiddleDB(this.dbId).WriteBatchTo(&indexToClipBatch)
+		InitIndexToClipMiddleDB(this.dbId).WriteBatchTo(&indexToClipBatch)
 		indexToClipBatch.Reset()
 	}
 
@@ -413,10 +413,38 @@ func (this *IndexToClipCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyValue
 		clipToIndexBatch.Reset()
 	}
 	if statIndexToClipIdentBatch.Len() > 0{
-		InitClipStatIndexToIdentsMiddleDB(this.dbId).WriteBatchTo(&statIndexToClipIdentBatch)
+		InitStatIndexToClipMiddleDB(this.dbId).WriteBatchTo(&statIndexToClipIdentBatch)
 		statIndexToClipIdentBatch.Reset()
 	}
 
 	kvCache = nil
 	return true
+}
+
+
+
+func GetClipIndexBytesOfWhich(dbId uint8, imgIdent []byte, whiches []uint8) map[uint8] []byte {
+	clipIdentToIndexDB := InitClipToIndexDB(dbId)
+
+	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
+	copy(clipIdent, imgIdent)
+
+	if 0 == len(whiches){
+		whiches = make([]uint8, config.CLIP_COUNTS_OF_IMG)
+		for i:=0;i < int(config.CLIP_COUNTS_OF_IMG);i ++{
+			whiches[i] = uint8(i)
+		}
+	}
+
+	clipIndexes := make(map[uint8] []byte)
+	for _,which := range whiches{
+		clipIdent[ImgIndex.IMG_CLIP_IDENT_LENGTH-1] = byte(which)
+		curIndex := clipIdentToIndexDB.ReadFor(clipIdent)
+		if 0 == len(curIndex){
+			fmt.Println("get clip index null: ", getClipNamgeFromImgIdent(clipIdent))
+			return nil
+		}
+		clipIndexes[which] = curIndex
+	}
+	return clipIndexes
 }

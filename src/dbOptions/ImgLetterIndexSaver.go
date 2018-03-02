@@ -30,7 +30,7 @@ func SaveLetterIndexForImg(imgDB *DBConfig,imgKey []byte)  {
 		return
 	}
 
-	indexBytes := ImgIndex.GetFlatIndexBytesFrom([]ImgIndex.SubImgIndex{subIndex[0]})
+	indexBytes := ImgIndex.GetImgIndexBySubIndexes([]ImgIndex.SubImgIndex{subIndex[0]})
 	if nil == indexBytes{
 		fmt.Println("GetFlatIndexBytesFrom error")
 		return

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"strconv"
 	"sort"
+	"imgSearch/src/imgOptions"
 )
 
 /**
@@ -137,11 +138,35 @@ func GetIndexOfClips(fileName string, offsetOfClip, indexLength int) []IndexData
 	return indexes
 }
 
-
-func GetClipsTotalDataAsIndexOfImgEx(data [][][]uint8, dbId uint8, mainImgkey []byte) []SubImgIndex {
-	return GetClipsIndexOfImgEx(data, dbId, mainImgkey, []int{-1}, -1)
+func GetClipsIndexesFromImgSrcData(srcData []byte) *map[uint8] []byte  {
+	data := ImgOptions.FromImageFlatBytesToStructBytes(srcData)
+	if nil == data{
+		fmt.Println("get image struct data error")
+		return nil
+	}
+	return getClipsIndexesFromImgRGBAData(data)
 }
 
+func getClipsIndexesFromImgRGBAData(data [][][]uint8) *map[uint8] []byte {
+	height := len(data)
+	width := len(data[0])
+	imgConfig := config.GetImgConfigBySize(height, width)
+	clipConfig := imgConfig.TheClipConfig
+
+	if nil == imgConfig || nil == clipConfig{
+		fmt.Println("can't get img config for height: ", height, ", width: ", width)
+		return nil
+	}
+
+	subIndexes := GetClipsIndexOfImgEx(data, 0, nil, imgConfig.TheClipConfig.ClipOffsets, imgConfig.TheClipConfig.ClipLengh)
+
+	ret := make(map[uint8] []byte)
+
+	for _,subIndex := range subIndexes{
+		ret[subIndex.Which] = subIndex.GetIndexBytesIn3Chanel()
+	}
+	return &ret
+}
 
 /**
 	获得图片 data 的各个切图的索引数据。这些索引数据各自在切图中的偏移是 offsetOfClip，长度是 indexLength

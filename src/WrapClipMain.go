@@ -31,8 +31,8 @@ func main()  {
 		dbIdS,_ := strconv.Atoi(dbIdStr)
 		curDbId := uint8(dbIdS)
 
-		clipIdentToIndexDB := dbOptions.InitMuClipToIndexDB(curDbId)
-		clipIndexToIdentMiddleDB := dbOptions.InitMuIndexToClipMiddleDB(curDbId)
+		clipIdentToIndexDB := dbOptions.InitClipToIndexDB(curDbId)
+		clipIndexToIdentMiddleDB := dbOptions.InitIndexToClipMiddleDB(curDbId)
 		imgDB := dbOptions.PickImgDB(curDbId)
 
 		fmt.Println("begin to deal imgdb: ", strconv.Itoa(int(curDbId)))

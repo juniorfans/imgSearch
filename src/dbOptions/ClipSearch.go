@@ -48,7 +48,7 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 	curImgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 	curImgIdent[0] = byte(dbId)
 	copy(curImgIdent[1:], imgKey)
-	curImgIndex := InitMuImgToIndexDB(uint8(dbId)).ReadFor(curImgIdent)
+	curImgIndex := InitImgToIndexDB(uint8(dbId)).ReadFor(curImgIdent)
 
 	//clipConfig := config.GetClipConfigById(0)
 	//clipIndexes := GetDBIndexOfClips(PickImgDB(dbId) , imgKey, clipConfig.ClipOffsets, clipConfig.ClipLengh)
@@ -60,7 +60,7 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 
 //	clipIndexToIdentSeeker := NewMultyClipBIndexToIdentSeeker(GetInitedClipIndexToIdentDB())
 	//发现一个现象，如果参考库过多，噪声会增加，这样会使得将本不是同主题的子图划分为一个主题。反而，若只使用与图片库一致的参考索引库，得到的结果却准确多了。 -- 这一点，可能仅是规律
-	clipIndexToIdentSeeker := NewMultyClipBIndexToIdentSeeker([]*DBConfig {InitMuIndexToClipDB(dbId)})
+	clipIndexToIdentSeeker := NewMultyClipBIndexToIdentSeeker([]*DBConfig {InitIndexToClipDB(dbId)})
 
 	defer clipIndexToIdentSeeker.Close()
 
@@ -101,7 +101,7 @@ func occInImgs(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, cached
 					continue
 				}
 
-				imgIndex := InitMuImgToIndexDB(imgIndexDBId).ReadFor(imgIdent)
+				imgIndex := InitImgToIndexDB(imgIndexDBId).ReadFor(imgIdent)
 				if 0 == len(imgIndex){
 					fmt.Println("error, can't get index for img: ",imgIndexDBId,"_", string(ImgIndex.ParseImgKeyToPlainTxt(imgIdent[1:])))
 					return

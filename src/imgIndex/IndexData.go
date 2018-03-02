@@ -114,7 +114,7 @@ func (this *SubImgIndex)getFlatInfo () []byte {
 			return nil
 		}
 
-		//todo 拿不准 优化
+		//todo 拿不准的优化: 为了提前释放内存
 		this.IndexUnits = nil
 
 		this.cachedFlatBytes = ClipIndexSave3Chanel(res)
@@ -122,40 +122,58 @@ func (this *SubImgIndex)getFlatInfo () []byte {
 	}
 }
 
+func GetImgIndexByClipIndexes(clipIndexes [][]byte) []byte {
+	if 0 == len(clipIndexes){
+		fmt.Println("can't get indexes for empty clip indexes")
+		return nil
+	}
 
-func GetFlatIndexBytesFrom(subIndexes []SubImgIndex) []byte {
+	clipCount := len(clipIndexes)
+
+	retBytes := make([]byte, clipCount * CLIP_INDEX_BYTES_LEN)
+	ci := 0
+	for _, clipIndex := range clipIndexes {
+		ci += copy(retBytes[ci:], clipIndex)
+	}
+
+	return retBytes
+}
+
+func tranToClipIndexes(subIndexes []SubImgIndex) [][]byte {
 	if nil == subIndexes ||  0 == len(subIndexes){
 		fmt.Println("can't get indexes for image")
 		return nil
 	}
 
 	clipCount := len(subIndexes)
+
 	//clipCount 张切图，每张切图的索引单元有 len(clipsIndexs[0].IndexUnits) 个，每个索引单元长度是 clipsIndexes[0].UnitLength(即有多少个点)
 	// 四个颜色通道，但是索引时只用到3个，所以乘以 3
 	estimateSize := clipCount * subIndexes[0].UnitLength * len(subIndexes[0].IndexUnits) * 3
-	//	fmt.Println(clipCount , clipsIndexes[0].UnitLength , len(clipsIndexes[0].IndexUnits))
-	//	fmt.Println(imgConfig.ClipIndexLength)
 
-	retBytes := make([]byte, estimateSize)
+	clipIndexes := make([][]byte, clipCount)
 	recvBytes := 0
-	for _, clipIndex := range subIndexes {
+
+	for i, clipIndex := range subIndexes {
 		clipIndexBytes := clipIndex.GetIndexBytesIn3Chanel()
-
-		copy(retBytes[recvBytes:], clipIndexBytes)
-
+		clipIndexes[i] =  clipIndexBytes	//使用浅拷贝
 		recvBytes += len(clipIndexBytes)
 
 		if recvBytes > estimateSize{
-			fmt.Println("ERROR: estimate of index length cal error")
-			return retBytes
+			fmt.Println("ERROR: estimate of index length cal error: ", estimateSize, " : ", recvBytes)
+			return nil
 		}
 	}
 
-	if len(retBytes) % 3 != 0{
-		fmt.Println("error, index bytes len is not multiple of 4")
+	if recvBytes != estimateSize{
+		fmt.Println("error, index bytes len is not ", estimateSize, " : ", recvBytes)
 	}
 
-	return retBytes
+	return clipIndexes
+}
+
+func GetImgIndexBySubIndexes(subIndexes []SubImgIndex) []byte {
+	return GetImgIndexByClipIndexes(tranToClipIndexes(subIndexes))
 }
 
 func (this *PointColor) equalsTo(o *PointColor) bool  {

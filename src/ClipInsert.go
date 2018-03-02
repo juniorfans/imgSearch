@@ -16,8 +16,6 @@ import (
  */
 func main()  {
 	for{
-		config.MustReReadSearchConf("clip_search_conf.txt")
-
 		stdin := bufio.NewReader(os.Stdin)
 
 		var dbId, which uint8
@@ -31,7 +29,7 @@ func main()  {
 		copy(imgIdent[1:], imgKey)
 
 		//由指定的子图所在的大图, 复制出一个略微改动 index 的大图, 微调 imgIdent
-		imgToIndexDB := dbOptions.InitMuImgToIndexDB(dbId)
+		imgToIndexDB := dbOptions.InitImgToIndexDB(dbId)
 	 	imgIndex := imgToIndexDB.ReadFor(imgIdent)
 		imgIndex[0] = 4
 		imgIndex[34] = 3
@@ -42,7 +40,7 @@ func main()  {
 
 		imgToIndexDB.WriteTo(newImgIdent, imgIndex)
 
-		indexToImgDB := dbOptions.InitMuIndexToImgDB(dbId)
+		indexToImgDB := dbOptions.InitIndexToImgDB(dbId)
 		indexToImgDB.WriteTo(imgIndex, newImgIdent)
 
 		//复制子图的索引
@@ -68,8 +66,8 @@ func main()  {
 			identToClipIndexBatch.Put(clipIdent , clipIndex)
 		}
 
-		dbOptions.InitMuClipToIndexDB(dbId).WriteBatchTo(&identToClipIndexBatch)
-		dbOptions.InitMuIndexToClipDB(dbId).WriteBatchTo(&indexToClipIdentBatch)
+		dbOptions.InitClipToIndexDB(dbId).WriteBatchTo(&identToClipIndexBatch)
+		dbOptions.InitIndexToClipDB(dbId).WriteBatchTo(&indexToClipIdentBatch)
 
 
 

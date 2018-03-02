@@ -8,8 +8,8 @@ import (
 func main()  {
 
 
-	resDB := dbOptions.InitImgIndexToWhichDB()
-	clipSameDB := dbOptions.InitClipSameDB()
+	resDB := dbOptions.InitImgAnswerDB()
+	clipSameDB := dbOptions.InitCoordinateClipToVTagDB()
 
 
 	resDB.DBPtr.CompactRange(util.Range{nil,nil})

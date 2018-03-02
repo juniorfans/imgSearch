@@ -25,80 +25,28 @@
       <file leaf-file-name="ClipCoordinateOptions.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateOptions.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="10431">
-              <caret line="562" column="115" lean-forward="false" selection-start-line="562" selection-start-column="115" selection-end-line="562" selection-end-column="115" />
-              <folding>
-                <element signature="e#19#188#0" expanded="true" />
-                <element signature="n#!!block;n#TestCoordinateIndexDBFix#0" expanded="false" />
-                <element signature="n#!!block;n#CoordinateIndexDBKeyCount#0" expanded="false" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ClipCoordinateNotOptions.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateNotOptions.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="342">
-              <caret line="24" column="74" lean-forward="true" selection-start-line="24" selection-start-column="74" selection-end-line="24" selection-end-column="74" />
-              <folding>
-                <element signature="e#19#48#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ClipCoordinateDBInit.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateDBInit.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="171">
-              <caret line="13" column="45" lean-forward="false" selection-start-line="13" selection-start-column="45" selection-end-line="13" selection-end-column="45" />
-              <folding>
-                <element signature="e#19#118#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ClipSearchEx.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipSearchEx.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="152">
-              <caret line="15" column="61" lean-forward="false" selection-start-line="15" selection-start-column="61" selection-end-line="15" selection-end-column="61" />
-              <folding>
-                <element signature="e#19#88#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ImgStat.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/ImgStat.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="342">
-              <caret line="18" column="42" lean-forward="true" selection-start-line="18" selection-start-column="42" selection-end-line="18" selection-end-column="42" />
-              <folding>
-                <element signature="e#14#83#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="TrainResultDBOptions.go" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/dbOptions/TrainResultDBOptions.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="152">
-              <caret line="20" column="15" lean-forward="false" selection-start-line="20" selection-start-column="15" selection-end-line="20" selection-end-column="15" />
+            <state relative-caret-position="163">
+              <caret line="271" column="86" lean-forward="false" selection-start-line="271" selection-start-column="86" selection-end-line="271" selection-end-column="86" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="TrainResultSave.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/dbOptions/TrainResultSave.go">
+      <file leaf-file-name="库设计.txt" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/design/库设计.txt">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2375">
-              <caret line="139" column="3" lean-forward="true" selection-start-line="139" selection-start-column="3" selection-end-line="139" selection-end-column="3" />
+            <state relative-caret-position="133">
+              <caret line="7" column="3" lean-forward="true" selection-start-line="7" selection-start-column="3" selection-end-line="7" selection-end-column="3" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ClipSearchEx.go" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipSearchEx.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="874">
+              <caret line="95" column="42" lean-forward="false" selection-start-line="95" selection-start-column="30" selection-end-line="95" selection-end-column="42" />
               <folding />
             </state>
           </provider>
@@ -115,36 +63,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
+      <find>GetCoordinateClipsFromClipIndexes</find>
+      <find>d</find>
+      <find>L</find>
+      <find>Les</find>
+      <find>InitClipToTagDB</find>
+      <find>Less</find>
+      <find>st</find>
+      <find>s</find>
+      <find>std</find>
+      <find>stdin</find>
+      <find>input</find>
+      <find>input i</find>
+      <find>input img</find>
+      <find>input img ident</find>
+      <find>input img iden</find>
+      <find>input img ide</find>
+      <find>input img id</find>
+      <find>input img i</find>
+      <find>input img</find>
       <find>i</find>
-      <find>IImgIndex.IMG_CLIP_IDENT_LENGTH</find>
-      <find>ImgIndex.IMG_CLIP_IDENT_LENGTH</find>
-      <find>iImgIndex.IMG_CLIP_IDENT_LENGTH</find>
-      <find>i ImgIndex.IMG_CLIP_IDENT_LENGTH</find>
-      <find>i +ImgIndex.IMG_CLIP_IDENT_LENGTH</find>
-      <find>i + ImgIndex.IMG_CLIP_IDENT_LENGTH</find>
-      <find>error, can't find index</find>
-      <find>error, key length is more than 8</find>
-      <find>ClipCoordinateCacheFlushCallBack</find>
-      <find>inner</find>
-      <find>isMiddle</find>
-      <find>hash &lt;&lt; 8</find>
-      <find>not support value mode</find>
-      <find>InitClipCoordinateIndexToVTagIdDB</find>
-      <find>Set</find>
-      <find>Visit</find>
-      <find>Visit(</find>
-      <find>ClipStatIndex</find>
-      <find>Len *= 2</find>
-      <find>cLen *= 2</find>
-      <find>caLen *= 2</find>
-      <find>cacLen *= 2</find>
-      <find>cachLen *= 2</find>
-      <find>cacheLen *= 2</find>
-      <find>cachedLen *= 2</find>
-      <find>*= 2</find>
-      <find>keyLen</find>
-      <find>query</find>
-      <find>queryKey</find>
+      <find>inpu</find>
+      <find>input cl</find>
+      <find>input clip</find>
+      <find>GetClipsTotalDataAsIndexOfImgEx</find>
+      <find>params.indexLength</find>
+      <find>OverrideClipLength</find>
+      <find>indexLength</find>
+      <find>GetCoordinateClipsFromImgIdent</find>
+      <find>FlushCache(</find>
+      <find>SearchEx</find>
     </findStrings>
     <replaceStrings>
       <replace />
@@ -163,45 +111,52 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/src/dbOptions/ImgDBVisitor.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/ImgIndexSaver.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/TestLevelDBPerfomance.go" />
-        <option value="$PROJECT_DIR$/src/imgIndex/ImgClipIndex.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/TrainResultSave.go" />
         <option value="$PROJECT_DIR$/src/imgIndex/ImgIdent.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/ImgClipUtil.go" />
         <option value="$PROJECT_DIR$/src/ClipSearchMain.go" />
-        <option value="$PROJECT_DIR$/src/ManuelCompactIndexDB.go" />
         <option value="$PROJECT_DIR$/src/config/ImgClipConfig.go" />
         <option value="$PROJECT_DIR$/src/clip_search_conf.txt" />
         <option value="$PROJECT_DIR$/src/Ed.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/TransfromClipIndexToIdentDB.go" />
         <option value="$PROJECT_DIR$/src/config/ClipSearchConfig.go" />
-        <option value="$PROJECT_DIR$/src/imgIndex/IndexData.go" />
-        <option value="$PROJECT_DIR$/src/ImgClipsMain.go" />
         <option value="$PROJECT_DIR$/src/EditTest.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/MultyDBIndexSeek.go" />
         <option value="$PROJECT_DIR$/src/FixClipIndexDB.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/ClipSearch.go" />
-        <option value="$PROJECT_DIR$/src/util/stringUtil.go" />
         <option value="$PROJECT_DIR$/src/imgIndex/ImgClipIndexEdit.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/InitClipStatIndexDB.go" />
-        <option value="$PROJECT_DIR$/src/imgCache/MyMap.go" />
-        <option value="$PROJECT_DIR$/src/imgIndex/ImgIndex.go" />
-        <option value="$PROJECT_DIR$/src/WrapClipMain.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/ImgClipReverseIndexSaver.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/ClipSearchEx.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/ClipIndexFix.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/DBCombineByKey.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/ImgClipsToIndexSaver.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/DBUitl.go" />
-        <option value="$PROJECT_DIR$/src/ClipCoordinateMain.go" />
-        <option value="$PROJECT_DIR$/src/WrapImgIndexMain.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/ClipCoordinateOptions.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/TrainResultSave.go" />
+        <option value="$PROJECT_DIR$/src/imgCache/MyMap.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/ClipCoordinateDBInit.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/InitClipStatIndexDB.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/ImgClipReverseIndexSaver.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/InitIndexDB.go" />
-        <option value="$PROJECT_DIR$/src/ImgStat.go" />
-        <option value="$PROJECT_DIR$/src/dbOptions/ClipCoordinateNotOptions.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/ClipSearchEx.go" />
+        <option value="$PROJECT_DIR$/src/imgIndex/IndexData.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/ImgIndexSaver.go" />
         <option value="$PROJECT_DIR$/src/dbOptions/TrainResultDBOptions.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/ClipCoordinateNotOptions.go" />
+        <option value="$PROJECT_DIR$/src/ImgStat.go" />
+        <option value="$PROJECT_DIR$/src/ClipCoordinateMain.go" />
+        <option value="$PROJECT_DIR$/src/WrapClipMain.go" />
+        <option value="$PROJECT_DIR$/src/WrapImgIndexMain.go" />
+        <option value="$PROJECT_DIR$/src/TestDBReader.go" />
+        <option value="$PROJECT_DIR$/src/ManuelCompactIndexDB.go" />
+        <option value="$PROJECT_DIR$/src/ManualCompactResultDB.go" />
+        <option value="$PROJECT_DIR$/src/ImgIndexMain.go" />
+        <option value="$PROJECT_DIR$/src/ImgClipsMain.go" />
+        <option value="$PROJECT_DIR$/src/ClipInsert.go" />
+        <option value="$PROJECT_DIR$/src/ImgRecognitionMain.go" />
+        <option value="$PROJECT_DIR$/src/config/ImgConfig.go" />
+        <option value="$PROJECT_DIR$/src/imgIndex/ImgIndex.go" />
+        <option value="$PROJECT_DIR$/src/imgIndex/ImgClipIndex.go" />
+        <option value="$PROJECT_DIR$/src/util/stringUtil.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/ImgRecognitionDBOptions.go" />
+        <option value="$PROJECT_DIR$/src/dbOptions/ClipCoordinateOptions.go" />
       </list>
     </option>
   </component>
@@ -248,7 +203,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="PackagesPane" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -293,9 +248,23 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="imgSearch" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="imgSearch" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="design" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
+      <pane id="PackagesPane" />
       <pane id="Scope" />
     </panes>
   </component>
@@ -343,17 +312,17 @@
       <kind value="FILE" />
       <method />
     </configuration>
-    <configuration default="false" name="Build FixClipIndexDB.go and run" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true">
-      <module name="imgSearch" />
-      <working_directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$/src/FixClipIndexDB.go" />
-      <kind value="FILE" />
-      <method />
-    </configuration>
     <configuration default="false" name="Build ClipCoordinateMain.go and run" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true">
       <module name="imgSearch" />
       <working_directory value="$PROJECT_DIR$" />
       <filePath value="$PROJECT_DIR$/src/ClipCoordinateMain.go" />
+      <kind value="FILE" />
+      <method />
+    </configuration>
+    <configuration default="false" name="Build ImgRecognitionMain.go and run" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true">
+      <module name="imgSearch" />
+      <working_directory value="$PROJECT_DIR$" />
+      <filePath value="$PROJECT_DIR$/src/ImgRecognitionMain.go" />
       <kind value="FILE" />
       <method />
     </configuration>
@@ -884,16 +853,16 @@
       <item index="0" class="java.lang.String" itemvalue="Go Application.Build ImgStat.go and run" />
       <item index="1" class="java.lang.String" itemvalue="Go Application.Build WrapImgIndexMain.go and run" />
       <item index="2" class="java.lang.String" itemvalue="Go Application.Build WrapClipMain.go and run" />
-      <item index="3" class="java.lang.String" itemvalue="Go Application.Build FixClipIndexDB.go and run" />
-      <item index="4" class="java.lang.String" itemvalue="Go Application.Build ClipCoordinateMain.go and run" />
+      <item index="3" class="java.lang.String" itemvalue="Go Application.Build ClipCoordinateMain.go and run" />
+      <item index="4" class="java.lang.String" itemvalue="Go Application.Build ImgRecognitionMain.go and run" />
     </list>
     <recent_temporary>
       <list size="5">
         <item index="0" class="java.lang.String" itemvalue="Go Application.Build ImgStat.go and run" />
-        <item index="1" class="java.lang.String" itemvalue="Go Application.Build ClipCoordinateMain.go and run" />
-        <item index="2" class="java.lang.String" itemvalue="Go Application.Build WrapClipMain.go and run" />
-        <item index="3" class="java.lang.String" itemvalue="Go Application.Build WrapImgIndexMain.go and run" />
-        <item index="4" class="java.lang.String" itemvalue="Go Application.Build FixClipIndexDB.go and run" />
+        <item index="1" class="java.lang.String" itemvalue="Go Application.Build ImgRecognitionMain.go and run" />
+        <item index="2" class="java.lang.String" itemvalue="Go Application.Build WrapImgIndexMain.go and run" />
+        <item index="3" class="java.lang.String" itemvalue="Go Application.Build ClipCoordinateMain.go and run" />
+        <item index="4" class="java.lang.String" itemvalue="Go Application.Build WrapClipMain.go and run" />
       </list>
     </recent_temporary>
   </component>
@@ -915,46 +884,48 @@
       <workItem from="1519612121752" duration="61000" />
       <workItem from="1519612223579" duration="3386000" />
       <workItem from="1519615864386" duration="87996000" />
-      <workItem from="1519805890973" duration="1979000" />
+      <workItem from="1519805890973" duration="20269000" />
+      <workItem from="1519876739008" duration="33252000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="151435000" />
+    <option name="totallyTimeSpent" value="202977000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Nl-Palette" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3857302" sideWeight="0.5021322" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32998884" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Properties" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Capture Tool" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.26918977" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32995737" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3857302" sideWeight="0.4978678" order="3" side_tool="false" content_ui="tabs" x="24" y="738" width="1876" height="277" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Image Layers" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Capture Analysis" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32998884" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.271855" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32887402" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Theme Preview" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32887402" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -965,7 +936,7 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="201" />
+      <option name="time" value="247" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -974,394 +945,424 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/config/ImgConfig.go">
+    <entry file="file://$PROJECT_DIR$/src/imgOptions/JpgUtils.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/config/ImgClipConfig.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="76">
-          <caret line="4" column="4" lean-forward="false" selection-start-line="4" selection-start-column="4" selection-end-line="4" selection-end-column="4" />
+        <state relative-caret-position="133">
+          <caret line="19" column="29" lean-forward="true" selection-start-line="19" selection-start-column="29" selection-end-line="19" selection-end-column="29" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/performance/取大图的各个子图的索引-读取大图数据计算/pprof002.svg">
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateDBInit.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="920" column="156" lean-forward="false" selection-start-line="920" selection-start-column="156" selection-end-line="920" selection-end-column="156" />
+        <state relative-caret-position="375">
+          <caret line="199" column="0" lean-forward="true" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="0" />
+          <folding>
+            <element signature="n#!!block;n#innerInitClipCoordinateIndexToVTagIdDB#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/InitClipStatIndexDB.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="163">
+          <caret line="19" column="34" lean-forward="false" selection-start-line="19" selection-start-column="34" selection-end-line="19" selection-end-column="34" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/InitIndexDB.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="266">
+          <caret line="14" column="1" lean-forward="true" selection-start-line="14" selection-start-column="1" selection-end-line="14" selection-end-column="1" />
+          <folding>
+            <element signature="e#19#264#0" expanded="false" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/imgIndex/IndexData.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="464">
-          <caret line="116" column="29" lean-forward="false" selection-start-line="116" selection-start-column="29" selection-end-line="116" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/EditTest.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="234">
-          <caret line="22" column="1" lean-forward="true" selection-start-line="22" selection-start-column="1" selection-end-line="22" selection-end-column="1" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/ImgClipsMain.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="24" column="32" lean-forward="true" selection-start-line="24" selection-start-column="32" selection-end-line="24" selection-end-column="32" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../github.com/syndtr/goleveldb/leveldb/db.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="876" column="14" lean-forward="false" selection-start-line="876" selection-start-column="14" selection-end-line="876" selection-end-column="14" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/../github.com/syndtr/goleveldb/leveldb/iterator/iter.go">
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/TrainResultSave.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="198">
-          <caret line="39" column="8" lean-forward="false" selection-start-line="39" selection-start-column="8" selection-end-line="39" selection-end-column="8" />
+        <state relative-caret-position="326">
+          <caret line="37" column="1" lean-forward="true" selection-start-line="37" selection-start-column="1" selection-end-line="37" selection-end-column="1" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/FixClipIndex.go" />
-    <entry file="file://$PROJECT_DIR$/../github.com/syndtr/goleveldb/leveldb/db_state.go">
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateNotOptions.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="291">
-          <caret line="229" column="0" lean-forward="false" selection-start-line="229" selection-start-column="0" selection-end-line="229" selection-end-column="0" />
+        <state relative-caret-position="744">
+          <caret line="112" column="20" lean-forward="false" selection-start-line="112" selection-start-column="20" selection-end-line="112" selection-end-column="20" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgIndexSaver.go">
+    <entry file="file://$PROJECT_DIR$/src/TestMergeDB.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="312">
-          <caret line="29" column="29" lean-forward="false" selection-start-line="29" selection-start-column="29" selection-end-line="29" selection-end-column="29" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/TestFormat.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/TestFixClipIndexDBMain.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="95">
-          <caret line="5" column="30" lean-forward="false" selection-start-line="5" selection-start-column="30" selection-end-line="5" selection-end-column="30" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/clip_search_conf.txt">
+    <entry file="file://$PROJECT_DIR$/src/TestDBReader.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="114">
-          <caret line="6" column="1" lean-forward="false" selection-start-line="6" selection-start-column="1" selection-end-line="6" selection-end-column="1" />
+        <state relative-caret-position="285">
+          <caret line="22" column="39" lean-forward="false" selection-start-line="22" selection-start-column="39" selection-end-line="22" selection-end-column="39" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/config/ClipSearchConfig.go">
+    <entry file="file://$PROJECT_DIR$/src/TestBatch.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/Test.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/SignalTest.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ReleationCal.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/PerfomanceTest.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/MyMapTest.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ManuelCompactIndexDB.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="212">
+          <caret line="26" column="69" lean-forward="false" selection-start-line="26" selection-start-column="69" selection-end-line="26" selection-end-column="69" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ManualCompactResultDB.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="152">
+          <caret line="11" column="8" lean-forward="false" selection-start-line="11" selection-start-column="8" selection-end-line="11" selection-end-column="8" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ManualComactImgDB.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ImgIndexStatMain.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ImgIndexMain.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="266">
+          <caret line="19" column="67" lean-forward="false" selection-start-line="19" selection-start-column="67" selection-end-line="19" selection-end-column="67" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ImgClipsMain.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="95">
-          <caret line="7" column="11" lean-forward="false" selection-start-line="7" selection-start-column="11" selection-end-line="7" selection-end-column="11" />
+          <caret line="20" column="43" lean-forward="false" selection-start-line="20" selection-start-column="43" selection-end-line="20" selection-end-column="43" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/Ed.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ClipInsert.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="69" column="49" lean-forward="false" selection-start-line="69" selection-start-column="49" selection-end-line="69" selection-end-column="49" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/InitImgDB.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="285">
+          <caret line="22" column="1" lean-forward="true" selection-start-line="22" selection-start-column="1" selection-end-line="22" selection-end-column="1" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/dbOptions/MultyClipIndexToIdentDBSeek.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="283">
-          <caret line="101" column="69" lean-forward="false" selection-start-line="101" selection-start-column="69" selection-end-line="101" selection-end-column="69" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/MultyDBReader.go">
+    <entry file="file://$PROJECT_DIR$/src/EditTest.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="207">
-          <caret line="31" column="9" lean-forward="true" selection-start-line="31" selection-start-column="9" selection-end-line="31" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgStatOptions.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="188">
-          <caret line="73" column="23" lean-forward="false" selection-start-line="73" selection-start-column="23" selection-end-line="73" selection-end-column="23" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgStatExOptions.go">
+    <entry file="file://$PROJECT_DIR$/src/ImgDBKeyFormaterTool.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="321">
-          <caret line="69" column="20" lean-forward="true" selection-start-line="69" selection-start-column="20" selection-end-line="69" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgDBVisitor.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="169">
-          <caret line="30" column="8" lean-forward="false" selection-start-line="30" selection-start-column="8" selection-end-line="30" selection-end-column="8" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/imgCache/KeyValueCache.go">
+    <entry file="file://$PROJECT_DIR$/src/ImgDBKeySplitTool.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="169">
-          <caret line="118" column="30" lean-forward="false" selection-start-line="118" selection-start-column="30" selection-end-line="118" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/imgIndex/ImgIdent.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="323">
-          <caret line="160" column="9" lean-forward="true" selection-start-line="160" selection-start-column="9" selection-end-line="160" selection-end-column="9" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/imgIndex/ImgIndexFormat.go">
+    <entry file="file://$PROJECT_DIR$/src/ImgDownloadMain.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="169">
-          <caret line="15" column="29" lean-forward="false" selection-start-line="15" selection-start-column="29" selection-end-line="15" selection-end-column="29" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgClipReverseIndexSaver.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="55">
-          <caret line="183" column="25" lean-forward="false" selection-start-line="183" selection-start-column="25" selection-end-line="183" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipSearch.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="397">
-          <caret line="66" column="50" lean-forward="true" selection-start-line="66" selection-start-column="50" selection-end-line="66" selection-end-column="51" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/imgIndex/ImgClipIndexEdit.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="150">
-          <caret line="86" column="3" lean-forward="true" selection-start-line="86" selection-start-column="3" selection-end-line="86" selection-end-column="3" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Program Files/go/src/fmt/print.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="255" column="5" lean-forward="false" selection-start-line="255" selection-start-column="5" selection-end-line="255" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/imgIndex/ImgIndex.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="13" column="4" lean-forward="false" selection-start-line="13" selection-start-column="4" selection-end-line="13" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/config/ConstConfig.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="23" column="4" lean-forward="false" selection-start-line="23" selection-start-column="4" selection-end-line="23" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/util/stringUtil.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="361">
-          <caret line="23" column="27" lean-forward="true" selection-start-line="23" selection-start-column="27" selection-end-line="23" selection-end-column="27" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipIndexFix.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="275">
-          <caret line="51" column="18" lean-forward="false" selection-start-line="51" selection-start-column="18" selection-end-line="51" selection-end-column="18" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/DBCombineByKey.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="389">
-          <caret line="98" column="0" lean-forward="false" selection-start-line="98" selection-start-column="0" selection-end-line="98" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgClipUtil.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="92" column="51" lean-forward="true" selection-start-line="92" selection-start-column="51" selection-end-line="92" selection-end-column="51" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgClipsToIndexSaver.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="408">
-          <caret line="34" column="1" lean-forward="true" selection-start-line="34" selection-start-column="1" selection-end-line="34" selection-end-column="1" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Program Files/go/src/strings/strings.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="293" column="5" lean-forward="false" selection-start-line="293" selection-start-column="5" selection-end-line="293" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Program Files/go/src/fmt/scan.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="79" column="5" lean-forward="false" selection-start-line="79" selection-start-column="5" selection-end-line="79" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Program Files/go/src/bufio/bufio.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="365" column="17" lean-forward="false" selection-start-line="365" selection-start-column="17" selection-end-line="365" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://C:/Program Files/go/src/runtime/panic.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="162">
-          <caret line="576" column="0" lean-forward="false" selection-start-line="576" selection-start-column="0" selection-end-line="576" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/DBUitl.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="174">
-          <caret line="30" column="56" lean-forward="true" selection-start-line="30" selection-start-column="56" selection-end-line="30" selection-end-column="56" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/InitClipStatIndexDB.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="95">
-          <caret line="11" column="32" lean-forward="false" selection-start-line="11" selection-start-column="5" selection-end-line="11" selection-end-column="32" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/ClipCoordinateMain.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="630">
-          <caret line="46" column="65" lean-forward="false" selection-start-line="46" selection-start-column="65" selection-end-line="46" selection-end-column="65" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/WrapClipMain.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="351">
-          <caret line="46" column="30" lean-forward="true" selection-start-line="46" selection-start-column="30" selection-end-line="46" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/InitIndexDB.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="190">
-          <caret line="271" column="0" lean-forward="true" selection-start-line="271" selection-start-column="0" selection-end-line="271" selection-end-column="0" />
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/WrapImgIndexMain.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="85">
-          <caret line="15" column="48" lean-forward="true" selection-start-line="15" selection-start-column="48" selection-end-line="15" selection-end-column="48" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/imgCache/MyMap.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="150" column="44" lean-forward="false" selection-start-line="150" selection-start-column="42" selection-end-line="150" selection-end-column="44" />
+        <state relative-caret-position="190">
+          <caret line="10" column="23" lean-forward="true" selection-start-line="10" selection-start-column="23" selection-end-line="10" selection-end-column="23" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateOptions.go">
+    <entry file="file://$PROJECT_DIR$/src/ClipCoordinateMain.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="10431">
-          <caret line="562" column="115" lean-forward="false" selection-start-line="562" selection-start-column="115" selection-end-line="562" selection-end-column="115" />
-          <folding>
-            <element signature="e#19#188#0" expanded="true" />
-            <element signature="n#!!block;n#TestCoordinateIndexDBFix#0" expanded="false" />
-            <element signature="n#!!block;n#CoordinateIndexDBKeyCount#0" expanded="false" />
-          </folding>
+        <state relative-caret-position="266">
+          <caret line="61" column="39" lean-forward="true" selection-start-line="61" selection-start-column="39" selection-end-line="61" selection-end-column="39" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateDBInit.go">
+    <entry file="file://$PROJECT_DIR$/src/ImgTest.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="171">
-          <caret line="13" column="45" lean-forward="false" selection-start-line="13" selection-start-column="45" selection-end-line="13" selection-end-column="45" />
-          <folding>
-            <element signature="e#19#118#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="174">
+          <caret line="36" column="8" lean-forward="false" selection-start-line="36" selection-start-column="8" selection-end-line="36" selection-end-column="8" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipSearchEx.go">
+    <entry file="file://$PROJECT_DIR$/src/imgIndex/ImgIndex.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="152">
-          <caret line="15" column="61" lean-forward="false" selection-start-line="15" selection-start-column="61" selection-end-line="15" selection-end-column="61" />
-          <folding>
-            <element signature="e#19#88#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="421">
+          <caret line="48" column="91" lean-forward="false" selection-start-line="48" selection-start-column="91" selection-end-line="48" selection-end-column="91" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateNotOptions.go">
+    <entry file="file://$PROJECT_DIR$/src/config/ImgClipConfig.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="24" column="74" lean-forward="true" selection-start-line="24" selection-start-column="74" selection-end-line="24" selection-end-column="74" />
-          <folding>
-            <element signature="e#19#48#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="269">
+          <caret line="48" column="21" lean-forward="true" selection-start-line="48" selection-start-column="21" selection-end-line="48" selection-end-column="21" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/ImgStat.go">
+    <entry file="file://$PROJECT_DIR$/src/config/ImgConfig.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="342">
-          <caret line="18" column="42" lean-forward="true" selection-start-line="18" selection-start-column="42" selection-end-line="18" selection-end-column="42" />
-          <folding>
-            <element signature="e#14#83#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="174">
+          <caret line="19" column="31" lean-forward="false" selection-start-line="19" selection-start-column="31" selection-end-line="19" selection-end-column="31" />
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/dbOptions/TrainResultSave.go">
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgIndexSaver.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2375">
-          <caret line="139" column="3" lean-forward="true" selection-start-line="139" selection-start-column="3" selection-end-line="139" selection-end-column="3" />
+        <state relative-caret-position="288">
+          <caret line="257" column="43" lean-forward="false" selection-start-line="257" selection-start-column="43" selection-end-line="257" selection-end-column="43" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/imgIndex/ImgClipIndex.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="402">
+          <caret line="167" column="19" lean-forward="true" selection-start-line="167" selection-start-column="19" selection-end-line="167" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/WrapClipMain.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="389">
+          <caret line="39" column="78" lean-forward="true" selection-start-line="39" selection-start-column="78" selection-end-line="39" selection-end-column="78" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/dbOptions/TrainResultDBOptions.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="152">
-          <caret line="20" column="15" lean-forward="false" selection-start-line="20" selection-start-column="15" selection-end-line="20" selection-end-column="15" />
+        <state relative-caret-position="155">
+          <caret line="873" column="0" lean-forward="true" selection-start-line="873" selection-start-column="0" selection-end-line="873" selection-end-column="0" />
+          <folding>
+            <element signature="e#4724#4775#0" expanded="false" />
+            <element signature="e#8733#8785#0" expanded="false" />
+            <element signature="n#!!block;n#trimLRSpace#0" expanded="false" />
+            <element signature="n#!!block;n#queryATagInfoByName#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://C:/Program Files/go/src/runtime/panic.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="181">
+          <caret line="577" column="33" lean-forward="true" selection-start-line="577" selection-start-column="33" selection-end-line="577" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/DBUitl.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-282">
+          <caret line="402" column="33" lean-forward="false" selection-start-line="402" selection-start-column="26" selection-end-line="402" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/util/stringUtil.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="484">
+          <caret line="309" column="18" lean-forward="false" selection-start-line="309" selection-start-column="18" selection-end-line="309" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ImgRecognitionMain.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="95">
+          <caret line="5" column="28" lean-forward="false" selection-start-line="5" selection-start-column="28" selection-end-line="5" selection-end-column="28" />
+          <folding>
+            <element signature="e#14#46#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/ImgStat.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="421">
+          <caret line="149" column="0" lean-forward="true" selection-start-line="149" selection-start-column="0" selection-end-line="149" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgRecognitionDBOptions.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="296">
+          <caret line="82" column="9" lean-forward="true" selection-start-line="82" selection-start-column="9" selection-end-line="82" selection-end-column="9" />
+          <folding>
+            <element signature="e#19#190#0" expanded="false" />
+            <element signature="n#!!block;n#parseToImgIdent#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ImgClipReverseIndexSaver.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="220">
+          <caret line="325" column="24" lean-forward="false" selection-start-line="325" selection-start-column="8" selection-end-line="325" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/design/库设计.txt">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="133">
+          <caret line="7" column="3" lean-forward="true" selection-start-line="7" selection-start-column="3" selection-end-line="7" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipCoordinateOptions.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="163">
+          <caret line="271" column="86" lean-forward="false" selection-start-line="271" selection-start-column="86" selection-end-line="271" selection-end-column="86" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/dbOptions/ClipSearchEx.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="874">
+          <caret line="95" column="42" lean-forward="false" selection-start-line="95" selection-start-column="30" selection-end-line="95" selection-end-column="42" />
           <folding />
         </state>
       </provider>

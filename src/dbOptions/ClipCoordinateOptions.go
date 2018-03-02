@@ -13,6 +13,7 @@ import (
 	"os"
 	"strings"
 	"bytes"
+	"sort"
 )
 
 var CLIP_VIRTUAL_TAGID_LEN = 10
@@ -22,7 +23,7 @@ var MAX_CLIP_VIRTUAL_TAGID = []byte{255,255,255,255,255,255,255,255,255,255}
 //-------------------------------------------------------------------------------------------------
 func ClipCoordinateLastDealedFor(threadId uint8) []byte {
 	lastDealedKeyName := string(config.STAT_KEY_PREX) + "_LAST_DEALED_IMGKEY_" + strconv.Itoa(int(threadId))
-	res := InitClipCoordinateIndexToVTagIdMiddleDB().ReadFor([]byte(lastDealedKeyName))
+	res := InitCoordinateClipToVTagMiddleDB().ReadFor([]byte(lastDealedKeyName))
 	if len(res) == 0{
 		return nil
 	}
@@ -31,12 +32,12 @@ func ClipCoordinateLastDealedFor(threadId uint8) []byte {
 
 func SetClipCoordinateLastDealedFor(lastDealed []byte, threadId uint8)  {
 	lastDealedKeyName := string(config.STAT_KEY_PREX) + "_LAST_DEALED_IMGKEY_" + strconv.Itoa(int(threadId))
-	InitClipCoordinateIndexToVTagIdMiddleDB().WriteTo([]byte(lastDealedKeyName), lastDealed)
+	InitCoordinateClipToVTagMiddleDB().WriteTo([]byte(lastDealedKeyName), lastDealed)
 }
 
 func GetUnusedVirtualTagId(threadId uint8) (ret []byte , err error){
 	lastUsedVirtualTagIdName := string(config.STAT_KEY_PREX) + "_UNUSED_VIRTUAL_TAG_ID_" + strconv.Itoa(int(threadId))
-	res := InitClipCoordinateIndexToVTagIdMiddleDB().ReadFor([]byte(lastUsedVirtualTagIdName))
+	res := InitCoordinateClipToVTagMiddleDB().ReadFor([]byte(lastUsedVirtualTagIdName))
 	if len(res) == 0{
 		//此处与 CLIP_VIRTUAL_TAGID_LEN 相对应
 		return []byte{threadId, '_', 0,0,0,0,0,0,0,0}, nil
@@ -51,7 +52,7 @@ func GetUnusedVirtualTagId(threadId uint8) (ret []byte , err error){
 
 func SetUnusedVirtualTagId(lastUsed []byte, threadId uint8)  {
 	lastUsedVirtualTagIdName := string(config.STAT_KEY_PREX) + "_UNUSED_VIRTUAL_TAG_ID_" + strconv.Itoa(int(threadId))
-	InitClipCoordinateIndexToVTagIdMiddleDB().WriteTo([]byte(lastUsedVirtualTagIdName), lastUsed)
+	InitCoordinateClipToVTagMiddleDB().WriteTo([]byte(lastUsedVirtualTagIdName), lastUsed)
 }
 
 
@@ -154,8 +155,8 @@ func (this *ClipCoordinateCacheFlushCallBack) FlushCache(kvCache *imgCache.KeyVa
 	if len(keys) == 0{
 		return true
 	}
-	biToTagDB := InitClipCoordinateIndexToVTagIdMiddleDB() //InitClipCoordinateIndexToVTagIdDB()
-	tagToBiDB := InitClipCoordinatevTagIdToIndexDB()
+	biToTagDB := InitCoordinateClipToVTagMiddleDB() //InitClipCoordinateIndexToVTagIdDB()
+	tagToBiDB := InitCoordinatevTagToClipDB()
 
 	branchIndexToVTag := leveldb.Batch{}
 	vTagToBranchIndex := leveldb.Batch{}
@@ -329,8 +330,9 @@ func testQueryAnyOneClipIdentByIndexAndIdent(dbId uint8, sourceIndexAndIdent []b
 	var clipIdents [][]byte
 	var curIndex []byte
 	fnd := false
+
 	for _, statIndex := range statBranchIndexes{
-		clipIdentList = InitClipStatIndexToIdentsDB(dbId).ReadFor(statIndex)
+		clipIdentList = InitStatIndexToClipDB(dbId).ReadFor(statIndex)
 
 		clipIdents = make([][]byte, len(clipIdentList) / ImgIndex.IMG_CLIP_IDENT_LENGTH)
 		ci := 0
@@ -345,7 +347,7 @@ func testQueryAnyOneClipIdentByIndexAndIdent(dbId uint8, sourceIndexAndIdent []b
 			}
 
 			if bytes.Equal(theClipIdent, clipIdent){
-				curIndex = InitMuClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
+				curIndex = InitClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
 
 				if bytes.Equal(curIndex, clipIndex){
 
@@ -373,7 +375,7 @@ func QueryAnyOneClipIdentByIndex(dbId uint8,sourceIndex []byte) []byte {
 	var clipIdents [][]byte
 	var curIndex []byte
 	for _, statIndex := range statBranchIndexes{
-		clipIdentList = InitClipStatIndexToIdentsDB(dbId).ReadFor(statIndex)
+		clipIdentList = InitStatIndexToClipDB(dbId).ReadFor(statIndex)
 
 		clipIdents = make([][]byte, len(clipIdentList) / ImgIndex.IMG_CLIP_IDENT_LENGTH)
 		ci := 0
@@ -386,7 +388,7 @@ func QueryAnyOneClipIdentByIndex(dbId uint8,sourceIndex []byte) []byte {
 			if len(clipIdent) != ImgIndex.IMG_CLIP_IDENT_LENGTH{
 				continue
 			}
-			curIndex = InitMuClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
+			curIndex = InitClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
 
 			if isSameClip(sourceIndex, curIndex){
 				return clipIdent
@@ -403,13 +405,13 @@ func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)
 		return
 	}
 	for _,dbId := range indexBbIdReferenced{
-		InitClipStatIndexToIdentsDB(dbId)
+		InitStatIndexToClipDB(dbId)
 	}
 
 	seeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB())
 	defer seeker.Close()
 
-	tiDB := InitClipCoordinatevTagIdToIndexDB()
+	tiDB := InitCoordinatevTagToClipDB()
 	iter := tiDB.DBPtr.NewIterator(nil, &tiDB.ReadOptions)
 
 	iter.First()
@@ -483,20 +485,44 @@ func innerVerifyCoordinateResult(indexBbIdReferenced []uint8, offset, limit int)
 }
 
 type CoordinateClipsResult struct {
-	left, right uint8
-	support int
+	Left, Right uint8
+	Support     int
+}
+type CoordinateClipResultList []CoordinateClipsResult
+
+func (this CoordinateClipResultList)Len() int {
+	return len(this)
 }
 
-func GetCoordinateClips(imgIdent []byte, threshold int) []*CoordinateClipsResult {
-	var ret []*CoordinateClipsResult
-	clipIndexes := GetClipIndexBytesOfWhich(imgIdent[0], imgIdent, nil)
+func (this CoordinateClipResultList) Swap(i, j int) {
+	this[i], this[j] = this[j], this[i]
+}
+
+//逆序排列
+func (this CoordinateClipResultList) Less(i, j int) bool {
+	return this[i].Support > this[j].Support
+}
+
+func GetCoordinateClipsFromImgIdent(imgIdent []byte, threshold int) CoordinateClipResultList {
+	clipIndexMap := GetClipIndexBytesOfWhich(imgIdent[0], imgIdent, nil)
+	clipIndexes := make([][]byte, config.CLIP_COUNTS_OF_IMG)
+	for i:=uint8(0);i < uint8(config.CLIP_COUNTS_OF_IMG);i ++{
+		clipIndexes[int(i)] = clipIndexMap[i]
+	}
+
+	return GetCoordinateClipsFromClipIndexes(clipIndexes, threshold)
+}
+
+func GetCoordinateClipsFromClipIndexes(clipIndexes [][]byte, threshold int) CoordinateClipResultList {
+	var ret []CoordinateClipsResult
+
 	for i:=uint8(0);i < config.CLIP_COUNTS_OF_IMG;i ++{
 		leftClipIndex := clipIndexes[i]
 		for j:=i+1;j < config.CLIP_COUNTS_OF_IMG;j ++{
 			rightClipIndex := clipIndexes[j]
 			support := GetCoordinateSupport(leftClipIndex, rightClipIndex)
 			if support >= threshold {
-				ret = append(ret, &CoordinateClipsResult{left:i, right:j, support:support})
+				ret = append(ret, CoordinateClipsResult{Left:i, Right:j, Support:support})
 			}
 		}
 	}
@@ -525,6 +551,10 @@ func GetCoordinateSupport(leftClipIndex, rightClipIndex []byte) int {
 	supportStart := oneHitLen-4
 	supportLimit := supportStart + 4
 
+	//由于 stat index 是分支的，相同的 clip index 对应了多个 stat index, 下面两个 map 用于减少匹配的次数
+	leftNotSame := imgCache.NewMyMap(false)
+	rightNotSame := imgCache.NewMyMap(false)
+
 	resMap := imgCache.NewMyMap(false)
 
 	for _,leftStatIndex := range leftStatIndexes{
@@ -532,7 +562,7 @@ func GetCoordinateSupport(leftClipIndex, rightClipIndex []byte) int {
 		for _,rightStatIndex := range rightStatIndexes{
 			copy(queryKey[ImgIndex.CLIP_STAT_INDEX_BYTES_LEN:], rightStatIndex)
 
-			hits := InitClipCoordinateIndexToVTagIdDB().ReadFor(queryKey)
+			hits := InitCoordinateClipToVTagDB().ReadFor(queryKey)
 
 			if 0 == len(hits){
 				continue
@@ -551,7 +581,7 @@ func GetCoordinateSupport(leftClipIndex, rightClipIndex []byte) int {
 			}
 
 			for _,hit := range hitArray{
-
+				//以 vtag 作为一键多值 map 的键, 是为了防保证每张大图计算出来的协同关系都计算一次
 				vtagBytes := hit[vtagStart:vtagLimit]
 				if resMap.Contains(vtagBytes){
 					continue
@@ -560,11 +590,26 @@ func GetCoordinateSupport(leftClipIndex, rightClipIndex []byte) int {
 				clipIndex1 := hit[clipIndex1Start:clipIndex1Limit]
 				clipIndex2 := hit[clipIndex2Start:clipIndex2Limit]
 
-				if isSameClip(clipIndex1, leftClipIndex) && isSameClip(clipIndex2, rightClipIndex){
+				if leftNotSame.Contains(clipIndex1){
+					continue
+				}
+				if rightNotSame.Contains(clipIndex2){
+					continue
+				}
+
+				lok := isSameClip(clipIndex1, leftClipIndex)
+				rok := isSameClip(clipIndex2, rightClipIndex)
+				if lok && rok{
 					vtagBytes := hit[vtagStart:vtagLimit]
 					supportBytes := hit[supportStart:supportLimit]
-
 					resMap.Put(vtagBytes, supportBytes)
+				}else{
+					if !lok{
+						leftNotSame.Put(clipIndex1, nil)
+					}
+					if !rok{
+						rightNotSame.Put(clipIndex2, nil)
+					}
 				}
 			}
 		}
@@ -597,7 +642,7 @@ func TestCoordinateIndexDBFix()  {
 }
 
 func CoordinateIndexDBKeyCount()  {
-	coordinateIndexDB := InitClipCoordinateIndexToVTagIdDB()
+	coordinateIndexDB := InitCoordinateClipToVTagDB()
 	iter := coordinateIndexDB.DBPtr.NewIterator(nil, &coordinateIndexDB.ReadOptions)
 	iter.First()
 	count := 0
@@ -662,13 +707,13 @@ func TestCoordinateSupport()  {
 		var leftClipIndex, rightClipIndex []byte
 
 		{
-			leftClipIdent = parseToClipIdent(groups[0])
-			leftClipIndex = InitMuClipToIndexDB(leftClipIdent[0]).ReadFor(leftClipIdent)
+			leftClipIdent = parseToClipIdent(groups[0], "-")
+			leftClipIndex = InitClipToIndexDB(leftClipIdent[0]).ReadFor(leftClipIdent)
 		}
 
 		{
-			rightClipIdent = parseToClipIdent(groups[1])
-			rightClipIndex = InitMuClipToIndexDB(rightClipIdent[0]).ReadFor(rightClipIdent)
+			rightClipIdent = parseToClipIdent(groups[1], "-")
+			rightClipIndex = InitClipToIndexDB(rightClipIdent[0]).ReadFor(rightClipIdent)
 		}
 
 
@@ -706,17 +751,19 @@ func TestCoordinateSupportEx()  {
 		imgIdent[0] = 2
 		copy(imgIdent[1:],ImgIndex.FormatImgKey([]byte(input)))
 
-		results := GetCoordinateClips(imgIdent,2)
+		results := GetCoordinateClipsFromImgIdent(imgIdent,2)
 		if 0 == len(results){
 			fmt.Println("no coordinate: ", input)
 			continue
 		}
 
+		sort.Sort(results)
+
 
 		fmt.Print(input, " has coordinate: ")
 
 		for _,res := range results{
-			fmt.Print("[",res.left,"-", res.right," : ",res.support,"], ")
+			fmt.Print("[",res.Left,"-", res.Right," : ",res.Support,"], ")
 		}
 		fmt.Println()
 
@@ -725,13 +772,13 @@ func TestCoordinateSupportEx()  {
 }
 
 //2-A0000042-5
-func parseToClipIdent(input string) []byte {
+func parseToClipIdent(input string, splitStr string) []byte {
 	if len(input) != 12{
 		return  nil
 	}
 	ret := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
 
-	groups := strings.Split(input, "-")
+	groups := strings.Split(input, splitStr)
 	dbId,_ := strconv.Atoi(groups[0])
 
 	imgKey := ImgIndex.FormatImgKey([]byte(groups[1]))
@@ -744,3 +791,5 @@ func parseToClipIdent(input string) []byte {
 
 	return ret
 }
+
+

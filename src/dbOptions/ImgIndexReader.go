@@ -6,7 +6,7 @@ import (
 )
 
 func ReadImgStat(dbId uint8)  {
-	imgIndexDB := InitMuIndexToImgDB(dbId)
+	imgIndexDB := InitIndexToImgDB(dbId)
 	if nil == imgIndexDB{
 		fmt.Println("open img index db failed")
 		return

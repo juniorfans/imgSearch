@@ -12,107 +12,40 @@ import (
 	"bytes"
 	"imgCache"
 	"sort"
+	"os"
+	"bufio"
 )
+
+
 
 
 /**
 	结果保存：
 	[更改]1. 子图的主题 clipStatIndex -> {clipIndex | clipIdent | tagId} 重复结构
-	     2.
+	[删除]2.
 	[原样]3. 大图 imgIndexBytes --> which array, 计算方法: 一张大图中选择的哪些子图
 	[更改]4. 主题相同的子图有哪些 tagId -> {statInex|clipIndex|clipIdent} 重复结构
-	5. tagId --> tagName 及 tagName --> tagId. 训练时会新加入
+	[原样]5. tagId --> tagName 及 tagName --> tagId. 训练时会新加入
  */
 //----------------------------------------------------------------------------------
-func DumpSameTagClip(dbId uint8, limit int)  {
-	ctDB := InitClipIndexToTagDB()
-	tagIdToNameDB := InitTagIndexToNameDB()
-	clipIndexToIdDB := InitMuIndexToClipDB(dbId)
-	var clipIdent, tagName []byte
-	iter := ctDB.DBPtr.NewIterator(nil, &ctDB.ReadOptions)
-	iter.First()
-	for iter.Valid(){
-		branch := iter.Key()
-
-		if len(branch) != ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN{
-			continue
-		}
-
-		tagId := iter.Value()
-
-		clipIdent = clipIndexToIdDB.ReadFor(branch)
-		if 0 == len(clipIdent){
-			continue
-		}
-
-		for i:=0;i < len(clipIdent);i += 6{
-			curIdent := clipIdent[i:i+6]
-			tagName = tagIdToNameDB.ReadFor(tagId)
-			if 0 == len(tagName){
-				continue
-			}
-
-			indexes := GetDBIndexOfClips(PickImgDB(dbId) , curIdent[1:len(curIdent)-1], []int{-1} ,-1)
-
-			SaveClipsAsJpgWithName("E:/gen/result_verify/", string(tagName), indexes[curIdent[len(curIdent)-1]])
-			if 0 == limit{
-				return
-			}
-			limit --
-
-		}
-		iter.Next()
-	}
-}
-
-
-
-
 //----------------------------------------------------------------------------------
-
-
-
-func GetClipIndexBytesOfWhich(dbId uint8, imgIdent []byte, whiches []uint8) map[uint8] []byte {
-	clipIdentToIndexDB := InitMuClipToIndexDB(dbId)
-
-	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
-	copy(clipIdent, imgIdent)
-
-	if 0 == len(whiches){
-		whiches = make([]uint8, config.CLIP_COUNTS_OF_IMG)
-		for i:=0;i < int(config.CLIP_COUNTS_OF_IMG);i ++{
-			whiches[i] = uint8(i)
-		}
-	}
-
-	clipIndexes := make(map[uint8] []byte)
-	for _,which := range whiches{
-		clipIdent[ImgIndex.IMG_CLIP_IDENT_LENGTH-1] = byte(which)
-		curIndex := clipIdentToIndexDB.ReadFor(clipIdent)
-		if 0 == len(curIndex){
-			fmt.Println("get clip index null: ", getClipNamgeFromImgIdent(clipIdent))
-			return nil
-		}
-		clipIndexes[which] = curIndex
-	}
-	return clipIndexes
-}
 
 
 /*
-	主题相似的子图
-	格式: (branches clipIndexBytes | branches clipIndexBytes) ---> tagIndex
+	1. 子图的主题
+	格式: clipStatIndex -> {clipIndex | clipIdent | tagId}
+	合并旧值的写入方式
 */
-var initedClipSameDb map[int] *DBConfig
-func InitClipSameDB() *DBConfig {
-	if nil == initedClipSameDb{
-		initedClipSameDb = make(map[int] *DBConfig)
+var initedClipTagDb map[int] *DBConfig
+func InitClipToTagDB() *DBConfig {
+	if nil == initedClipTagDb {
+		initedClipTagDb = make(map[int] *DBConfig)
 	}
 
 	dbId := uint8(0)
 
 	hash := int(dbId)
-	if exsitsDB, ok := initedClipSameDb[hash];ok && true == exsitsDB.inited{
+	if exsitsDB, ok := initedClipTagDb[hash];ok && true == exsitsDB.inited{
 		return exsitsDB
 	}
 
@@ -142,54 +75,280 @@ func InitClipSameDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/clip_to_same_clip/data.db"
+	retDB.Name = "result/clip_to_tag/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this clip_to_same_clip db: ", retDB.Dir)
+	fmt.Println("has pick this clip_to_tag db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
-	initedClipSameDb[hash] = &retDB
+	initedClipTagDb[hash] = &retDB
 
 	return &retDB
 }
 
-func WriteTheSameClips(dbId uint8, imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, tagIndex []byte)  {
-	clipSameDB := InitClipSameDB()
+var CLIP_TAG_DB_VALUE_UINT_BYTES_LEN = ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH + TAG_INDEX_LENGTH
+var TAG_CLIP_DB_VALUE_UINT_BYTES_LEN = ImgIndex.CLIP_STAT_INDEX_BYTES_LEN + ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
+
+
+//格式: clipStatIndex -> {clipIndex | clipIdent | tagId}
+func WriteTheClipToTag(imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, tagId []byte)  {
 
 	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
 	copy(clipIdent, imgIdent)
 
-	sameBatch := leveldb.Batch{}
-	branchLen := ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN
-	toAddKey := make([]byte, 2*branchLen)
-	toDupKey := make([]byte, 2*branchLen)
+	clipTagDB := InitClipToTagDB()
+
+	exsitsClipIndexes := imgCache.NewMyMap(false)
+
+	ctBuffLen := CLIP_TAG_DB_VALUE_UINT_BYTES_LEN
+	ctValueBuff := make([]byte, ctBuffLen)
 
 	for i:=0;i < len(whiches);i ++{
+
 		iw := whiches[i]
-		iIndex := clipIndexBytesOfWhich[iw]
-		iBranches := ImgIndex.ClipIndexBranch(iIndex)
-		for _, iBranch := range iBranches{
-			copy(toAddKey, iBranch)
-			for j:=i+1;j < len(whiches);j ++{
-				jw := whiches[j]
-				jIndex := clipIndexBytesOfWhich[jw]
+		clipIndex := clipIndexBytesOfWhich[iw]
+		clipIdent[ImgIndex.IMG_CLIP_IDENT_LENGTH-1] = iw
+		ci:=0
+		ci += copy(ctValueBuff[ci:], clipIndex)
+		ci += copy(ctValueBuff[ci:], clipIdent)
+		ci += copy(ctValueBuff[ci:], tagId)
 
-				jBranches := ImgIndex.ClipIndexBranch(jIndex)
-				for _,jBranch := range jBranches{
-					copy(toAddKey[branchLen:], jBranch)
-					sameBatch.Put(toAddKey, tagIndex)
+		//已处理过
+		if exsitsClipIndexes.Contains(clipIndex){
+			continue
+		}
 
-					//倒置 toAddKey
-					copy(toDupKey, toAddKey[branchLen: ])
-					copy(toDupKey[branchLen: ], toAddKey[:branchLen])
-					sameBatch.Put(toDupKey, tagIndex)
+		has, statIndexes, values := hasClipIndexExsitsInClipTagValue(clipIndex)
+		//有相似的子图已写入, 当前不需要写入
+		if has{
+			continue
+		}
+		exsitsClipIndexes.Put(clipIndex, nil)
+
+		for i, statIndex := range statIndexes{
+			ctRealLen := len(values[i]) + ci
+			if ctRealLen > ctBuffLen {
+				for ctRealLen > ctBuffLen {
+					ctBuffLen *= 2
 				}
+				newBuff := make([]byte, ctBuffLen)
+				copy(newBuff, ctValueBuff[:ci])
+
+				ctValueBuff = newBuff
+			}
+			if len(values[i]) > 0{
+				copy(ctValueBuff[ci:], values[i])
+			}
+			clipTagDB.WriteTo(statIndex, ctValueBuff[:ctRealLen])
+		}
+	}
+}
+
+func hasClipIndexExsitsInClipTagValue(clipIndex []byte) (exsits bool, statIndexes [][]byte, values [][]byte) {
+	clipTagDB := InitClipToTagDB()
+
+	exsits = false
+	statIndexes = ImgIndex.ClipStatIndexBranch(clipIndex)
+	values = make([] []byte, len(statIndexes))
+
+	notSame := imgCache.NewMyMap(false)
+
+	for c, iStatIndex := range statIndexes{
+		exsitsValue := clipTagDB.ReadFor(iStatIndex)
+		values[c] = exsitsValue
+		if 0 != len(exsitsValue) % CLIP_TAG_DB_VALUE_UINT_BYTES_LEN{
+			fmt.Println("error, clip tag db value length is not multple of ", CLIP_TAG_DB_VALUE_UINT_BYTES_LEN, ": ", len(exsitsValue))
+			return
+		}
+
+		for i:=0;i < len(exsitsValue);i += CLIP_TAG_DB_VALUE_UINT_BYTES_LEN{
+			curInfo := exsitsValue[i: i+CLIP_TAG_DB_VALUE_UINT_BYTES_LEN]
+			curClipIndex := curInfo[:ImgIndex.CLIP_INDEX_BYTES_LEN]
+
+			if notSame.Contains(curClipIndex){
+				continue
+			}
+			//当前子图的主题已经存在了
+			if isSameClip(curClipIndex, clipIndex){
+				exsits = true
+				return
+			}else{
+				notSame.Put(curClipIndex, nil)
+				continue
 			}
 		}
 	}
+	return
+}
 
-	clipSameDB.WriteBatchTo(&sameBatch)
+
+
+//--------------------------------------------------------------
+/**
+	2.主题对应哪些子图
+	//格式: tagid -> clipStatIndex | clipIndex | clipIdent
+	clipStatIndex 的作用是为了加速查找
+	合并旧值的写入方式
+ */
+var initedTagToClipDb map[int] *DBConfig
+
+func InitTagToClipDB() *DBConfig {
+	if nil == initedTagToClipDb {
+		initedTagToClipDb = make(map[int] *DBConfig)
+	}
+
+	dbId := uint8(0)
+
+	hash := int(dbId)
+	if exsitsDB, ok := initedTagToClipDb[hash];ok && true == exsitsDB.inited{
+		return exsitsDB
+	}
+
+	retDB := DBConfig{
+		Dir : "",
+		DBPtr : nil,
+		inited : false,
+
+		Id:dbId,
+		Name:"",
+		dbType:2,
+	}
+
+	if nil == retDB.initParams{
+		retDB.initParams = ReadDBConf("conf_result_db.txt")
+		retDB.OpenOptions = *getLevelDBOpenOption(retDB.initParams)
+		retDB.initParams.PrintLn()
+	}
+
+	{
+		retDB.ReadOptions = opt.ReadOptions{}
+	}
+	{
+		retDB.WriteOptions = opt.WriteOptions{Sync:false}
+	}
+
+	retDB.Name = "result/tag_to_clip/data.db"
+
+	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
+	fmt.Println("has pick this tag_to_clip db: ", retDB.Dir)
+	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
+	retDB.inited = true
+
+	initedTagToClipDb[hash] = &retDB
+
+	return &retDB
+}
+//格式: tagid -> clipStatIndex | clipIndex | clipIdent
+func WriteTheTagToClip(imgIdent []byte, clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, tagId []byte)  {
+
+	clipIdent := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
+	copy(clipIdent, imgIdent)
+
+	tagToClipDB := InitTagToClipDB()
+
+	exsitsClipIndexes := imgCache.NewMyMap(false)
+
+	ctBuffLen := TAG_CLIP_DB_VALUE_UINT_BYTES_LEN
+	ctValueBuff := make([]byte, ctBuffLen)
+
+	for c:=0;c < len(whiches);c ++{
+		iw := whiches[c]
+		clipIndex := clipIndexBytesOfWhich[iw]
+		clipIdent[ImgIndex.IMG_CLIP_IDENT_LENGTH-1] = iw
+
+		ci:=ImgIndex.CLIP_STAT_INDEX_BYTES_LEN
+		ci += copy(ctValueBuff[ci:], clipIndex)
+		ci += copy(ctValueBuff[ci:], clipIdent)
+
+
+		//已处理过
+		if exsitsClipIndexes.Contains(clipIndex){
+			continue
+		}
+
+		has, statIndexes, value := hasClipIndexExsitsInTagValue(tagId,clipIndex)
+		//有相似的 clip index 被处理过, 当前也不需要处理
+		if has{
+			continue
+		}
+		exsitsClipIndexes.Put(clipIndex, nil)
+
+		if len(value) > 0{
+			fmt.Println("tag to clip db exsits value length: ", len(value))
+		}
+
+		for _, statIndex := range statIndexes{
+
+			copy(ctValueBuff, statIndex)
+
+			ctRealLen := len(value) + ci
+			if ctRealLen > ctBuffLen {
+				for ctRealLen > ctBuffLen {
+					ctBuffLen *= 2
+				}
+				newBuff := make([]byte, ctBuffLen)
+				copy(newBuff, ctValueBuff[:ci])
+
+				ctValueBuff = newBuff
+			}
+
+			if len(value) > 0{
+				copy(ctValueBuff[ci:], value)
+			}
+
+			//此处不能批量写, 因为逻辑上是合并旧值式的写, 若批量写则可能由于批量内部有相同的键值导致最终的值不是累计的
+			tagToClipDB.WriteTo(tagId, ctValueBuff[:ctRealLen])
+		}
+	}
+}
+
+func hasClipIndexExsitsInTagValue(tagId []byte, clipIndex []byte) (exsits bool, statIndexes [][]byte, value []byte) {
+	tagToClipDB := InitTagToClipDB()
+
+	exsits = false
+	statIndexes = ImgIndex.ClipStatIndexBranch(clipIndex)
+
+	value = tagToClipDB.ReadFor(tagId)
+
+	if 0 != len(value) % TAG_CLIP_DB_VALUE_UINT_BYTES_LEN{
+		tagName := InitTagIdToNameDB().ReadFor(tagId)
+		fmt.Println("error, tag db value length is not multple of ", TAG_CLIP_DB_VALUE_UINT_BYTES_LEN, ": ", len(value), ", ", string(tagName))
+		return
+	}
+
+	statIndexStart := 0
+	statIndexLimit := statIndexStart + ImgIndex.CLIP_STAT_INDEX_BYTES_LEN
+	clipIndexStart := statIndexLimit
+	clipIndexLimit := clipIndexStart + ImgIndex.CLIP_INDEX_BYTES_LEN
+
+	notSame := imgCache.NewMyMap(false)
+
+	for _, statIndex := range statIndexes{
+		for i:=0;i < len(value);i += TAG_CLIP_DB_VALUE_UINT_BYTES_LEN{
+			curInfo := value[i: i+TAG_CLIP_DB_VALUE_UINT_BYTES_LEN]
+			curStatIndex := curInfo[statIndexStart : statIndexLimit]
+			curClipIndex := curInfo[clipIndexStart : clipIndexLimit]
+
+			//此处可以优化为二分搜索. 但考虑到 tagToClip 库数据量不大, 暂时不优化
+			if !bytes.Equal(statIndex, curStatIndex){
+				continue
+			}
+
+			if notSame.Contains(curClipIndex){
+				continue
+			}
+
+			//当前子图的主题已经存在了
+			if isSameClip(curClipIndex, clipIndex){
+				exsits = true
+				return
+			}else{
+				notSame.Put(curClipIndex, nil)
+			}
+		}
+	}
+	return
 }
 
 //---------------------------------------------------------------------------
@@ -197,7 +356,7 @@ func WriteTheSameClips(dbId uint8, imgIdent []byte, clipIndexBytesOfWhich map[ui
 	格式: (img source index bytes) --> which array
 */
 var initedImgWhichesDb map[int] *DBConfig
-func InitImgIndexToWhichDB() *DBConfig {
+func InitImgAnswerDB() *DBConfig {
 	if nil == initedImgWhichesDb {
 		initedImgWhichesDb = make(map[int] *DBConfig)
 	}
@@ -232,10 +391,10 @@ func InitImgIndexToWhichDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/img_index_to_whiches/data.db"
+	retDB.Name = "result/img_answer/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this img result db: ", retDB.Dir)
+	fmt.Println("has pick this img_answer db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -246,9 +405,9 @@ func InitImgIndexToWhichDB() *DBConfig {
 
 func WriteImgWhiches(dbId uint8, imgIdent []byte, whiches []uint8) error {
 	//写入 img index ---> whiches
-	resDB := InitImgIndexToWhichDB()
+	resDB := InitImgAnswerDB()
 
-	imgIndexDB := InitMuImgToIndexDB(dbId)
+	imgIndexDB := InitImgToIndexDB(dbId)
 
 	index := imgIndexDB.ReadFor(imgIdent)
 	if 0 == len(index){
@@ -260,145 +419,6 @@ func WriteImgWhiches(dbId uint8, imgIdent []byte, whiches []uint8) error {
 	return nil
 }
 
-//----------------------------------------------------------------
-/*
-	给 clip 打标签
-	branches clipIndex --> tag
-*/
-
-var initedClipIndexToTagDb map[int] *DBConfig
-
-func InitClipIndexToTagDB() *DBConfig {
-	if nil == initedClipIndexToTagDb {
-		initedClipIndexToTagDb = make(map[int] *DBConfig)
-	}
-
-	dbId := uint8(0)
-
-	hash := int(dbId)
-	if exsitsDB, ok := initedClipIndexToTagDb[hash];ok && true == exsitsDB.inited{
-		return exsitsDB
-	}
-
-	retDB := DBConfig{
-		Dir : "",
-		DBPtr : nil,
-		inited : false,
-
-		Id:dbId,
-		Name:"",
-		dbType:2,
-	}
-
-	if nil == retDB.initParams{
-		retDB.initParams = ReadDBConf("conf_result_db.txt")
-		retDB.OpenOptions = *getLevelDBOpenOption(retDB.initParams)
-		retDB.initParams.PrintLn()
-	}
-
-	{
-		retDB.ReadOptions = opt.ReadOptions{}
-	}
-	{
-		retDB.WriteOptions = opt.WriteOptions{Sync:false}
-	}
-
-	retDB.Name = "result/clip_index_to_tag/data.db"
-
-	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this clip_index_to_tag db: ", retDB.Dir)
-	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
-	retDB.inited = true
-
-	initedClipIndexToTagDb[hash] = &retDB
-
-	return &retDB
-}
-
-//--------------------------------------------------------------
-/**
-	各个 tag 与哪些 clipIndex 关联
-	格式: (tag| branches clipindex) --> nil
- */
-var initedTagToClipIndexDb map[int] *DBConfig
-
-func InitTagToClipIndexDB() *DBConfig {
-	if nil == initedTagToClipIndexDb {
-		initedTagToClipIndexDb = make(map[int] *DBConfig)
-	}
-
-	dbId := uint8(0)
-
-	hash := int(dbId)
-	if exsitsDB, ok := initedTagToClipIndexDb[hash];ok && true == exsitsDB.inited{
-		return exsitsDB
-	}
-
-	retDB := DBConfig{
-		Dir : "",
-		DBPtr : nil,
-		inited : false,
-
-		Id:dbId,
-		Name:"",
-		dbType:2,
-	}
-
-	if nil == retDB.initParams{
-		retDB.initParams = ReadDBConf("conf_result_db.txt")
-		retDB.OpenOptions = *getLevelDBOpenOption(retDB.initParams)
-		retDB.initParams.PrintLn()
-	}
-
-	{
-		retDB.ReadOptions = opt.ReadOptions{}
-	}
-	{
-		retDB.WriteOptions = opt.WriteOptions{Sync:false}
-	}
-
-	retDB.Name = "result/tag_to_clip_index/data.db"
-
-	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this tag_to_clip_index db: ", retDB.Dir)
-	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
-	retDB.inited = true
-
-	initedTagToClipIndexDb[hash] = &retDB
-
-	return &retDB
-}
-
-/**
-	写入 bracnes clipIndex --> tagId 和 (tagId | branches clipindex) --> nil
-
- */
-func WriteClipTagDB(clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, tagIndex []byte)  {
-	tagToBranchesIndexBatch := leveldb.Batch{}
-	branchesIndexToTagIdBatch := leveldb.Batch{}
-	branchLen := ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN
-	toAddKey := make([]byte, branchLen + TAG_INDEX_LENGTH)
-	copy(toAddKey[0:TAG_INDEX_LENGTH], tagIndex)
-
-	for i:=0;i < len(whiches);i ++{
-		iw := whiches[i]
-		iIndex := clipIndexBytesOfWhich[iw]
-		iBranches := ImgIndex.ClipIndexBranch(iIndex)
-		for _, iBranch := range iBranches{
-			branchesIndexToTagIdBatch.Put(iBranch, tagIndex)
-			copy(toAddKey[TAG_INDEX_LENGTH:], iBranch)
-
-			tagToBranchesIndexBatch.Put(toAddKey, nil)
-		}
-	}
-
-	InitTagToClipIndexDB().WriteBatchTo(&tagToBranchesIndexBatch)
-	InitClipIndexToTagDB().WriteBatchTo(&branchesIndexToTagIdBatch)
-}
-
-
-
-
 
 //--------------------------------------------------------------
 /**
@@ -407,7 +427,7 @@ func WriteClipTagDB(clipIndexBytesOfWhich map[uint8] []byte, whiches []uint8, ta
  */
 var initedTagIndexToNameDb map[int] *DBConfig
 
-func InitTagIndexToNameDB() *DBConfig {
+func InitTagIdToNameDB() *DBConfig {
 	if nil == initedTagIndexToNameDb {
 		initedTagIndexToNameDb = make(map[int] *DBConfig)
 	}
@@ -445,7 +465,7 @@ func InitTagIndexToNameDB() *DBConfig {
 	retDB.Name = "result/tag_id_to_name/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this tag_index_to_name db: ", retDB.Dir)
+	fmt.Println("has pick this tag_id_to_name db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -460,7 +480,7 @@ func WriteATag(tag []byte) error {
 
 	tag = trimLRSpace(tag)
 
-	tagNameToIndexDB := InitTagNameToIndexDB()
+	tagNameToIndexDB := InitTagNameToIdDB()
 
 	exsistsIndex := tagNameToIndexDB.ReadFor(tag)
 	//has exsited
@@ -468,7 +488,7 @@ func WriteATag(tag []byte) error {
 		return 	errors.New("tag has been exsited")
 	}
 
-	tagIndexToNameDB := InitTagIndexToNameDB()
+	tagIndexToNameDB := InitTagIdToNameDB()
 
 	maxTagIndex := tagIndexToNameDB.ReadFor(STAT_MAX_TAG_INDEX_PREFIX)
 	if 0 == len(maxTagIndex){
@@ -491,7 +511,7 @@ func WriteATag(tag []byte) error {
  */
 var initedTagNameToIndexDb map[int] *DBConfig
 
-func InitTagNameToIndexDB() *DBConfig {
+func InitTagNameToIdDB() *DBConfig {
 	if nil == initedTagNameToIndexDb {
 		initedTagNameToIndexDb = make(map[int] *DBConfig)
 	}
@@ -526,10 +546,10 @@ func InitTagNameToIndexDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/tag_name_to_index/data.db"
+	retDB.Name = "result/tag_name_to_id/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this tag_name_to_index db: ", retDB.Dir)
+	fmt.Println("has pick this tag_name_to_id db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -721,7 +741,7 @@ func queryATagInfoByName(tagName []byte) TagInfoList {
 		fileUtil.BytesIncrement(limit)
 	}
 
-	db := InitTagNameToIndexDB()
+	db := InitTagNameToIdDB()
 	if 0 == len(start){
 		start = nil
 	}
@@ -758,4 +778,113 @@ func queryATagInfoByName(tagName []byte) TagInfoList {
 	}
 	iter.Release()
 	return TagInfoList(ret)
+}
+
+
+
+//----------------------------------------------------------------------------------
+func DupmClipsFromTagToClipDB(limit int)  {
+	tagToClipDB := InitTagToClipDB()
+	tagIdToNameDB := InitTagIdToNameDB()
+
+	statIndexStart := 0
+	statIndexLimit := statIndexStart + ImgIndex.CLIP_STAT_INDEX_BYTES_LEN
+	clipIndexStart := statIndexLimit
+	clipIndexLimit := clipIndexStart + ImgIndex.CLIP_INDEX_BYTES_LEN
+	clipIdentStart := clipIndexLimit
+	clipIdentLimit := clipIdentStart + ImgIndex.IMG_CLIP_IDENT_LENGTH
+
+	iter := tagToClipDB.DBPtr.NewIterator(nil, &tagToClipDB.ReadOptions)
+	iter.First()
+	var value []byte
+	for iter.Valid(){
+		tag := iter.Key()
+
+		if len(tag) != TAG_INDEX_LENGTH{
+			continue
+		}
+
+		tagName := tagIdToNameDB.ReadFor(tag)
+
+		value = iter.Value()
+		if len(value) == 0 || len(value) % TAG_CLIP_DB_VALUE_UINT_BYTES_LEN != 0{
+			fmt.Println("error, tag to clip db value length is not multyple of ", TAG_CLIP_DB_VALUE_UINT_BYTES_LEN, " : ", len(value))
+			continue
+		}
+
+		for i:=0;i < len(value);i += TAG_CLIP_DB_VALUE_UINT_BYTES_LEN{
+			curInfo := value[i: i+TAG_CLIP_DB_VALUE_UINT_BYTES_LEN]
+
+			curClipIdent := curInfo[clipIdentStart : clipIdentLimit]
+			dbId := curClipIdent[0]
+			imgKey := curClipIdent[1:5]
+			which := curClipIdent[5]
+
+			indexes := GetDBIndexOfClips(PickImgDB(dbId) , imgKey, []int{-1} ,-1)
+
+			SaveClipsAsJpgWithName("E:/gen/result_verify/", string(tagName), indexes[which])
+		}
+		limit --
+		if limit <=0 {
+			break
+		}
+		iter.Next()
+	}
+	iter.Release()
+}
+
+func TestQueryClipTag()  {
+	stdin := bufio.NewReader(os.Stdin)
+	for{
+		fmt.Print("input a clip ident: ")
+		var input string
+		fmt.Fscan(stdin, &input)
+		clipIdent := parseToClipIdent(input, "_")
+		tagId := QueryTagByClipIdent(clipIdent)
+		if len(tagId) == 0{
+			fmt.Println("can't find tag for: ", input)
+		}else{
+			tagName := string(InitTagIdToNameDB().ReadFor(tagId))
+			fmt.Println("tag for ", input, " is: ", tagName)
+		}
+	}
+}
+
+func QueryTagByClipIdent(clipIdent []byte) []byte {
+	clipIndex := InitClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
+	return QueryTagByClipIndex(clipIndex)
+}
+
+
+
+func QueryTagByClipIndex(clipIndex []byte) []byte {
+	clipTagDB := InitClipToTagDB()
+	statIndexes := ImgIndex.ClipStatIndexBranch(clipIndex)
+
+	notSame := imgCache.NewMyMap(false)
+
+	for _,statIndex := range statIndexes{
+		value := clipTagDB.ReadFor(statIndex)
+		for i:=0;i < len(value);i += CLIP_TAG_DB_VALUE_UINT_BYTES_LEN{
+
+			curInfo := value[i: i+CLIP_TAG_DB_VALUE_UINT_BYTES_LEN]
+
+			curClipIndex := curInfo[:ImgIndex.CLIP_INDEX_BYTES_LEN]
+			curTag := curInfo[ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH : ]
+
+			if notSame.Contains(curClipIndex){
+				continue
+			}
+			//当前子图的主题已经存在了
+			if isSameClip(curClipIndex, clipIndex){
+				return curTag
+			}else{
+				notSame.Put(curClipIndex, nil)
+				continue
+			}
+		}
+	}
+	notSame.Clear()
+
+	return nil
 }

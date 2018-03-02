@@ -39,7 +39,7 @@ func SaveAllClipsOfImgs()  {
 }
 
 func PrintClipIndexFromClipIndexToIndent(dbId uint8)  {
-	indexToClipDB := InitMuIndexToClipDB(dbId)
+	indexToClipDB := InitIndexToClipDB(dbId)
 	iter := indexToClipDB.DBPtr.NewIterator(nil, &indexToClipDB.ReadOptions)
 	iter.First()
 	fmt.Println("clip index length is: ",len(iter.Key()))

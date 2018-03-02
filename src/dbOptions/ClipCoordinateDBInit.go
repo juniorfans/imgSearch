@@ -8,17 +8,24 @@ import (
 
 //每处理一张大图, 会分配一个 virtual tag id
 
-//clip coordinate index 库
-//key: statIndex1 | statIndex2
-//value: {clipIndex1 | clipIdent1 | clipIndex2 | clipIdent2 | vtag | support}, 上面结构可能是重复的
-func InitClipCoordinateIndexToVTagIdDB() *DBConfig {
+/**
+库名称:	clip 到虚拟 tag 映射库, 用于判断两个子图是否具备协同关系
+库名: 	coordinate_clip_to_vtag
+初始化:	InitCoordinateClipToVTagMiddleDB
+格式:	InitCoordinateClipToVTagDB: statIndex1 | statIndex2 --> clipIndex1 | clipIdent1 | clipIndex2 | clipIdent2 | vtag | support
+说明:	值可重复
+ */
+func InitCoordinateClipToVTagDB() *DBConfig {
 	return innerInitClipCoordinateIndexToVTagIdDB(false)
 }
 
-//clip coordinate index 的中间库
-//key: statIndex1 | statIndex2 | clipIndex1 | clipIdent1 | clipIndex2 | clipIdent2 | vtag | support
-//value: nil
-func InitClipCoordinateIndexToVTagIdMiddleDB() *DBConfig {
+/**
+库名称:	clip 到虚拟 tag 映射库中间库
+库名:	coordinate_clip_to_vtag_middle
+初始化:	InitCoordinateClipToVTagMiddleDB
+格式:	statIndex1 |  statIndex2 | clipIndex1 | clipIdent1 | clipIndex2 | clipIdent2 | vtag | support --> nil
+ */
+func InitCoordinateClipToVTagMiddleDB() *DBConfig {
 	return innerInitClipCoordinateIndexToVTagIdDB(true)
 }
 
@@ -67,13 +74,13 @@ func innerInitClipCoordinateIndexToVTagIdDB(isMiddle bool) *DBConfig {
 	}
 
 	if isMiddle{
-		retDB.Name = "result/clip_coordinate_bindex_vtag_middle/data.db"
+		retDB.Name = "result/coordinate_clip_to_vtag_middle/data.db"
 	}else{
-		retDB.Name = "result/clip_coordinate_bindex_vtag/data.db"
+		retDB.Name = "result/coordinate_clip_to_vtag/data.db"
 	}
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this clip_coordinate_bindex_vtag db: ", retDB.Dir)
+	fmt.Println("has pick this ", retDB.Name ," db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
@@ -83,21 +90,22 @@ func innerInitClipCoordinateIndexToVTagIdDB(isMiddle bool) *DBConfig {
 }
 
 /**
-	coordinate index 库的反向索引库
-	key: vtag | clipIndex1 | clipIndex2
-	value: support
-	此库主要用于测试: 验证 coordinate 关系是否真实
+库名称:	虚拟 tag 到 clip 映射库. 用于测试: 验证 coordinate 关系是否真实
+库名:	coordinate_vtag_to_clip
+初始化:	InitCoordinatevTagToClipDB
+格式:	vtag | clipIndex1 | clipIndex2 -> suppot
+说明:	值可重复
  */
-var initedClipCoordinateVTagIdToBranchIndexDb map[int] *DBConfig
-func InitClipCoordinatevTagIdToIndexDB() *DBConfig {
-	if nil == initedClipCoordinateVTagIdToBranchIndexDb {
-		initedClipCoordinateVTagIdToBranchIndexDb = make(map[int] *DBConfig)
+var initedCoordinateVTagToClipDb map[int] *DBConfig
+func InitCoordinatevTagToClipDB() *DBConfig {
+	if nil == initedCoordinateVTagToClipDb {
+		initedCoordinateVTagToClipDb = make(map[int] *DBConfig)
 	}
 
 	dbId := uint8(0)
 
 	hash := int(dbId)
-	if exsitsDB, ok := initedClipCoordinateVTagIdToBranchIndexDb[hash];ok && true == exsitsDB.inited{
+	if exsitsDB, ok := initedCoordinateVTagToClipDb[hash];ok && true == exsitsDB.inited{
 		return exsitsDB
 	}
 
@@ -127,28 +135,28 @@ func InitClipCoordinatevTagIdToIndexDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/clip_coordinate_vtag_clipident/data.db"
+	retDB.Name = "result/coordinate_vtag_to_clip/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this clip_coordinate_vtag_clipident db: ", retDB.Dir)
+	fmt.Println("has pick this coordinate_vtag_to_clip db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
-	initedClipCoordinateVTagIdToBranchIndexDb[hash] = &retDB
+	initedCoordinateVTagToClipDb[hash] = &retDB
 
 	return &retDB
 }
 
-var initedNotClipCoordinateIndexDB map[int] *DBConfig
-func InitNotClipCoordinateIndexDB() *DBConfig {
-	if nil == initedNotClipCoordinateIndexDB {
-		initedNotClipCoordinateIndexDB = make(map[int] *DBConfig)
+var initedNotSameTopicDB map[int] *DBConfig
+func InitNotSameTopicDB() *DBConfig {
+	if nil == initedNotSameTopicDB {
+		initedNotSameTopicDB = make(map[int] *DBConfig)
 	}
 
 	dbId := uint8(0)
 
 	hash := int(dbId)
-	if exsitsDB, ok := initedNotClipCoordinateIndexDB[hash];ok && true == exsitsDB.inited{
+	if exsitsDB, ok := initedNotSameTopicDB[hash];ok && true == exsitsDB.inited{
 		return exsitsDB
 	}
 
@@ -178,14 +186,14 @@ func InitNotClipCoordinateIndexDB() *DBConfig {
 		retDB.WriteOptions = opt.WriteOptions{Sync:false}
 	}
 
-	retDB.Name = "result/clip_not_coordinate_index/data.db"
+	retDB.Name = "result/not_same_topic/data.db"
 
 	retDB.Dir = retDB.initParams.DirBase + "/"  + retDB.Name
-	fmt.Println("has pick this clip_not_coordinate_index db: ", retDB.Dir)
+	fmt.Println("has pick this not_same_topic db: ", retDB.Dir)
 	retDB.DBPtr,_ = leveldb.OpenFile(retDB.Dir, &retDB.OpenOptions)
 	retDB.inited = true
 
-	initedNotClipCoordinateIndexDB[hash] = &retDB
+	initedNotSameTopicDB[hash] = &retDB
 
 	return &retDB
 }

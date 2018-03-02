@@ -9,7 +9,7 @@ type ImgConfig struct {
 
 	TheClipConfig *ClipConfig
 
-	OverrideClipLength int	// 每个 clip 提取 index 时使用的 ClipLength 是多少, 会覆盖 normalClipConfig.ClipLength
+	OverrideClipLength int	//在计算 img index 时, 从每个 clip 提取 index 的长度是多少
 
 	Id uint8
 }

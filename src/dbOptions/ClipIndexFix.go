@@ -10,15 +10,15 @@ var fixClipIndexToIdentSig chan uint8
 var fixClipStatIndexToIdentsSig chan uint8
 
 func fixClipIndexToIdent(dbId uint8)  {
-	srcDB := InitMuIndexToClipMiddleDB(dbId)
-	targetDB := InitMuIndexToClipDB(dbId)
+	srcDB := InitIndexToClipMiddleDB(dbId)
+	targetDB := InitIndexToClipDB(dbId)
 	CombineDBByKeyPrefix(srcDB, targetDB, ImgIndex.CLIP_BRANCH_INDEX_BYTES_LEN, 1, config.STAT_KEY_PREX)
 	fixClipIndexToIdentSig <- dbId
 }
 
 func fixClipStatIndexToIdents(dbid uint8)  {
-	srcDB := InitClipStatIndexToIdentsMiddleDB(dbid)
-	targetDB := InitClipStatIndexToIdentsDB(dbid)
+	srcDB := InitStatIndexToClipMiddleDB(dbid)
+	targetDB := InitStatIndexToClipDB(dbid)
 	CombineDBByKeyPrefix(srcDB, targetDB, ImgIndex.CLIP_STAT_INDEX_BYTES_LEN, 1, config.STAT_KEY_PREX)
 	fixClipStatIndexToIdentsSig <- dbid
 }
@@ -50,8 +50,8 @@ func FixClipStatIndexToIdentsDBs(dbIds []uint8)  {
 }
 
 func FixCoordinateIndexDB()  {
-	srcDB := InitClipCoordinateIndexToVTagIdMiddleDB()
-	targetDB := InitClipCoordinateIndexToVTagIdDB()
+	srcDB := InitCoordinateClipToVTagMiddleDB()
+	targetDB := InitCoordinateClipToVTagDB()
 
 	//使用 stat index1 | stat index2 作为键.
 	//注意反向的 stat index2 | stat index1 也会在库中, 在前面的 FlushCache 中写入了

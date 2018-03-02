@@ -18,9 +18,9 @@ func TestReadClipIndex()  {
 	var dbId, which uint8
 	var imgKey string
 
-	dbOptions.InitMuClipToIndexDB(2)
-	dbOptions.InitMuClipToIndexDB(22)
-	dbOptions.InitMuClipToIndexDB(26)
+	dbOptions.InitClipToIndexDB(2)
+	dbOptions.InitClipToIndexDB(22)
+	dbOptions.InitClipToIndexDB(26)
 
 	dbs := dbOptions.GetInitedClipIdentToIndexDB()
 
