@@ -35,7 +35,7 @@ func TestReadClipIndex()  {
 		fmt.Print("input dbId, imgKey, which: ")
 		fmt.Fscan(stdin,&dbId, &imgKey, &which)
 		clipIdent := ImgIndex.GetImgClipIdent(dbId, ImgIndex.FormatImgKey([]byte(imgKey)), which)
-		indexes := multyDBReader.ReadFor(clipIdent)
+		indexes,_ := multyDBReader.ReadFor(clipIdent)
 		fmt.Println("result: ")
 		for _,index := range indexes{
 			fileUtil.PrintBytes(index)
@@ -66,7 +66,7 @@ func TestReadImg()  {
 		fmt.Print("input imgKey: ")
 		fmt.Fscan(stdin,&imgKey)
 
-		imgBytes := multyDBReader.ReadFor(ImgIndex.FormatImgKey([]byte(imgKey)))
+		imgBytes,_ := multyDBReader.ReadFor(ImgIndex.FormatImgKey([]byte(imgKey)))
 		fmt.Println("result: ")
 		for _,img := range imgBytes{
 			fmt.Println(imgKey, " length: ", len(img))

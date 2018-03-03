@@ -47,9 +47,10 @@ func (this *MyMap) KeySet() [][]byte {
 	for /*hashcode*/_, conflicts := range this.data{
 		for _, conflict := range conflicts{
 			key := conflict.key
-			if nil == conflict.values{
-				continue
-			}
+			//此处缘于之前关于删除键的操作是将值设置为 nil 而不是真的删除. 而后来已经优化为直接删除
+			//if nil == conflict.values{
+			//	continue
+			//}
 			ret = append(ret, key)
 		}
 	}
@@ -251,10 +252,10 @@ func (this *MyMap) Visit(visitor MyMapVisitor, vcount int, otherParams [] interf
 				break
 			}
 
-			//已删除当前键, 跳过它
-			if nil == mapValue.values{
-				continue
-			}
+			//已删除当前键, 跳过它.. 此处缘于之前关于删除键的操作是将值设置为 nil 而不是真的删除. 而后来已经优化为直接删除
+			//if nil == mapValue.values{
+			//	continue
+			//}
 
 			//遍历它
 			count ++

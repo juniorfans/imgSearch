@@ -1,27 +1,27 @@
 package dbOptions
 
-import "imgSearch/src/imgCache"
+import (
+	"imgCache"
+)
 
 //从多个表里面读取 key- value
 type MultyDBReader struct {
 	readRes chan []byte
 	dbs []*DBConfig
 
-	queryCached *imgCache.MyMap
+	queryCached *imgCache.MyConcurrentMap
 }
 
-func NewMultyDBReader(dbs []*DBConfig, cacheUse bool) *MultyDBReader {
+
+func NewMultyDBReader(dbs []*DBConfig, cached *imgCache.MyConcurrentMap) *MultyDBReader {
 	if 0 == len(dbs){
 		return nil
 	}
 	ret := &MultyDBReader{}
 	ret.dbs = dbs
 	ret.readRes = make(chan []byte, len(dbs))
-	if cacheUse{
-		ret.queryCached = imgCache.NewMyMap(false)
-	}else{
-		ret.queryCached = nil
-	}
+
+	ret.queryCached = cached
 
 	return ret
 }
@@ -32,23 +32,27 @@ func (this *MultyDBReader) Close()  {
 
 
 //read------------------------------------------------------------------------------
-func (this *MultyDBReader)ReadFor(key []byte) [][]byte {
+func (this *MultyDBReader)ReadFor(key []byte) (ret [][]byte , cacheHit bool){
+	cacheHit = false
 	if nil != this.queryCached{
 		if this.queryCached.Contains(key){
-			interfaceHits := this.queryCached.Get(key)
-			if 0 == len(interfaceHits){
-				return nil
+			values := this.queryCached.Get(key)
+			if len(values) != 1{
+				return
 			}
-			return interfaceHits[0].([][]byte)
 
+			ret = values[0].([][]byte)
+			cacheHit = true
+			return
 		}else{
 			value := this.readDBs(key)
 			this.queryCached.Put(key, value)
-			return value
+			return
 		}
+	}else{
+		ret = this.readDBs(key)
+		return
 	}
-
-	return this.readDBs(key)
 }
 
 func (this *MultyDBReader)readDBs(key []byte) [][]byte {

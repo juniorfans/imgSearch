@@ -1,6 +1,7 @@
 <component name="libraryTable">
   <library name="GOPATH &lt;imgSearch&gt;">
     <CLASSES>
+      <root url="file://$PROJECT_DIR$/../imgRecognition" />
       <root url="file://$PROJECT_DIR$/../ImageTestJava" />
       <root url="file://$PROJECT_DIR$/../sorter" />
       <root url="file://$PROJECT_DIR$/../github.com" />
@@ -17,6 +18,7 @@
     </CLASSES>
     <JAVADOC />
     <SOURCES>
+      <root url="file://$PROJECT_DIR$/../imgRecognition" />
       <root url="file://$PROJECT_DIR$/../ImageTestJava" />
       <root url="file://$PROJECT_DIR$/../sorter" />
       <root url="file://$PROJECT_DIR$/../github.com" />

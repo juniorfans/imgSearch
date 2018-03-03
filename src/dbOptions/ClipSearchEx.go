@@ -9,12 +9,19 @@ import (
 	"bytes"
 )
 
+var theStatIndexDBCache *imgCache.MyConcurrentMap
 
+//非线程安全
+func resetStatIndexDBQueryCache(cmap *imgCache.MyConcurrentMap) *imgCache.MyConcurrentMap {
+	ret := theStatIndexDBCache
+	theStatIndexDBCache = cmap
+	return ret
+}
 
 /**
 	计算哪些大图中联合出现了 imgKey 中的多个子图, imgKey 不包含在内
  */
-func occInImgsEx(dbId uint8, imgKey []byte) (cachedDBSeeker *MultyDBReader ,occedImgIndex *imgCache.MyMap, clipIndexAndIdents[][]byte, allStatBranchesIndex[] [][]byte ){
+func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clipIndexAndIdents[][]byte, allStatBranchesIndex[] [][]byte ){
 	curImgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 	curImgIdent[0] = byte(dbId)
 	copy(curImgIdent[1:], imgKey)
@@ -27,6 +34,8 @@ func occInImgsEx(dbId uint8, imgKey []byte) (cachedDBSeeker *MultyDBReader ,occe
 		return
 	}
 
+	cachedDBSeeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB(), theStatIndexDBCache)
+
 	//各个子图的 imgIndexContainer 容器: 每个容器表示某些 img index 与相应的子图有关系(即子图也出现在这些 img 中)
 	occedImgIndex = imgCache.NewMyMap(true)
 
@@ -37,7 +46,7 @@ func occInImgsEx(dbId uint8, imgKey []byte) (cachedDBSeeker *MultyDBReader ,occe
 
 	groupLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
 
-	readDBCounts := 0
+	cacheHitCounts := 0
 	for i, clipIndexAndIdent := range clipIndexAndIdents {
 
 		clipIndex := clipIndexAndIdent[: ImgIndex.CLIP_INDEX_BYTES_LEN]
@@ -50,8 +59,10 @@ func occInImgsEx(dbId uint8, imgKey []byte) (cachedDBSeeker *MultyDBReader ,occe
 		//计算所有与当前子图相似的子图出现在哪此大图中
 		for _,branch := range curStatBranches{
 
-			clipIndexAndIdentsSet := seeker.ReadFor(branch)
-
+			clipIndexAndIdentsSet, cacheHit := cachedDBSeeker.ReadFor(branch)
+			if cacheHit{
+				cacheHitCounts ++
+			}
 
 			if 0 == len(clipIndexAndIdentsSet){
 				continue
@@ -111,7 +122,7 @@ func occInImgsEx(dbId uint8, imgKey []byte) (cachedDBSeeker *MultyDBReader ,occe
 		curClipOccIn.Clear()
 	}
 
-	fmt.Println("---------------------- read db: ", readDBCounts)
+	//fmt.Println("---------------------- cache hit count: ", cacheHitCounts)
 	return
 }
 

@@ -74,6 +74,8 @@ func CalCoordinateForDB(dbId uint8, dealCounts int)  {
 		visitParams:ClipCoordinateVisitParams{dbId:dbId,
 			cacheList: coordinateCacheList, threadVirtualTagIds: threadToVirtualTagIds}}
 
+	resetStatIndexDBQueryCache(imgCache.NewMyConcurrentMap(false))
+
 	VisitBySeek(PickImgDB(dbId), visitCallBack, -1)
 
 	coordinateCacheList.FlushRemainKVCaches()
@@ -259,6 +261,10 @@ func (this* ClipCoordinateVisitCallBack) Visit(visitInfo *VisitIngInfo) bool{
 
 	if 0 != visitInfo.curCount && visitInfo.curCount % 100 == 0{
 		fmt.Println("thread ", visitInfo.threadId, " dealing ", visitInfo.curCount)
+	}
+
+	if visitInfo.curCount == 5000 && visitInfo.threadId == 1{
+		resetStatIndexDBQueryCache(imgCache.NewMyConcurrentMap(false))
 	}
 
 	imgKey := visitInfo.key
