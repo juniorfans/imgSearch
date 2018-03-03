@@ -10,16 +10,15 @@ import (
 )
 
 
+
 /**
 	计算哪些大图中联合出现了 imgKey 中的多个子图, imgKey 不包含在内
  */
-func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clipIndexAndIdents[][]byte, allStatBranchesIndex[] [][]byte ){
+func occInImgsEx(dbId uint8, imgKey []byte) (cachedDBSeeker *MultyDBReader ,occedImgIndex *imgCache.MyMap, clipIndexAndIdents[][]byte, allStatBranchesIndex[] [][]byte ){
 	curImgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 	curImgIdent[0] = byte(dbId)
 	copy(curImgIdent[1:], imgKey)
 	curImgIndex := InitImgToIndexDB(uint8(dbId)).ReadFor(curImgIdent)
-
-	seeker := NewMultyDBReader(GetInitedClipStatIndexToIdentDB())
 
 	clipIndexAndIdents = QueryClipIndexesAttachIdentFor(dbId, imgKey)
 
@@ -33,41 +32,43 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 
 	allStatBranchesIndex = make([] [][]byte, len(clipIndexAndIdents))
 
-	//cmap := imgCache.NewMyMap(false)
-	//var exsitsIndexes []interface{}
-
 	curClipOccIn := imgCache.NewMyMap(false)
 
-	notSame := imgCache.NewMyMap(false)
 
-	uintLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
+	groupLen := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
 
+	readDBCounts := 0
 	for i, clipIndexAndIdent := range clipIndexAndIdents {
-
-		notSame.Clear()
 
 		clipIndex := clipIndexAndIdent[: ImgIndex.CLIP_INDEX_BYTES_LEN]
 		curStatBranches := ImgIndex.ClipStatIndexBranch(clipIndex)
 		allStatBranchesIndex[i] = curStatBranches
 
+		//对于当前的第 i 个子图, 已经判断过了哪些子图与它相似. 再次遇到这些子图时可跳过计算
+		dealedClipIndexes := imgCache.NewMyMap(false)
+
 		//计算所有与当前子图相似的子图出现在哪此大图中
 		for _,branch := range curStatBranches{
-		//	cmap.Put(branch, clipIndex)
+
 			clipIndexAndIdentsSet := seeker.ReadFor(branch)
+
+
 			if 0 == len(clipIndexAndIdentsSet){
 				continue
 			}
 
-			for _, clipIndexAndIdents := range clipIndexAndIdentsSet {
-				if 0 != len(clipIndexAndIdents)%uintLen{
-					fmt.Println("value length for stat index db is not multple of ", uintLen, " : ", len(clipIndexAndIdents))
-					continue
-				}
+			for _,clipIndexAndIdents := range clipIndexAndIdentsSet {
 
-				for l:=0;l < len(clipIndexAndIdents);l += uintLen{
-					curIndexAndIdent := clipIndexAndIdents[l:l + uintLen]
+				for l:=0;l < len(clipIndexAndIdents);l += groupLen {
+					curIndexAndIdent := clipIndexAndIdents[l:l + groupLen]
 					curIndex := curIndexAndIdent[:ImgIndex.CLIP_INDEX_BYTES_LEN]
+
+					if dealedClipIndexes.Contains(curIndex){
+						continue
+					}
+
 					curIdent := curIndexAndIdent[ImgIndex.CLIP_INDEX_BYTES_LEN:]
+					dealedClipIndexes.Put(curIndex, nil)
 					if isSameClip(clipIndex, curIndex){
 						curClipOccIn.Put(curIdent, nil)
 					}
@@ -83,9 +84,8 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 		curClipOccedImgIndexes := getImgIndexFromClipIdents(clipIdents)
 		imgIndexes := curClipOccedImgIndexes.KeySet()
 		if len(clipIdents) > 100{
-	//		fmt.Println("OOPS, more than 100 same clip, is right????")
+			fmt.Println("OOPS, more than 100 same clip: ", len(clipIdents))
 		}
-	//	fmt.Print(dbId, "-", string(ImgIndex.ParseImgKeyToPlainTxt(imgKey)), "-", i, ": ")
 		for _,imgIndex := range imgIndexes{
 			//当前子图出现在下面的 img 中. 为了唯一性表示，使用 img index 作为键去表示
 			interfaceClipIdent := curClipOccedImgIndexes.Get(imgIndex)
@@ -93,7 +93,7 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 				continue
 			}
 			clipIdent := interfaceClipIdent[0].([]byte)
-			imgIndexDBId := clipIdent[0]
+
 			imgIdent := clipIdent[0:5]
 
 			//当前图跳过
@@ -106,35 +106,49 @@ func occInImgsEx(dbId uint8, imgKey []byte) (occedImgIndex *imgCache.MyMap, clip
 				continue
 			}
 
-			//最后再使用欧拉距离验证到底是否是相似的子图
-			sameClipIndex := InitClipToIndexDB(imgIndexDBId).ReadFor(clipIdent)
-			if len(sameClipIndex) != ImgIndex.CLIP_INDEX_BYTES_LEN{
-				continue
-			}
-
-			if notSame.Contains(sameClipIndex){
-				continue
-			}
-
-			if !isSameClip(sameClipIndex, clipIndex){
-				notSame.Put(sameClipIndex, nil)
-				continue
-			}
-
-
-		//	fmt.Print(imgIndexDBId,"-", string(ImgIndex.ParseImgKeyToPlainTxt(imgIdent[1:])), "-", clipIdent[5]," | ")
-
 			occedImgIndex.Put(imgIndex, uint8(i))	//第 i 个子图出现在 imgIndex 所指示的大图中
 		}
 		curClipOccIn.Clear()
 	}
 
-	notSame.Clear()
+	fmt.Println("---------------------- read db: ", readDBCounts)
 	return
 }
 
-func isSameClip(left, right []byte) bool {
-	return ImgIndex.TheclipSearchConf.Delta_Eul_square > fileUtil.CalEulSquare(left, right)
+
+
+//func splitToGroupsForEachIn(datas [][]byte, groupLen int) [][]byte{
+//	if len(datas) == 0{
+//		return nil
+//	}
+//
+//	res := imgCache.NewMyMap(false)
+//	for _,data := range datas{
+//		for i:=0;i < len(data);i+=groupLen{
+//			res.Put(data[i: i+groupLen], nil)
+//		}
+//	}
+//	return res.KeySet()
+//}
+
+
+func isSameClip(leftClipIndex, rightClipIndex []byte) bool {
+	//return ImgIndex.TheclipSearchConf.Delta_Eul_square > fileUtil.CalEulSquare(left, right)
+	//直接依次比较元素的差值, 超过一定范围则认为不相等
+	tolerant := uint8(2 * ImgIndex.TheclipSearchConf.Delta_Eul)
+	for i, le := range leftClipIndex {
+		ri := rightClipIndex[i]
+		if le > ri && le-ri > tolerant{
+			return false
+		}
+
+		if ri > le && ri-le > tolerant{
+			return false
+		}
+	}
+	return true
+
+	//是否需要进一步的改进: 若 left[:i] 与 right[0:i] 的均值相差较大则认为不相似
 }
 
 func getImgIndexFromClipIdents(clipIdents [] []byte) *imgCache.MyMap {

@@ -143,14 +143,5 @@ func IsSameClipBranchIndex(leftIndex, rightIndex[]byte) bool {
 		return false
 	}
 
-
-	//欧式距离
-	eulSquareDiff := fileUtil.CalEulSquare(leftIndex, rightIndex)
-
-	if searchConf.Delta_Eul_square < eulSquareDiff{
-		return false
-	}
-
-
-	return true
+	return isSameClip(leftIndex, rightIndex)
 }

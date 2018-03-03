@@ -193,6 +193,7 @@ func getLevelDBOpenOption(dbParams *DBInitParams) *opt.Options {
 		CompactionL0Trigger: dbParams.CompactionL0Trigger,
 		CompactionTotalSize: dbParams.CompactionTotalSize,
 		Filter:filter.NewBloomFilter(10),
+		Compression:opt.NoCompression,	//因为是二进制数据, 因此不压缩
 	}
 }
 

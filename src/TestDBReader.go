@@ -29,7 +29,7 @@ func TestReadClipIndex()  {
 		fmt.Print(db.Name, "_" ,db.Id, " | ")
 	}
 	fmt.Println()
-	multyDBReader := dbOptions.NewMultyDBReader(dbs)
+	multyDBReader := dbOptions.NewMultyDBReader(dbs, false)
 
 	for{
 		fmt.Print("input dbId, imgKey, which: ")
@@ -60,7 +60,7 @@ func TestReadImg()  {
 		fmt.Print(db.Name, "_" ,db.Id, " | ")
 	}
 	fmt.Println()
-	multyDBReader := dbOptions.NewMultyDBReader(dbs)
+	multyDBReader := dbOptions.NewMultyDBReader(dbs, false)
 
 	for{
 		fmt.Print("input imgKey: ")
