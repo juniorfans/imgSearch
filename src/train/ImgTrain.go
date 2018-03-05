@@ -1,5 +1,0 @@
-package train
-
-func train()  {
-	
-}

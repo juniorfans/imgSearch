@@ -41,6 +41,14 @@ func (c_1 *Centroid) reCenter() float64{
 	return old_center.DistanceTo(c_1.Center)
 }
 
+
+/**
+	目标: 给定 n 个点, 聚合为 k 个类
+	1.初始化 k 个质心, 质心可以是输入的 n 个点之外的一个虚拟的点
+	2.遍历这 n 个点, 计算每个点 p 的最近的质心点 o, 标记 p 从属的质心为 o
+	3.比较每个新的质心与老的质心的偏移，若所有对应的新旧质心的偏移距离小于阈值则认为收敛，否则继续计算质心
+	4.最终得到 k 个类, 每个类有一个质心, 有一些从属的点
+ */
 func KMEANS(data []Point, initCenters []Centroid, k int, DELTA float64) (Centroids []Centroid){
 
 	Centroids = initCenters
@@ -56,7 +64,7 @@ func KMEANS(data []Point, initCenters []Centroid, k int, DELTA float64) (Centroi
 
 	converged := false
 	for !converged {
-		//以所有数据为对象，计算各自最近的中心，并执行归类
+		//以所有数据为对象，计算各自最近的中心点，再将设置这个点的依附中心点
 		for i:= range data{
 			min_distance := math.MaxFloat64
 			z := 0
