@@ -16,7 +16,7 @@ func MergeTo(src, target *DBConfig)  {
 
 	splitChan = make(chan int, splitCount)
 
-	iters := split(src, splitCount)
+	iters := splitDB(src, splitCount)
 
 
 	for i:=0;i < splitCount ;i ++  {
@@ -59,7 +59,7 @@ func doMerge(iter iterator.Iterator, target *DBConfig)  {
 }
 
 func TestSplitTotalCounts(db *DBConfig, splitCount int)  {
-	iters := split(db,splitCount)
+	iters := splitDB(db,splitCount)
 	totalCount := 0
 	for _,iter := range iters{
 		totalCount += iterToEndCount(iter)
@@ -83,7 +83,7 @@ func iterToEndCount(iter iterator.Iterator) int {
 	return count
 }
 
-func split(db *DBConfig, splitCount int) []iterator.Iterator {
+func splitDB(db *DBConfig, splitCount int) []iterator.Iterator {
 	iter := db.DBPtr.NewIterator(nil, &db.ReadOptions)
 	iter.First()
 	if !iter.Valid(){

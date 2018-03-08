@@ -134,11 +134,13 @@ func doTest()  {
 			//dbOptions.TestCoordinateIndexDBFix()
 			dbOptions.CoordinateIndexDBKeyCount()
 		}else if(36 == testCase){
-			dbOptions.TestCoordinateSupportEx()
+			dbOptions.TestCoordinateInImg(dbIndex)
 		}else if(37 == testCase){
 			dbOptions.TestMarkNotSameTopic()
 		}else if(38 == testCase){
 			dbOptions.TestQueryClipTag()
+		}else if (39 == testCase){
+			dbOptions.TestCoordinateForClip(dbIndex)
 		}else{
 			fmt.Println("invalid options")
 		}

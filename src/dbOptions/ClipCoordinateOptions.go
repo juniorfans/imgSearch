@@ -14,6 +14,7 @@ import (
 	"strings"
 	"bytes"
 	"sort"
+	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
 var CLIP_VIRTUAL_TAGID_LEN = 10
@@ -517,17 +518,106 @@ func (this CoordinateClipResultList) Less(i, j int) bool {
 	return this[i].Support > this[j].Support
 }
 
-func GetCoordinateClipsFromImgIdent(imgIdent []byte, threshold int) CoordinateClipResultList {
+func GetCoordinateClipsForClipIdent(clipIdent []byte, threshold int) *imgCache.MyMap {
+	clipIndex := InitClipToIndexDB(clipIdent[0]).ReadFor(clipIdent)
+	statIndexes := ImgIndex.ClipStatIndexBranch(clipIndex)
+
+	res := imgCache.NewMyMap(false)
+
+	for _,statIndex := range statIndexes{
+		GetCoordinateClipsForClipIndexWithStatIndex(clipIndex, statIndex, threshold, res)
+	}
+
+	lastRes := imgCache.NewMyMap(false)
+	clipIndexAndIdents := res.KeySet()
+	for _,clipII := range clipIndexAndIdents{
+		if 0 == lastRes.KeyCount() || !hasInMap(clipII, lastRes){
+			lastRes.Put(clipII[:ImgIndex.CLIP_INDEX_BYTES_LEN], clipII[ImgIndex.CLIP_INDEX_BYTES_LEN:])
+		}
+	}
+
+	res.Clear()
+
+	lastRes.RangeFuncEach(func(key []byte, value interface{})bool {
+		res.Put(value.([]byte), nil)
+		return true
+	})
+	return res
+}
+
+func hasInMap(indexAndIdent []byte, res *imgCache.MyMap) bool {
+	fnd := false
+	res.RangeFuncFor(func(key []byte, values []interface{} ) bool {
+		if isSameClip(key[:ImgIndex.CLIP_INDEX_BYTES_LEN], indexAndIdent[:ImgIndex.CLIP_INDEX_BYTES_LEN]){
+			fnd = true
+			return false	//不需要继续访问了
+		}else{
+			return true
+		}
+	})
+	return fnd
+}
+
+func GetCoordinateClipsForClipIndexWithStatIndex(clipIndex []byte, statIndex []byte, threshold int, res *imgCache.MyMap)  {
+	db := InitCoordinateClipToVTagDB()
+	limit := fileUtil.CopyBytesTo(statIndex)
+	fileUtil.BytesIncrement(limit)
+	r := util.Range{Start:statIndex, Limit:limit}
+
+	valueLen := 2*(ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH) + CLIP_VIRTUAL_TAGID_LEN + 4
+	rightStart := ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
+	rightLimit := rightStart + ImgIndex.CLIP_INDEX_BYTES_LEN + ImgIndex.IMG_CLIP_IDENT_LENGTH
+
+	iter := db.DBPtr.NewIterator(&r, &db.ReadOptions)
+	iter.First()
+	for iter.Valid(){
+		if !config.IsValidUserDBKey(iter.Key()){
+			iter.Next()
+			continue
+		}
+
+		if !bytes.Equal(iter.Key()[:ImgIndex.CLIP_STAT_INDEX_BYTES_LEN], statIndex){
+			break
+		}
+
+		value := iter.Value()
+		if len(value) % valueLen != 0{
+			iter.Next()
+			continue
+		}
+
+		for i:=0;i < len(value); i+=valueLen{
+			group := value[i: i+valueLen]
+
+			supportBytes := group[valueLen-4:]
+			support := ImgIndex.BytesToInt32(supportBytes)
+			if support < threshold{
+				continue
+			}
+
+			left := group[:rightStart]
+			//如果当前单元的左子图与 target 是相似子图则继续处理
+			if isSameClip(left[:ImgIndex.CLIP_INDEX_BYTES_LEN], clipIndex){
+				right := group[rightStart:rightLimit]
+				res.Put(right, nil)
+			}
+		}
+		iter.Next()
+	}
+}
+
+func GetCoordinateClipsInImgIdent(imgIdent []byte, threshold int) (res CoordinateClipResultList, clipIndexes [][]byte ){
 	clipIndexMap := GetClipIndexBytesOfWhich(imgIdent[0], imgIdent, nil)
-	clipIndexes := make([][]byte, config.CLIP_COUNTS_OF_IMG)
+	clipIndexes = make([][]byte, config.CLIP_COUNTS_OF_IMG)
 	for i:=uint8(0);i < uint8(config.CLIP_COUNTS_OF_IMG);i ++{
 		clipIndexes[int(i)] = clipIndexMap[i]
 	}
 
-	return GetCoordinateClipsFromClipIndexes(clipIndexes, threshold)
+	res = GetCoordinateClipsInClipIndexes(clipIndexes, threshold)
+	return
 }
 
-func GetCoordinateClipsFromClipIndexes(clipIndexes [][]byte, threshold int) CoordinateClipResultList {
+func GetCoordinateClipsInClipIndexes(clipIndexes [][]byte, threshold int) CoordinateClipResultList {
 	var ret []CoordinateClipsResult
 
 	for i:=uint8(0);i < config.CLIP_COUNTS_OF_IMG;i ++{
@@ -743,7 +833,7 @@ func TestCoordinateSupport()  {
 	}
 }
 
-func TestCoordinateSupportEx()  {
+func TestCoordinateInImg(dbId uint8)  {
 
 	imgIdent := make([]byte, ImgIndex.IMG_IDENT_LENGTH)
 	for   {
@@ -762,10 +852,10 @@ func TestCoordinateSupportEx()  {
 			continue
 		}
 
-		imgIdent[0] = 2
+		imgIdent[0] = dbId
 		copy(imgIdent[1:],ImgIndex.FormatImgKey([]byte(input)))
 
-		results := GetCoordinateClipsFromImgIdent(imgIdent,2)
+		results,_ := GetCoordinateClipsInImgIdent(imgIdent,2)
 		if 0 == len(results){
 			fmt.Println("no coordinate: ", input)
 			continue
@@ -785,11 +875,41 @@ func TestCoordinateSupportEx()  {
 	}
 }
 
-//2-A0000042-5
-func parseToClipIdent(input string, splitStr string) []byte {
-	if len(input) != 12{
-		return  nil
+
+
+func TestCoordinateForClip(dbId uint8)  {
+
+	for   {
+		example := "2_A0000042_1"
+		stdin := bufio.NewReader(os.Stdin)
+		fmt.Println("input clip ident name, like: ", example, " --> ")
+		var input string
+		lineBytes,_,err := stdin.ReadLine()
+		if nil != err{
+			fmt.Println("read line error", err.Error())
+			continue
+		}
+		input = string(lineBytes)
+
+		clipIdent := parseToClipIdent(input, "_")
+
+		res := GetCoordinateClipsForClipIdent(clipIdent, 2)
+		coorClips := res.KeySet()
+		dir := "E:/gen/classify/" + string(ImgIndex.ParseImgKeyToPlainTxt(clipIdent[1:ImgIndex.IMG_IDENT_LENGTH])) + "_" + strconv.Itoa(int(clipIdent[ImgIndex.IMG_CLIP_IDENT_LENGTH-1])) + "/"
+		if len(coorClips) == 0{
+			continue
+		}
+
+		SaveAClipAsJpgFromClipIdent(dir, clipIdent)
+		for _,cident := range coorClips{
+			SaveAClipAsJpgFromClipIdent(dir, cident)
+		}
 	}
+}
+
+//2-A0000042-5ccc
+func parseToClipIdent(input string, splitStr string) []byte {
+
 	ret := make([]byte, ImgIndex.IMG_CLIP_IDENT_LENGTH)
 
 	groups := strings.Split(input, splitStr)

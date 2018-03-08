@@ -42,6 +42,32 @@ func NewMyMap(multyValuesSupported bool) *MyMap {
 	return &ret
 }
 
+func (this *MyMap) RangeFuncEach (theFunc func (key []byte, value interface{}) bool)  {
+	for /*hashcode*/_, conflicts := range this.data{
+		for _, conflict := range conflicts{
+			key := conflict.key
+			values := conflict.values
+			for _,value := range values{
+				if !theFunc(key,value){
+					return
+				}
+			}
+		}
+	}
+}
+
+func (this *MyMap) RangeFuncFor (theFunc func (key []byte, values []interface{}) bool)  {
+	for /*hashcode*/_, conflicts := range this.data{
+		for _, conflict := range conflicts{
+			key := conflict.key
+			values := conflict.values
+			if !theFunc(key, values){
+				return
+			}
+		}
+	}
+}
+
 func (this *MyMap) KeySet() [][]byte {
 	var ret [][]byte
 	for /*hashcode*/_, conflicts := range this.data{

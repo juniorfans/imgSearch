@@ -45,6 +45,21 @@ func NewMyConcurrentMap(multyValuesSupported bool) *MyConcurrentMap {
 	return &ret
 }
 
+func (this *MyConcurrentMap) RangeFunc (theFunc func (key []byte, value []interface{}) bool)  {
+	this.data.Range(func(ihash, ivalue interface{}) bool{
+		//hash := ihash.(int)
+		ivalues := ivalue.([]MyConcurrentMapValue)
+		for _,iv := range ivalues{
+			key := iv.key
+			values := iv.values
+			if !theFunc(key,values){
+				return false
+			}
+		}
+		return true
+	})
+}
+
 func (this *MyConcurrentMap) KeySet() [][]byte {
 	var ret [][]byte
 

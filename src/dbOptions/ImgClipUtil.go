@@ -210,6 +210,11 @@ func SaveAllClipsAsJpgOf(dir string, mainImgkey []byte, offsetOfClip[] int, inde
 	SaveMainImg(mainImgkey, dir)
 }
 
+func SaveAClipAsJpgFromClipIdent(dir string, clipIdent []byte)  {
+	os.MkdirAll(dir, 0777)
+	SaveAClipAsJpg(0, dir, clipIdent[0], clipIdent[1:ImgIndex.IMG_CLIP_IDENT_LENGTH-1], clipIdent[ImgIndex.IMG_CLIP_IDENT_LENGTH-1])
+}
+
 func SaveAClipAsJpg(clipConfigId uint8, dir string, dbId uint8, mainImgkey []byte, which uint8){
 	clipName := strconv.Itoa(int(dbId)) + "_" + string(ImgIndex.ParseImgKeyToPlainTxt(mainImgkey)) + "_" + strconv.Itoa(int(which))+".jpg"
 	clipConfig := config.GetClipConfigById(clipConfigId)

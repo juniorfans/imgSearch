@@ -133,7 +133,7 @@ func ImgRecognitionByImgData(imgSrcData []byte) *RecognitionResult{
 
 	//从协同库查找, 且使用 not same topic 过滤
 	supportThreshold := 2
-	coordinateResults := GetCoordinateClipsFromClipIndexes(clipIndexes, supportThreshold)
+	coordinateResults := GetCoordinateClipsInClipIndexes(clipIndexes, supportThreshold)
 	if len(coordinateResults) > 0{
 		sort.Sort(coordinateResults)
 		for _,coordinateRes := range coordinateResults{
